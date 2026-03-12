@@ -353,9 +353,10 @@ export default function StockDetail() {
                 axisLine={false}
                 tickLine={false}
                 width={45}
-                tickFormatter={(v) => `$${v}`}
+                tickFormatter={(v) => `$${v.toFixed(2)}`}
               />
               <Tooltip
+                formatter={(value) => [`$${value.toFixed(2)}`, 'Price']}
                 contentStyle={{
                   background: 'rgba(15, 23, 42, 0.7)',
                   backdropFilter: 'blur(20px)',
