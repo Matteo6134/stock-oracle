@@ -19,7 +19,8 @@ const ETORO_TICKERS = new Set([
   'AMT','PLD','CCI','EQIX','SPG','O','PSA','DLR','WELL','AVB',
   'T','VZ','TMUS','TLRY','CGC','ACB','CRON',
   'MSTR','MARA','RIOT','CLSK','HUT','AI','PATH','UPST','BBAI','SOUN',
-  'RKLB','SPCE','ABNB','DASH','DKNG','PENN','MGM','BABA','TSM','ASML','SAP','NVO'
+  'RKLB','SPCE','ABNB','DASH','DKNG','PENN','MGM','BABA','TSM','ASML','SAP','NVO',
+  'HOOD','PYPL','COIN','BITO','ETHE','GBTC'
 ]);
 
 const REVOLUT_TICKERS = new Set([
@@ -36,7 +37,7 @@ const REVOLUT_TICKERS = new Set([
   'IEX','IFF','ILMN','INCY','INTU','INVH','IP','IPG','IQV','IR','IRM',
   'J','JBHT','JCI','JKHY','JNPR',
   'K','KDP','KEY','KEYS','KHC','KIM','KLAC','KMB','KMI','KMX','KR',
-  'L','LDOS','LEN','LH','LIN','LKQ','LNT','LRCX','LUV','LVS','LW','LYB','LYV',
+  'L','LDOS','LH','LIN','LKQ','LNT','LRCX','LUV','LVS','LW','LYB','LYV',
   'MAA','MAR','MAS','MKC','MCHP','MDLZ','MKTX','MLM','MOH','MOS','MPWR','MSCI','MTB','MTCH','MTD',
   'NDAQ','NDSN','NEE','NEM','NI','NRG','NUE','NVR',
   'ODFL','OKE','OMC','ORLY','OTIS',
@@ -52,5 +53,17 @@ const REVOLUT_TICKERS = new Set([
 
 export function checkAvailability(symbol) {
   const upper = symbol.toUpperCase();
-  return { etoro: ETORO_TICKERS.has(upper), revolut: REVOLUT_TICKERS.has(upper) };
+  const isEtoro = ETORO_TICKERS.has(upper);
+  const isRevolut = REVOLUT_TICKERS.has(upper);
+
+  return { 
+    etoro: {
+      available: isEtoro,
+      url: `https://www.etoro.com/markets/${upper.toLowerCase()}`
+    },
+    revolut: {
+      available: isRevolut,
+      url: "https://www.revolut.com/en-IT/investing/"
+    }
+  };
 }

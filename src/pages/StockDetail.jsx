@@ -403,8 +403,12 @@ export default function StockDetail() {
         <div className="glass-card p-4 mb-4">
           <h3 className="text-xs text-oracle-muted font-medium mb-3">Broker Availability</h3>
           <div className="flex gap-3">
-            {brokerData.etoro !== undefined && <BrokerBadge name="eToro" available={brokerData.etoro} />}
-            {brokerData.revolut !== undefined && <BrokerBadge name="Revolut" available={brokerData.revolut} />}
+            {brokerData.etoro && (
+              <BrokerBadge name="eToro" available={brokerData.etoro.available} url={brokerData.etoro.url} />
+            )}
+            {brokerData.revolut && (
+              <BrokerBadge name="Revolut" available={brokerData.revolut.available} url={brokerData.revolut.url} />
+            )}
           </div>
         </div>
       )}

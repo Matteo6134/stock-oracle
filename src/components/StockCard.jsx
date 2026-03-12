@@ -194,11 +194,11 @@ export default function StockCard({ stock, rank }) {
                 {analystBuyPct}% Buy
               </span>
             )}
-            {brokerData?.etoro !== undefined && (
-              <BrokerBadge name="eToro" available={brokerData.etoro} />
+            {brokerData?.etoro && (
+              <BrokerBadge name="eToro" available={brokerData.etoro.available} url={brokerData.etoro.url} />
             )}
-            {brokerData?.revolut !== undefined && (
-              <BrokerBadge name="Revolut" available={brokerData.revolut} />
+            {brokerData?.revolut && (
+              <BrokerBadge name="Revolut" available={brokerData.revolut.available} url={brokerData.revolut.url} />
             )}
           </div>
 
