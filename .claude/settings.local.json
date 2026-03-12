@@ -1,0 +1,28 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm create vite@latest . -- --template react)",
+      "Bash(npx --yes create-vite@latest stock-oracle --template react)",
+      "Bash(mv stock-oracle/* stock-oracle/.* .)",
+      "Bash(rmdir stock-oracle)",
+      "Bash(npm install)",
+      "Bash(npm install -D tailwindcss @tailwindcss/vite)",
+      "Bash(npm install express cors axios cheerio node-cron dotenv concurrently yahoo-finance2 natural sentiment)",
+      "Bash(npm install react-router-dom lucide-react recharts date-fns)",
+      "Bash(npx vite build)",
+      "Bash(timeout 5 node server/index.js)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(npx kill-port 3001)",
+      "Bash(lsof -i :3001)",
+      "Bash(npx kill-port 5173)",
+      "Bash(npx kill-port 3001 5173 4000 5174)",
+      "Bash(ls /c/Users/pc2/Desktop/binance-bot/node_modules/.bin/vite*)",
+      "Bash(node -e \"console.log\\(require.resolve\\(''vite/bin/vite.js''\\)\\)\")",
+      "Bash(node -e \"const p = require.resolve\\(''vite''\\); console.log\\(p\\)\")",
+      "Bash(node -e \"import\\(''yahoo-finance2''\\).then\\(m => { console.log\\(''Keys:'', Object.keys\\(m\\)\\); console.log\\(''Default type:'', typeof m.default\\); const yf = m.default; console.log\\(''yf type:'', typeof yf\\); console.log\\(''yf keys:'', Object.keys\\(yf\\)\\); if \\(typeof yf === ''function''\\) { const inst = new yf\\(\\); console.log\\(''Instance keys:'', Object.keys\\(inst\\)\\); } }\\)\")",
+      "Bash(node -e \":*)",
+      "Bash(npx kill-port 4000 5174)",
+      "WebSearch"
+    ]
+  }
+}

@@ -1,0 +1,485 @@
+{
+  "2026-03-10": {
+    "trending": [
+      {
+        "symbol": "SERV",
+        "name": "Serve Robotics Inc.",
+        "entryPrice": 9.67,
+        "reason": "Social breakout above $9.50.",
+        "score": 88,
+        "timestamp": "2026-03-10T20:00:00Z"
+      },
+      {
+        "symbol": "TSLA",
+        "name": "Tesla, Inc.",
+        "entryPrice": 399.23,
+        "reason": "Reddit momentum buildup.",
+        "score": 85,
+        "timestamp": "2026-03-10T20:00:00Z"
+      },
+      {
+        "symbol": "AAPL",
+        "name": "Apple Inc.",
+        "entryPrice": 260.83,
+        "reason": "Institutional accumulation.",
+        "score": 78,
+        "timestamp": "2026-03-10T20:00:00Z"
+      }
+    ],
+    "tomorrow": [
+      {
+        "symbol": "DSGX",
+        "name": "Descartes Systems Group",
+        "entryPrice": 70.01,
+        "reason": "Earnings report scheduled for Mar 11.",
+        "score": 92,
+        "timestamp": "2026-03-10T20:00:00Z"
+      },
+      {
+        "symbol": "NTSK",
+        "name": "Netskope, Inc.",
+        "entryPrice": 12.01,
+        "reason": "Upcoming analyst upgrades.",
+        "score": 66,
+        "timestamp": "2026-03-10T20:00:00Z"
+      }
+    ]
+  },
+  "2026-03-11": {
+    "trending": [
+      {
+        "symbol": "DSGX",
+        "name": "The Descartes Systems Group Inc",
+        "entryPrice": 68.81,
+        "reason": "",
+        "score": 68,
+        "timestamp": "2026-03-11T16:29:30.803Z"
+      },
+      {
+        "symbol": "GRDN",
+        "name": "Guardian Pharmacy Services, Inc",
+        "entryPrice": 32.94,
+        "reason": "",
+        "score": 67,
+        "timestamp": "2026-03-11T16:29:30.803Z"
+      },
+      {
+        "symbol": "NTSK",
+        "name": "Netskope, Inc.",
+        "entryPrice": 12.38,
+        "reason": "",
+        "score": 66,
+        "timestamp": "2026-03-11T16:29:30.803Z"
+      },
+      {
+        "symbol": "SERV",
+        "name": "Serve Robotics Inc.",
+        "entryPrice": 10.85,
+        "reason": "",
+        "score": 66,
+        "timestamp": "2026-03-11T16:29:30.803Z"
+      },
+      {
+        "symbol": "ORCL",
+        "name": "Oracle Corporation",
+        "entryPrice": 164.325,
+        "reason": "",
+        "score": 60,
+        "timestamp": "2026-03-11T16:29:30.803Z"
+      },
+      {
+        "symbol": "PATH",
+        "name": "UiPath, Inc.",
+        "entryPrice": 11.875,
+        "reason": "",
+        "score": 59,
+        "timestamp": "2026-03-11T16:29:30.803Z"
+      },
+      {
+        "symbol": "NVGS",
+        "name": "Navigator Holdings Ltd.",
+        "entryPrice": 20.4,
+        "reason": "",
+        "score": 59,
+        "timestamp": "2026-03-11T16:29:30.803Z"
+      },
+      {
+        "symbol": "VZLA",
+        "name": "Vizsla Silver Corp.",
+        "entryPrice": 4.0022,
+        "reason": "",
+        "score": 59,
+        "timestamp": "2026-03-11T16:29:30.803Z"
+      },
+      {
+        "symbol": "ZBIO",
+        "name": "Zenas BioPharma, Inc.",
+        "entryPrice": 25.0699,
+        "reason": "",
+        "score": 58,
+        "timestamp": "2026-03-11T16:29:30.803Z"
+      },
+      {
+        "symbol": "SBXD",
+        "name": "SilverBox Corp IV",
+        "entryPrice": 10.68,
+        "reason": "",
+        "score": 57,
+        "timestamp": "2026-03-11T16:29:30.803Z"
+      }
+    ],
+    "tomorrow": [
+      {
+        "symbol": "S",
+        "name": "SentinelOne, Inc.",
+        "entryPrice": 14.11,
+        "reason": "Earnings report scheduled for tomorrow. 65% analyst buy rating. Analyst target $20 (+42% upside).",
+        "score": 78,
+        "timestamp": "2026-03-11T16:30:15.903Z"
+      },
+      {
+        "symbol": "FUTU",
+        "name": "Futu Holdings Limited",
+        "entryPrice": 153.06,
+        "reason": "Earnings report scheduled for tomorrow. 100% analyst buy rating. Analyst target $233 (+52% upside).",
+        "score": 74,
+        "timestamp": "2026-03-11T16:30:15.903Z"
+      },
+      {
+        "symbol": "USAR",
+        "name": "USA Rare Earth, Inc.",
+        "entryPrice": 20.7299,
+        "reason": "Earnings report scheduled for tomorrow. 100% analyst buy rating. Analyst target $38 (+83% upside).",
+        "score": 73,
+        "timestamp": "2026-03-11T16:30:15.903Z"
+      },
+      {
+        "symbol": "RBRK",
+        "name": "Rubrik, Inc.",
+        "entryPrice": 56.12,
+        "reason": "Earnings report scheduled for tomorrow. 96% analyst buy rating. Analyst target $101 (+79% upside).",
+        "score": 71,
+        "timestamp": "2026-03-11T16:30:15.903Z"
+      },
+      {
+        "symbol": "TTAN",
+        "name": "ServiceTitan, Inc.",
+        "entryPrice": 77.04,
+        "reason": "Earnings report scheduled for tomorrow. 83% analyst buy rating. Analyst target $128 (+66% upside).",
+        "score": 62,
+        "timestamp": "2026-03-11T16:30:15.903Z"
+      },
+      {
+        "symbol": "TGS",
+        "name": "Transportadora de Gas del Sur S",
+        "entryPrice": 30.84,
+        "reason": "Earnings report scheduled for tomorrow. 80% analyst buy rating. Analyst target $37 (+21% upside).",
+        "score": 58,
+        "timestamp": "2026-03-11T16:30:15.903Z"
+      },
+      {
+        "symbol": "YMM",
+        "name": "Full Truck Alliance Co. Ltd.",
+        "entryPrice": 9.005,
+        "reason": "Earnings report scheduled for tomorrow. 86% analyst buy rating. Analyst target $13 (+48% upside).",
+        "score": 56,
+        "timestamp": "2026-03-11T16:30:15.903Z"
+      },
+      {
+        "symbol": "DNN",
+        "name": "Denison Mines Corp",
+        "entryPrice": 3.9499,
+        "reason": "Earnings report scheduled for tomorrow. 100% analyst buy rating. Analyst target $5 (+27% upside).",
+        "score": 56,
+        "timestamp": "2026-03-11T16:30:15.903Z"
+      },
+      {
+        "symbol": "OLLI",
+        "name": "Ollie's Bargain Outlet Holdings",
+        "entryPrice": 105.23,
+        "reason": "Earnings report scheduled for tomorrow. 73% analyst buy rating. Analyst target $141 (+34% upside).",
+        "score": 55,
+        "timestamp": "2026-03-11T16:30:15.903Z"
+      },
+      {
+        "symbol": "DKS",
+        "name": "Dick's Sporting Goods Inc",
+        "entryPrice": 196.42,
+        "reason": "Earnings report scheduled for tomorrow. Analyst target $238 (+21% upside).",
+        "score": 54,
+        "timestamp": "2026-03-11T16:30:15.903Z"
+      },
+      {
+        "symbol": "ADBE",
+        "name": "Adobe Inc.",
+        "entryPrice": 271.22,
+        "reason": "Earnings report scheduled for tomorrow. Analyst target $385 (+42% upside).",
+        "score": 53,
+        "timestamp": "2026-03-11T16:30:15.903Z"
+      },
+      {
+        "symbol": "WPM",
+        "name": "Wheaton Precious Metals Corp",
+        "entryPrice": 146.35,
+        "reason": "Earnings report scheduled for tomorrow. 93% analyst buy rating. Analyst target $185 (+27% upside).",
+        "score": 53,
+        "timestamp": "2026-03-11T16:30:15.903Z"
+      },
+      {
+        "symbol": "ULTA",
+        "name": "Ulta Beauty, Inc.",
+        "entryPrice": 652.185,
+        "reason": "Earnings report scheduled for tomorrow. 61% analyst buy rating.",
+        "score": 52,
+        "timestamp": "2026-03-11T16:30:15.903Z"
+      },
+      {
+        "symbol": "LI",
+        "name": "Li Auto Inc.",
+        "entryPrice": 18.285,
+        "reason": "Earnings report scheduled for tomorrow. Analyst target $24 (+29% upside).",
+        "score": 52,
+        "timestamp": "2026-03-11T16:30:15.903Z"
+      },
+      {
+        "symbol": "DG",
+        "name": "Dollar General Corporation",
+        "entryPrice": 145.66,
+        "reason": "Earnings report scheduled for tomorrow.",
+        "score": 49,
+        "timestamp": "2026-03-11T16:30:15.903Z"
+      }
+    ]
+  },
+  "2026-03-12": {
+    "trending": [
+      {
+        "symbol": "FUTU",
+        "name": "Futu Holdings Limited",
+        "entryPrice": 152.64,
+        "reason": "",
+        "score": 74,
+        "earningsTiming": "BMO",
+        "timestamp": "2026-03-12T07:03:28.660Z"
+      },
+      {
+        "symbol": "RBRK",
+        "name": "Rubrik, Inc.",
+        "entryPrice": 57.52,
+        "reason": "",
+        "score": 70,
+        "earningsTiming": "AMC",
+        "timestamp": "2026-03-12T07:03:28.660Z"
+      },
+      {
+        "symbol": "YMM",
+        "name": "Full Truck Alliance Co. Ltd.",
+        "entryPrice": 9.13,
+        "reason": "",
+        "score": 63,
+        "earningsTiming": "BMO",
+        "timestamp": "2026-03-12T07:03:28.661Z"
+      },
+      {
+        "symbol": "TTAN",
+        "name": "ServiceTitan, Inc.",
+        "entryPrice": 78.49,
+        "reason": "",
+        "score": 62,
+        "earningsTiming": "AMC",
+        "timestamp": "2026-03-12T07:03:28.661Z"
+      },
+      {
+        "symbol": "PATH",
+        "name": "UiPath, Inc.",
+        "entryPrice": 12.38,
+        "reason": "",
+        "score": 62,
+        "earningsTiming": "N/A",
+        "timestamp": "2026-03-12T07:03:28.661Z"
+      },
+      {
+        "symbol": "DKS",
+        "name": "Dick's Sporting Goods Inc",
+        "entryPrice": 195.53,
+        "reason": "",
+        "score": 59,
+        "earningsTiming": "BMO",
+        "timestamp": "2026-03-12T07:03:28.661Z"
+      },
+      {
+        "symbol": "WPM",
+        "name": "Wheaton Precious Metals Corp",
+        "entryPrice": 148.67,
+        "reason": "",
+        "score": 58,
+        "earningsTiming": "AMC",
+        "timestamp": "2026-03-12T07:03:28.661Z"
+      },
+      {
+        "symbol": "ULTA",
+        "name": "Ulta Beauty, Inc.",
+        "entryPrice": 652.645,
+        "reason": "",
+        "score": 58,
+        "earningsTiming": "AMC",
+        "timestamp": "2026-03-12T07:03:28.661Z"
+      },
+      {
+        "symbol": "NBIS",
+        "name": "Nebius Group N.V.",
+        "entryPrice": 111.995,
+        "reason": "",
+        "score": 57,
+        "earningsTiming": "N/A",
+        "timestamp": "2026-03-12T07:03:28.661Z"
+      },
+      {
+        "symbol": "LI",
+        "name": "Li Auto Inc.",
+        "entryPrice": 18.29,
+        "reason": "",
+        "score": 56,
+        "earningsTiming": "BMO",
+        "timestamp": "2026-03-12T07:03:28.661Z"
+      }
+    ],
+    "tomorrow": [
+      {
+        "symbol": "NPK",
+        "name": "National Presto Industries, Inc",
+        "entryPrice": 140.25,
+        "reason": "Earnings report scheduled for tomorrow.",
+        "score": 63,
+        "earningsTiming": "N/A",
+        "timestamp": "2026-03-12T07:03:53.838Z"
+      },
+      {
+        "symbol": "AXIA",
+        "name": "AXIA Energia",
+        "entryPrice": 11.78,
+        "reason": "Earnings report scheduled for tomorrow. 100% analyst buy rating.",
+        "score": 62,
+        "earningsTiming": "N/A",
+        "timestamp": "2026-03-12T07:03:53.838Z"
+      },
+      {
+        "symbol": "RLX",
+        "name": "RLX Technology Inc.",
+        "entryPrice": 2.25,
+        "reason": "Earnings report scheduled for tomorrow. 75% analyst buy rating. Analyst target $3 (+30% upside).",
+        "score": 62,
+        "earningsTiming": "BMO",
+        "timestamp": "2026-03-12T07:03:53.838Z"
+      },
+      {
+        "symbol": "VEON",
+        "name": "VEON Ltd.",
+        "entryPrice": 53.28,
+        "reason": "Earnings report scheduled for tomorrow.",
+        "score": 60,
+        "earningsTiming": "BMO",
+        "timestamp": "2026-03-12T07:03:53.838Z"
+      },
+      {
+        "symbol": "XXI",
+        "name": "Twenty One Capital, Inc.",
+        "entryPrice": 7.04,
+        "reason": "Earnings report scheduled for tomorrow.",
+        "score": 57,
+        "earningsTiming": "N/A",
+        "timestamp": "2026-03-12T07:03:53.838Z"
+      },
+      {
+        "symbol": "BETR",
+        "name": "Better Home & Finance Holding C",
+        "entryPrice": 39.93,
+        "reason": "Earnings report scheduled for tomorrow.",
+        "score": 57,
+        "earningsTiming": "BMO",
+        "timestamp": "2026-03-12T07:03:53.838Z"
+      },
+      {
+        "symbol": "TEO",
+        "name": "Telecom Argentina SA",
+        "entryPrice": 12.28,
+        "reason": "Earnings report scheduled for tomorrow.",
+        "score": 56,
+        "earningsTiming": "N/A",
+        "timestamp": "2026-03-12T07:03:53.838Z"
+      },
+      {
+        "symbol": "EEX",
+        "name": "Emerald Holding, Inc.",
+        "entryPrice": 4.32,
+        "reason": "Earnings report scheduled for tomorrow. 100% analyst buy rating. Analyst target $8 (+82% upside).",
+        "score": 55,
+        "earningsTiming": "BMO",
+        "timestamp": "2026-03-12T07:03:53.838Z"
+      },
+      {
+        "symbol": "PBT",
+        "name": "Permian Basin Royalty Trust",
+        "entryPrice": 20.77,
+        "reason": "Earnings report scheduled for tomorrow.",
+        "score": 54,
+        "earningsTiming": "N/A",
+        "timestamp": "2026-03-12T07:03:53.838Z"
+      },
+      {
+        "symbol": "VGZ",
+        "name": "Vista Gold Corp",
+        "entryPrice": 2.37,
+        "reason": "Earnings report scheduled for tomorrow. 100% analyst buy rating. Analyst target $5 (+111% upside).",
+        "score": 51,
+        "earningsTiming": "N/A",
+        "timestamp": "2026-03-12T07:03:53.838Z"
+      },
+      {
+        "symbol": "KLRS",
+        "name": "Kalaris Therapeutics, Inc.",
+        "entryPrice": 9.21,
+        "reason": "Earnings report scheduled for tomorrow. 83% analyst buy rating. Analyst target $20 (+115% upside).",
+        "score": 51,
+        "earningsTiming": "N/A",
+        "timestamp": "2026-03-12T07:03:53.838Z"
+      },
+      {
+        "symbol": "BTBT",
+        "name": "Bit Digital, Inc.",
+        "entryPrice": 1.63,
+        "reason": "Earnings report scheduled for tomorrow. 100% analyst buy rating. Analyst target $5 (+214% upside).",
+        "score": 49,
+        "earningsTiming": "N/A",
+        "timestamp": "2026-03-12T07:03:53.838Z"
+      },
+      {
+        "symbol": "BKE",
+        "name": "Buckle, Inc. (The)",
+        "entryPrice": 50.48,
+        "reason": "Earnings report scheduled for tomorrow.",
+        "score": 47,
+        "earningsTiming": "BMO",
+        "timestamp": "2026-03-12T07:03:53.838Z"
+      },
+      {
+        "symbol": "FDMT",
+        "name": "4D Molecular Therapeutics, Inc.",
+        "entryPrice": 8.54,
+        "reason": "Earnings report scheduled for tomorrow. 82% analyst buy rating. Analyst target $33 (+288% upside).",
+        "score": 46,
+        "earningsTiming": "N/A",
+        "timestamp": "2026-03-12T07:03:53.838Z"
+      },
+      {
+        "symbol": "NEN",
+        "name": "New England Realty Associates L",
+        "entryPrice": 65,
+        "reason": "Earnings report scheduled for tomorrow.",
+        "score": 46,
+        "earningsTiming": "N/A",
+        "timestamp": "2026-03-12T07:03:53.838Z"
+      }
+    ]
+  }
+}
