@@ -481,5 +481,219 @@
         "timestamp": "2026-03-12T07:03:53.838Z"
       }
     ]
+  },
+  "2026-03-16": {
+    "trending": [
+      {
+        "symbol": "RBRK",
+        "name": "Rubrik, Inc.",
+        "entryPrice": 52.89,
+        "reason": "",
+        "score": 70,
+        "confidence": "HIGH",
+        "entrySignal": "enter",
+        "earningsTiming": "N/A",
+        "atr": 3.1,
+        "breakdown": {
+          "catalyst": 8,
+          "earningsQuality": 20,
+          "revision": 13,
+          "social": 0,
+          "news": 15,
+          "technical": 9,
+          "pead": 5
+        },
+        "timestamp": "2026-03-16T14:10:52.544Z"
+      },
+      {
+        "symbol": "SMTC",
+        "name": "Semtech Corporation",
+        "entryPrice": 87.94,
+        "reason": "",
+        "score": 59,
+        "confidence": "MEDIUM",
+        "entrySignal": "enter",
+        "earningsTiming": "AMC",
+        "atr": 5.16,
+        "breakdown": {
+          "catalyst": 20,
+          "earningsQuality": 17,
+          "revision": 3,
+          "social": 0,
+          "news": 10,
+          "technical": 6,
+          "pead": 3
+        },
+        "timestamp": "2026-03-16T14:10:52.544Z"
+      },
+      {
+        "symbol": "DLTR",
+        "name": "Dollar Tree, Inc.",
+        "entryPrice": 112.405,
+        "reason": "",
+        "score": 58,
+        "confidence": "MEDIUM",
+        "entrySignal": "risky",
+        "earningsTiming": "BMO",
+        "atr": 4.4,
+        "breakdown": {
+          "catalyst": 18,
+          "earningsQuality": 18,
+          "revision": 3,
+          "social": 0,
+          "news": 10,
+          "technical": 4,
+          "pead": 5
+        },
+        "timestamp": "2026-03-16T14:10:52.544Z"
+      },
+      {
+        "symbol": "SAIC",
+        "name": "Science Applications Internatio",
+        "entryPrice": 93.03,
+        "reason": "",
+        "score": 58,
+        "confidence": "MEDIUM",
+        "entrySignal": "enter",
+        "earningsTiming": "BMO",
+        "atr": 2.99,
+        "breakdown": {
+          "catalyst": 19,
+          "earningsQuality": 16,
+          "revision": 3,
+          "social": 0,
+          "news": 8,
+          "technical": 7,
+          "pead": 5
+        },
+        "timestamp": "2026-03-16T14:10:52.544Z"
+      },
+      {
+        "symbol": "AGRO",
+        "name": "Adecoagro S.A.",
+        "entryPrice": 11.12,
+        "reason": "",
+        "score": 57,
+        "confidence": "MEDIUM",
+        "entrySignal": "enter",
+        "earningsTiming": "AMC",
+        "atr": 0.46,
+        "breakdown": {
+          "catalyst": 17,
+          "earningsQuality": 6,
+          "revision": 5,
+          "social": 0,
+          "news": 12,
+          "technical": 20,
+          "pead": -3
+        },
+        "timestamp": "2026-03-16T14:10:52.544Z"
+      },
+      {
+        "symbol": "MVST",
+        "name": "Microvast Holdings, Inc.",
+        "entryPrice": 2.485,
+        "reason": "",
+        "score": 57,
+        "confidence": "MEDIUM",
+        "entrySignal": "too_late",
+        "earningsTiming": "AMC",
+        "atr": 0.13,
+        "breakdown": {
+          "catalyst": 20,
+          "earningsQuality": 8,
+          "revision": 1,
+          "social": 0,
+          "news": 15,
+          "technical": 16,
+          "pead": -3
+        },
+        "timestamp": "2026-03-16T14:10:52.544Z"
+      },
+      {
+        "symbol": "PROK",
+        "name": "ProKidney Corp.",
+        "entryPrice": 2.255,
+        "reason": "",
+        "score": 56,
+        "confidence": "MEDIUM",
+        "entrySignal": "enter",
+        "earningsTiming": "N/A",
+        "atr": 0.17,
+        "breakdown": {
+          "catalyst": 19,
+          "earningsQuality": 12,
+          "revision": 3,
+          "social": 0,
+          "news": 12,
+          "technical": 5,
+          "pead": 5
+        },
+        "timestamp": "2026-03-16T14:10:52.544Z"
+      },
+      {
+        "symbol": "TE",
+        "name": "T1 Energy Inc.",
+        "entryPrice": 7.945,
+        "reason": "",
+        "score": 51,
+        "confidence": "MEDIUM",
+        "entrySignal": "enter",
+        "earningsTiming": "N/A",
+        "atr": 0.76,
+        "breakdown": {
+          "catalyst": 20,
+          "earningsQuality": 0,
+          "revision": 5,
+          "social": 0,
+          "news": 15,
+          "technical": 14,
+          "pead": -3
+        },
+        "timestamp": "2026-03-16T14:10:52.544Z"
+      },
+      {
+        "symbol": "VNET",
+        "name": "VNET Group, Inc.",
+        "entryPrice": 9.735,
+        "reason": "",
+        "score": 48,
+        "confidence": "MEDIUM",
+        "entrySignal": "enter",
+        "earningsTiming": "BMO",
+        "atr": 0.84,
+        "breakdown": {
+          "catalyst": 20,
+          "earningsQuality": 1,
+          "revision": 3,
+          "social": 0,
+          "news": 12,
+          "technical": 7,
+          "pead": 5
+        },
+        "timestamp": "2026-03-16T14:10:52.544Z"
+      },
+      {
+        "symbol": "ADBE",
+        "name": "Adobe Inc.",
+        "entryPrice": 246.24,
+        "reason": "",
+        "score": 45,
+        "confidence": "MEDIUM",
+        "entrySignal": "enter",
+        "earningsTiming": "N/A",
+        "atr": 10.47,
+        "breakdown": {
+          "catalyst": 6,
+          "earningsQuality": 16,
+          "revision": 3,
+          "social": 3,
+          "news": 10,
+          "technical": 6,
+          "pead": 1
+        },
+        "timestamp": "2026-03-16T14:10:52.544Z"
+      }
+    ]
   }
 }
