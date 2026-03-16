@@ -168,20 +168,34 @@ export async function getUpcomingCatalysts(symbol) {
   }
 }
 
+export function getCurrentSessionPrice(quote) {
+  if (!quote) return 0;
+  
+  // Try to find the most "current" price based on market state
+  const pre = quote.preMarketPrice;
+  const post = quote.postMarketPrice;
+  const reg = quote.regularMarketPrice;
+  const state = quote.marketState; // e.g., 'PRE', 'REGULAR', 'POST', 'CLOSED'
+
+  if (state === 'PRE' && pre) return pre;
+  if ((state === 'POST' || state === 'CLOSED') && post) return post;
+  return reg || pre || post || 0;
+}
+
 export async function getQuoteBatch(symbols) {
   try {
     if (!symbols || symbols.length === 0) return [];
     
     // YahooFinance supports array of symbols for quote
     const result = await yf.quote(symbols);
-    
-    // Ensure array return
-    if (Array.isArray(result)) return result;
-    if (result) return [result];
-    return [];
+    const quotes = Array.isArray(result) ? result : [result];
+
+    return quotes.map(q => ({
+      ...q,
+      currentSessionPrice: getCurrentSessionPrice(q)
+    }));
   } catch (err) {
     console.warn(`[YahooFinance] Batch quote error for ${symbols.length} symbols, falling back to individual calls:`, err.message);
-    // Fallback to individual
     const results = await Promise.allSettled(symbols.map(s => getQuote(s)));
     return results.filter(r => r.status === 'fulfilled' && r.value).map(r => r.value);
   }
@@ -189,7 +203,12 @@ export async function getQuoteBatch(symbols) {
 
 export async function getQuote(symbol) {
   try {
-    return (await yf.quote(symbol)) || {};
+    const q = await yf.quote(symbol);
+    if (!q) return {};
+    return {
+      ...q,
+      currentSessionPrice: getCurrentSessionPrice(q)
+    };
   } catch (err) {
     console.error(`[YahooFinance] Quote error ${symbol}:`, err.message);
     return {};

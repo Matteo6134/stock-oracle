@@ -183,6 +183,81 @@ function calcTradeSetup(history, currentPrice, catalysts, quote) {
   };
 }
 
+/**
+ * Real-time analysis of earnings results after they report.
+ * Uses news sentiment and price gap.
+ */
+function analyzeEarningsResult(symbol, news, quote, timing) {
+  if (!timing || timing === 'N/A') return null;
+
+  // 1. Check if report time has passed in NY
+  const now = new Date();
+  const nyTimeStr = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York',
+    hour: 'numeric',
+    minute: 'numeric',
+    hour12: false
+  }).format(now);
+  
+  const [hour, minute] = nyTimeStr.split(':').map(Number);
+  const totalMinutes = hour * 60 + minute;
+  
+  // BMO: Start checking after 7:00 AM ET (pre-market reports often hit then)
+  const isBmoPassed = timing === 'BMO' && totalMinutes >= 420; 
+  const isAmcPassed = timing === 'AMC' && totalMinutes >= 960; // Past 4:00 PM ET
+
+  if (!isBmoPassed && !isAmcPassed) return null;
+
+  // 2. Scan news for earnings keywords
+  const BEAT_WORDS = ['beats', 'exceeds', 'above estimates', 'soars', 'surprises', 'growth', 'upbeat', 'bullish'];
+  const MISS_WORDS = ['misses', 'below estimates', 'plunges', 'falls', 'disappoints', 'warning', 'weak', 'bearish'];
+  
+  let beatCount = 0;
+  let missCount = 0;
+  
+  news.slice(0, 10).forEach(a => {
+    const title = a.title.toLowerCase();
+    const hasEarnings = title.includes('earnings') || title.includes('results') || title.includes('q1') || title.includes('q2') || title.includes('q3') || title.includes('q4');
+    
+    if (hasEarnings) {
+      BEAT_WORDS.forEach(w => { if (title.includes(w)) beatCount++; });
+      MISS_WORDS.forEach(w => { if (title.includes(w)) missCount++; });
+    }
+  });
+
+  // 3. Price reaction logic
+  const change = quote?.regularMarketChangePercent || 0;
+  const postPrice = quote?.postMarketPrice;
+  const prePrice = quote?.preMarketPrice;
+  const regPrice = quote?.regularMarketPrice;
+  
+  let reaction = change;
+  if (isAmcPassed && postPrice && regPrice) {
+    reaction = ((postPrice - regPrice) / regPrice) * 100;
+  } else if (isBmoPassed && regPrice && prePrice) {
+    reaction = ((regPrice - prePrice) / prePrice) * 100;
+  }
+
+  let status = 'Reported';
+  let sentiment = 'neutral';
+  
+  if (beatCount > missCount || reaction > 1.5) {
+    status = reaction > 3 ? '✅ BIG BEAT' : '✅ BULLISH';
+    sentiment = 'bullish';
+  } else if (missCount > beatCount || reaction < -1.5) {
+    status = reaction < -3 ? '❌ BIG MISS' : '❌ BEARISH';
+    sentiment = 'bearish';
+  }
+
+  return {
+    status,
+    sentiment,
+    reaction: Math.round(reaction * 100) / 100,
+    summary: beatCount > missCount ? 'Beat Estimates' : missCount > beatCount ? 'Missed Estimates' : 'Reaction Mixed',
+    isReported: true
+  };
+}
+
 // ── Shared Symbol Scoring Helper (Individual) ──
 async function scoreSymbol(symbol, earningsCalendar) {
   const [quote, history, catalysts, reddit, stocktwits, news] = await Promise.allSettled([
@@ -253,6 +328,8 @@ async function scoreSymbol(symbol, earningsCalendar) {
     entryLabel: entry.label,
     entryReason: entry.reason,
     tradeSetup,
+    earningsTiming: earningsEntry?.timing || 'N/A',
+    earningsResult: stockData.hasEarningsToday ? analyzeEarningsResult(symbol, stockData.news, quoteData, earningsEntry?.timing) : null,
     // Keep raw data for detail routes
     _social: { reddit: stockData.reddit, stocktwits: stockData.stocktwits },
     _news: stockData.news,
@@ -275,7 +352,7 @@ async function scoreSymbols(symbols, earningsCalendar, opts = { light: false }) 
     if (q && q.symbol) quoteMap.set(q.symbol, q);
   });
 
-  // 2. Fetch rest of data in parallel for each symbol
+  // 2. Fetch rest of data in parallel for each
   const scoredData = await Promise.allSettled(
     symbols.map(async (symbol) => {
       try {
@@ -299,62 +376,56 @@ async function scoreSymbols(symbols, earningsCalendar, opts = { light: false }) 
         const results = await Promise.allSettled(tasks);
         
         const history = results[0].status === 'fulfilled' ? results[0].value : [];
-        const catalystList = results[1].status === 'fulfilled' ? results[1].value : [];
-        const reddit = (!opts.light && results[2].status === 'fulfilled') ? results[2].value : { mentions: 0, sentiment: 0, topPosts: [] };
-        const stocktwits = (!opts.light && results[3].status === 'fulfilled') ? results[3].value : { bullish: 0, bearish: 0, total: 0, sentiment: 0 };
-        const news = (!opts.light && results[4].status === 'fulfilled') ? results[4].value : [];
-        
-        const earningsEntry = earningsCalendar.find(e => (e.symbol || e.ticker) === symbol);
+        const catalysts = results[1].status === 'fulfilled' ? results[1].value : [];
+        const reddit = !opts.light && results[2].status === 'fulfilled' ? results[2].value : { mentions: 0, sentiment: 0 };
+        const stocktwits = !opts.light && results[3].status === 'fulfilled' ? results[3].value : { bearish: 0, bullish: 0, total: 0 };
+        const news = !opts.light && results[4].status === 'fulfilled' ? results[4].value : [];
 
         const stockData = {
           symbol,
           quote: quoteData,
-          history, reddit, stocktwits, news,
-          hasEarningsToday: !!earningsEntry?.isToday,
-          hasEarningsTomorrow: !!earningsEntry?.isTomorrow,
-          catalysts: catalystList,
-          brokerAvailability: checkAvailability(symbol),
-          sector: classifySector(symbol, quoteData?.shortName || '')
+          history,
+          reddit,
+          stocktwits,
+          news,
+          hasEarningsToday: !!earningsCalendar.find(e => (e.symbol || e.ticker) === symbol && e.isToday),
+          hasEarningsTomorrow: !!earningsCalendar.find(e => (e.symbol || e.ticker) === symbol && e.isTomorrow),
+          catalysts
         };
 
         const score = calculateScore(stockData);
-
-        // Build catalyst labels
-        const upcomingEvents = [];
-        if (earningsEntry?.isToday) upcomingEvents.push('Earnings TODAY');
-        else if (earningsEntry?.isTomorrow) upcomingEvents.push('Earnings TOMORROW');
-        catalystList.forEach(c => {
-          if (c.type === 'earnings' && !earningsEntry) upcomingEvents.push(c.label);
-          if (c.type === 'dividend') upcomingEvents.push(c.label);
-          if (c.type === 'target_price') upcomingEvents.push(c.label);
-        });
-
-        const analystData = catalystList.find(c => c.type === 'analyst');
         const change = quoteData?.regularMarketChangePercent || 0;
         const currentPrice = quoteData?.regularMarketPrice || 0;
-        const entry = getEntrySignal(change, stockData.hasEarningsToday || stockData.hasEarningsTomorrow, history, currentPrice);
-        const tradeSetup = calcTradeSetup(history, currentPrice, catalystList, quoteData);
+        
+        const earningsEntry = earningsCalendar.find(e => (e.symbol || e.ticker) === symbol);
+        const hasEarningsToday = stockData.hasEarningsToday;
+        const hasEarningsTomorrow = stockData.hasEarningsTomorrow;
+        
+        const entry = getEntrySignal(change, hasEarningsToday || hasEarningsTomorrow, history, currentPrice);
+        const tradeSetup = calcTradeSetup(history, currentPrice, catalysts, quoteData);
+        const upcomingEvents = [];
+        if (hasEarningsToday) upcomingEvents.push('Earnings TODAY');
+        else if (hasEarningsTomorrow) upcomingEvents.push('Earnings TOMORROW');
+        
+        const earningsTiming = earningsEntry?.timing || 'N/A';
+        const earningsResult = hasEarningsToday ? analyzeEarningsResult(symbol, news, quoteData, earningsTiming) : null;
 
         return {
           symbol,
-          companyName: quoteData?.shortName || quoteData?.longName || symbol,
-          price: currentPrice || null,
+          companyName: quoteData?.shortName || symbol,
+          price: currentPrice,
           change,
-          marketCap: quoteData?.marketCap || null,
           score: score.totalScore,
-          breakdown: score.breakdown,
-          confidence: score.confidence,
           probability: score.probability,
-          sector: stockData.sector,
-          hasEarningsToday: stockData.hasEarningsToday,
-          hasEarningsTomorrow: stockData.hasEarningsTomorrow,
-          earningsTiming: earningsEntry?.timing || 'N/A',
+          confidence: score.confidence,
+          sector: classifySector(symbol, quoteData?.shortName || ''),
+          hasEarningsToday,
+          hasEarningsTomorrow,
           upcomingEvents,
-          analystBuyPct: analystData?.buyPercentage ? Math.round(analystData.buyPercentage * 100) : null,
-          brokerAvailability: stockData.brokerAvailability,
+          brokerAvailability: checkAvailability(symbol),
           socialMentions: (stockData.reddit.mentions || 0) + (stockData.stocktwits.total || 0),
           newsCount: stockData.news.length,
-          catalysts: catalystList,
+          catalysts,
           entrySignal: entry.signal,
           entryLabel: entry.label,
           entryReason: entry.reason,
@@ -732,6 +803,22 @@ router.get('/trending', async (req, res, next) => {
 
     setCache('trending', result);
     res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ══════════════════════════════════════════
+// /api/history — Performance Evolution
+// ══════════════════════════════════════════
+router.get('/history', async (req, res, next) => {
+  try {
+    const cached = getCached('history_perf', 2 * 60 * 1000); // 2 min cache
+    if (cached) return res.json(cached);
+
+    const history = await getHistoryWithPerformance();
+    setCache('history_perf', history);
+    res.json(history);
   } catch (err) {
     next(err);
   }

@@ -5,26 +5,133 @@ import {
   CheckCircle2, XCircle, MinusCircle, Clock, RefreshCw, Trophy,
   TrendingUp, Zap, AlertCircle, ArrowRight, ChevronLeft, ChevronRight
 } from 'lucide-react';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 
-function WinRateRing({ rate, size = 90 }) {
-  if (rate === null || rate === undefined) return null;
-  const radius = (size - 8) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const strokeDash = (rate / 100) * circumference;
-  const color = rate >= 60 ? '#10b981' : rate >= 45 ? '#eab308' : '#ef4444';
+function PerformanceTrendChart({ days }) {
+  if (!days || days.length < 2) return null;
+
+  // Process data for Recharts (chronological order)
+  const chartData = [...days]
+    .filter(d => d.dayStats?.total > 0)
+    .reverse()
+    .map(d => ({
+      date: new Date(d.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      winRate: d.dayStats.winRate || 0,
+      avgPl: d.dayStats.avgPl || 0,
+    }));
 
   return (
-    <div className="relative" style={{ width: size, height: size }}>
-      <svg width={size} height={size} className="-rotate-90">
-        <circle cx={size/2} cy={size/2} r={radius} fill="none" stroke="rgba(148, 163, 184, 0.1)" strokeWidth={5} />
-        <circle cx={size/2} cy={size/2} r={radius} fill="none"
-          stroke={color} strokeWidth={5} strokeLinecap="round"
-          strokeDasharray={`${strokeDash} ${circumference}`}
+    <div className="glass-card p-4 mb-4">
+      <h3 className="text-xs text-oracle-muted font-bold uppercase mb-4 flex items-center gap-2">
+        <TrendingUp size={14} className="text-oracle-accent" />
+        Accuracy Evolution
+      </h3>
+      <div className="h-44 w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.1)" vertical={false} />
+            <XAxis 
+              dataKey="date" 
+              axisLine={false} 
+              tickLine={false} 
+              tick={{ fill: '#94a3b8', fontSize: 10 }} 
+              minTickGap={20}
+            />
+            <YAxis 
+              yAxisId="left"
+              axisLine={false} 
+              tickLine={false} 
+              tick={{ fill: '#94a3b8', fontSize: 10 }} 
+              domain={[0, 100]}
+              hide
+            />
+            <YAxis 
+              yAxisId="right"
+              orientation="right"
+              axisLine={false} 
+              tickLine={false} 
+              tick={{ fill: '#94a3b8', fontSize: 10 }}
+              hide
+            />
+            <Tooltip
+              contentStyle={{ 
+                backgroundColor: 'rgba(15, 23, 42, 0.9)', 
+                borderColor: 'rgba(148, 163, 184, 0.2)',
+                borderRadius: '8px',
+                fontSize: '10px'
+              }}
+              itemStyle={{ fontSize: '10px', padding: '2px 0' }}
+            />
+            <Line 
+              yAxisId="left"
+              type="monotone" 
+              dataKey="winRate" 
+              name="Win Rate %"
+              stroke="#10b981" 
+              strokeWidth={3} 
+              dot={{ fill: '#10b981', r: 4 }}
+              activeDot={{ r: 6, stroke: 'white', strokeWidth: 2 }}
+            />
+            <Line 
+              yAxisId="right"
+              type="monotone" 
+              dataKey="avgPl" 
+              name="Avg P/L %"
+              stroke="#6366f1" 
+              strokeWidth={2} 
+              strokeDasharray="5 5"
+              dot={{ fill: '#6366f1', r: 3 }}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+      <div className="flex items-center justify-center gap-4 mt-2">
+        <div className="flex items-center gap-1.5">
+          <div className="w-2 h-2 rounded-full bg-[#10b981]" />
+          <span className="text-[10px] text-oracle-muted font-bold">Win Rate %</span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <div className="w-2 h-2 rounded-full bg-[#6366f1]" />
+          <span className="text-[10px] text-oracle-muted font-bold">Avg P/L %</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function WinRateRing({ rate, size = 50 }) {
+  const radius = size * 0.4;
+  const stroke = size * 0.1;
+  const normalizedRadius = radius - stroke * 2;
+  const circumference = normalizedRadius * 2 * Math.PI;
+  const strokeDashoffset = circumference - (rate / 100) * circumference;
+
+  return (
+    <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
+      <svg height={size} width={size} className="transform -rotate-90">
+        <circle
+          stroke="rgba(148, 163, 184, 0.1)"
+          fill="transparent"
+          strokeWidth={stroke}
+          r={normalizedRadius}
+          cx={size / 2}
+          cy={size / 2}
+        />
+        <circle
+          stroke={rate >= 55 ? '#10b981' : rate >= 45 ? '#f59e0b' : '#ef4444'}
+          fill="transparent"
+          strokeWidth={stroke}
+          strokeDasharray={circumference + ' ' + circumference}
+          style={{ strokeDashoffset }}
+          strokeLinecap="round"
+          r={normalizedRadius}
+          cx={size / 2}
+          cy={size / 2}
         />
       </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="font-black text-2xl text-oracle-text">{rate}%</span>
-        <span className="text-[9px] text-oracle-muted uppercase font-bold">Win Rate</span>
+      <div className="absolute inset-0 flex items-center justify-center flex-col">
+        <span className="text-[14px] font-black text-oracle-text leading-none">{rate}%</span>
+        {rate >= 60 && <Trophy size={8} className="text-oracle-accent mt-0.5" />}
       </div>
     </div>
   );
@@ -32,89 +139,37 @@ function WinRateRing({ rate, size = 90 }) {
 
 function PickCard({ pick, onClick }) {
   const isSettled = pick.status === 'settled';
-  const isLive = pick.status === 'live';
-
-  const borderClass = pick.verdict === 'correct'
-    ? 'border-l-oracle-green'
-    : pick.verdict === 'wrong'
-      ? 'border-l-oracle-red'
-      : 'border-l-oracle-border';
+  const isCorrect = pick.verdict === 'correct';
+  const isWrong = pick.verdict === 'wrong';
 
   return (
-    <div
+    <div 
       onClick={onClick}
-      className={`glass-card p-3 cursor-pointer transition-all duration-300 active:scale-[0.98] hover:bg-white/[0.03] border-l-4 ${borderClass}`}
+      className={`glass-card p-3 mb-2 flex items-center justify-between hover:bg-white/[0.04] transition-all cursor-pointer border-l-2 ${
+        isCorrect ? 'border-oracle-green' : isWrong ? 'border-oracle-red' : 'border-oracle-muted/20'
+      }`}
     >
-      {/* Row 1: Symbol + Verdict */}
-      <div className="flex items-center justify-between mb-1">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="font-bold text-oracle-text text-sm">{pick.symbol}</span>
-          <span className="text-xs text-oracle-muted truncate">{pick.name}</span>
+      <div className="flex items-center gap-3">
+        <div className={`p-1.5 rounded-lg ${isCorrect ? 'bg-oracle-green/10 text-oracle-green' : isWrong ? 'bg-oracle-red/10 text-oracle-red' : 'bg-oracle-muted/10 text-oracle-muted'}`}>
+          {isCorrect ? <CheckCircle2 size={16} /> : isWrong ? <XCircle size={16} /> : <MinusCircle size={16} />}
         </div>
-        {isLive && (
-          <span className="flex items-center gap-0.5 text-oracle-accent text-[10px] font-bold shrink-0">
-            <Clock size={9} className="animate-pulse" /> LIVE
-          </span>
-        )}
-        {isSettled && pick.verdict === 'correct' && (
-          <span className="flex items-center gap-0.5 text-oracle-green text-[10px] font-bold shrink-0">
-            <CheckCircle2 size={10} /> RIGHT
-          </span>
-        )}
-        {isSettled && pick.verdict === 'wrong' && (
-          <span className="flex items-center gap-0.5 text-oracle-red text-[10px] font-bold shrink-0">
-            <XCircle size={10} /> WRONG
-          </span>
-        )}
-        {isSettled && pick.verdict === 'flat' && (
-          <span className="flex items-center gap-0.5 text-oracle-muted text-[10px] font-bold shrink-0">
-            <MinusCircle size={10} /> FLAT
-          </span>
-        )}
-        {pick.status === 'pending' && (
-          <span className="flex items-center gap-0.5 text-oracle-muted text-[10px] font-bold shrink-0">
-            <Clock size={9} /> PENDING
-          </span>
-        )}
+        <div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-sm font-bold text-oracle-text">{pick.symbol}</span>
+            <span className="text-[10px] text-oracle-muted px-1 border border-oracle-muted/20 rounded uppercase">{pick.status}</span>
+          </div>
+          <p className="text-[10px] text-oracle-muted truncate max-w-[150px]">{pick.name}</p>
+        </div>
       </div>
-
-      {/* Row 2: Price proof */}
-      <div className="flex items-center gap-2">
-        <div className="flex-1 min-w-0">
-          <div className="text-[9px] text-oracle-muted uppercase font-bold">Buy @</div>
-          <div className="text-sm font-mono font-semibold text-oracle-text">
-            ${pick.entryPrice > 0 ? pick.entryPrice.toFixed(2) : '—'}
-          </div>
+      
+      <div className="text-right">
+        <div className={`text-sm font-bold ${pick.plPercent >= 0 ? 'text-oracle-green' : 'text-oracle-red'}`}>
+          {pick.plPercent >= 0 ? '+' : ''}{pick.plPercent}%
         </div>
-
-        <ArrowRight size={10} className="text-oracle-muted shrink-0" />
-
-        <div className="flex-1 min-w-0">
-          <div className="text-[9px] text-oracle-muted uppercase font-bold">
-            {isLive ? 'Now' : isSettled ? 'Next Day' : 'Current'}
-          </div>
-          <div className="text-sm font-mono font-semibold text-oracle-text">
-            ${isSettled && pick.nextDayClose
-              ? pick.nextDayClose.toFixed(2)
-              : pick.currentPrice > 0 ? pick.currentPrice.toFixed(2) : '—'
-            }
-          </div>
-        </div>
-
-        {/* P/L */}
-        <div className={`px-2 py-1 rounded-lg border min-w-[65px] text-right ${
-          pick.plPercent > 0
-            ? 'bg-oracle-green/5 border-oracle-green/20'
-            : pick.plPercent < 0
-              ? 'bg-oracle-red/5 border-oracle-red/20'
-              : 'bg-oracle-muted/5 border-oracle-muted/20'
-        }`}>
-          <div className={`flex items-center justify-end gap-0.5 font-black text-sm ${
-            pick.plPercent > 0 ? 'text-oracle-green' : pick.plPercent < 0 ? 'text-oracle-red' : 'text-oracle-muted'
-          }`}>
-            {pick.plPercent > 0 ? <ArrowUpRight size={12} /> : pick.plPercent < 0 ? <ArrowDownRight size={12} /> : null}
-            {pick.plPercent > 0 ? '+' : ''}{pick.plPercent.toFixed(2)}%
-          </div>
+        <div className="text-[9px] text-oracle-muted flex items-center justify-end gap-1">
+          <span>${pick.entryPrice}</span>
+          <ArrowRight size={8} />
+          <span>${pick.currentPrice || pick.nextDayClose}</span>
         </div>
       </div>
     </div>
@@ -226,7 +281,7 @@ export default function BacktesterPage() {
             Was the AI Right?
           </h1>
           <p className="text-oracle-muted text-xs mt-0.5">
-            Proof: entry price vs next-day close
+            Proof: entry price vs session move
           </p>
         </div>
         <button
@@ -237,6 +292,9 @@ export default function BacktesterPage() {
           <RefreshCw size={16} />
         </button>
       </div>
+
+      {/* Accuracy Trend Chart */}
+      <PerformanceTrendChart days={days} />
 
       {/* Overall Stats (compact) */}
       {overall.totalPicks > 0 && (
@@ -299,10 +357,19 @@ export default function BacktesterPage() {
               className={`flex-1 rounded-full ${
                 p.verdict === 'correct' ? 'bg-oracle-green' : p.verdict === 'wrong' ? 'bg-oracle-red' : 'bg-oracle-muted/30'
               }`}
+              title={`${p.symbol}: ${p.plPercent}% (${p.settlingSource || 'Daily close'})`}
             />
           ))}
         </div>
       )}
+
+      {/* Evolution Note */}
+      <div className="p-3 glass-card border-l-4 border-l-oracle-accent mb-4">
+        <p className="text-[10px] text-oracle-muted leading-relaxed">
+          <Zap size={10} className="inline mr-1 text-oracle-accent" />
+          <strong>Evolution Logic:</strong> This history updates in real-time. As the app stays online, it learns your preferred symbols and tracks performance across Pre-market, Regular sessions, and After-hours.
+        </p>
+      </div>
 
       {/* Picks list */}
       <div className="space-y-2">

@@ -168,6 +168,21 @@ export default function StockDetail() {
         </div>
       </div>
 
+      {/* Entry Signal Banner */}
+      {signalCfg && entryLabel && (
+        <div className={`glass-card p-3 mb-4 flex items-center gap-3 border-l-4 ${signalCfg.border.replace('/30', '')}`}>
+          <div className={`p-2 rounded-xl ${signalCfg.bg}`}>
+            <SignalIcon size={18} className={signalCfg.text} />
+          </div>
+          <div>
+            <div className={`text-sm font-bold ${signalCfg.text}`}>{entryLabel}</div>
+            {entryReason && (
+              <p className="text-oracle-muted text-xs mt-0.5">{entryReason}</p>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Trade Setup Card */}
       {stock.tradeSetup?.available && (
         <div className="glass-card p-4 mb-4">
@@ -244,6 +259,42 @@ export default function StockDetail() {
             {stock.tradeSetup.atr && <div>ATR(14): ${stock.tradeSetup.atr}</div>}
             {stock.tradeSetup.analystTarget && <div className="text-oracle-muted/50">Analyst 12mo target: ${stock.tradeSetup.analystTarget} (long-term)</div>}
           </div>
+        </div>
+      )}
+
+      {/* Earnings Result Deep Dive */}
+      {stock.earningsResult?.isReported && (
+        <div className={`glass-card p-4 mb-4 border-l-4 ${
+          stock.earningsResult.sentiment === 'bullish' ? 'border-l-oracle-green' : stock.earningsResult.sentiment === 'bearish' ? 'border-l-oracle-red' : 'border-l-oracle-border'
+        }`}>
+          <div className="flex items-center justify-between mb-3">
+             <h3 className="text-xs text-oracle-muted font-medium flex items-center gap-1">
+              <Zap size={12} /> Earnings Result
+            </h3>
+            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+              stock.earningsResult.sentiment === 'bullish' ? 'bg-oracle-green/20 text-oracle-green' : 'bg-oracle-red/20 text-oracle-red'
+            }`}>
+              {stock.earningsResult.status}
+            </span>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-3 mb-3">
+            <div className="glass-inner rounded-lg p-3">
+              <div className="text-oracle-muted text-[10px] uppercase font-bold mb-1">Price Reaction</div>
+              <div className={`text-lg font-bold ${stock.earningsResult.reaction >= 0 ? 'text-oracle-green' : 'text-oracle-red'}`}>
+                {stock.earningsResult.reaction >= 0 ? '+' : ''}{stock.earningsResult.reaction}%
+              </div>
+            </div>
+            <div className="glass-inner rounded-lg p-3">
+              <div className="text-oracle-muted text-[10px] uppercase font-bold mb-1">News Summary</div>
+              <div className="text-xs font-medium text-oracle-text leading-tight">
+                {stock.earningsResult.summary}
+              </div>
+            </div>
+          </div>
+          <p className="text-[10px] text-oracle-muted italic">
+            *Analysis based on real-time news sentiment and pre/post-market price gaps.
+          </p>
         </div>
       )}
 

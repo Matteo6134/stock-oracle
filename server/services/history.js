@@ -86,20 +86,36 @@ export async function getHistoryWithPerformance() {
       }
     });
 
-    // Fetch historical data for all symbols (45 days of daily bars)
-    // This gives us the next-day close for any past pick
+    // Use a simple in-memory cache for historical bars to avoid spamming YF
+    if (!global.histDataCache) global.histDataCache = new Map();
+    const CACHE_DURATION = 12 * 60 * 60 * 1000; // 12 hours
+
     const historyDataMap = {};
-    const histResults = await Promise.allSettled(
-      Array.from(allSymbols).map(async (symbol) => {
-        const data = await yahooFinance.getHistoricalData(symbol);
-        return { symbol, data };
-      })
-    );
-    histResults.forEach(r => {
-      if (r.status === 'fulfilled' && r.value) {
-        historyDataMap[r.value.symbol] = r.value.data || [];
+    const symbolsToFetch = Array.from(allSymbols).filter(sym => {
+      const cached = global.histDataCache.get(sym);
+      if (cached && (Date.now() - cached.timestamp < CACHE_DURATION)) {
+        historyDataMap[sym] = cached.data;
+        return false;
       }
+      return true;
     });
+
+    if (symbolsToFetch.length > 0) {
+      console.log(`[History] Fetching history for ${symbolsToFetch.length} new symbols...`);
+      const histResults = await Promise.allSettled(
+        symbolsToFetch.map(async (symbol) => {
+          const data = await yahooFinance.getHistoricalData(symbol);
+          return { symbol, data };
+        })
+      );
+      histResults.forEach(r => {
+        if (r.status === 'fulfilled' && r.value) {
+          const { symbol, data } = r.value;
+          historyDataMap[symbol] = data || [];
+          global.histDataCache.set(symbol, { data: data || [], timestamp: Date.now() });
+        }
+      });
+    }
 
     // Build result for each day
     const days = dates.map(date => {
@@ -126,27 +142,40 @@ export async function getHistoryWithPerformance() {
             };
           }
 
-          // Past picks: find next trading day close
+          // Past picks: find next trading day close OR check if After-Hours already moved
+          let current = priceMap[p.symbol] || {};
+          let currentPrice = current.price || p.entryPrice;
+          
+          // If we have After-Hours/Pre-market data in priceMap, use that for "Instant" settling
+          // if it's already a different session than the pick day
           const histData = historyDataMap[p.symbol] || [];
-          let nextDayClose = null;
-          let nextDayDate = null;
+          let settlingPrice = null;
+          let settlingSource = '';
 
+          // 1. Look for next day close bar
           for (const bar of histData) {
             const barDate = new Date(bar.date);
             if (barDate > pickDate && bar.close) {
-              nextDayClose = bar.close;
-              nextDayDate = bar.date;
+              settlingPrice = bar.close;
+              settlingSource = 'Daily Close';
               break;
             }
           }
 
-          if (nextDayClose !== null && p.entryPrice > 0) {
-            const plPercent = ((nextDayClose - p.entryPrice) / p.entryPrice) * 100;
+          // 2. If no next-day bar yet, but current price is after-hours/pre-market 
+          // and we are past the pick day, treat it as settled for instant feedback
+          if (!settlingPrice && current.currentSessionPrice && !isToday) {
+            settlingPrice = current.currentSessionPrice;
+            settlingSource = 'Extended Hours';
+          }
+
+          if (settlingPrice !== null && p.entryPrice > 0) {
+            const plPercent = ((settlingPrice - p.entryPrice) / p.entryPrice) * 100;
             return {
               ...p,
-              nextDayClose: Math.round(nextDayClose * 100) / 100,
-              nextDayDate,
-              currentPrice: priceMap[p.symbol]?.price || nextDayClose,
+              nextDayClose: Math.round(settlingPrice * 100) / 100,
+              settlingSource,
+              currentPrice: current.currentSessionPrice || settlingPrice,
               plPercent: Math.round(plPercent * 100) / 100,
               status: 'settled',
               verdict: plPercent > 0.1 ? 'correct' : plPercent < -0.1 ? 'wrong' : 'flat'
@@ -154,8 +183,8 @@ export async function getHistoryWithPerformance() {
           }
 
           // No next-day data (weekend/too recent)
-          const current = priceMap[p.symbol] || {};
-          const currentPrice = current.price || p.entryPrice;
+          current = priceMap[p.symbol] || {};
+          currentPrice = current.price || p.entryPrice;
           const plPercent = p.entryPrice > 0
             ? ((currentPrice - p.entryPrice) / p.entryPrice) * 100
             : 0;

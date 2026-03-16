@@ -31,13 +31,8 @@ app.use((err, req, res, next) => {
 // Export app for Vercel
 export default app;
 
-// Only listen if run directly (local dev)
-if (process.env.NODE_ENV !== 'production' && import.meta.url === `file://${process.argv[1]}`) {
-  app.listen(PORT, '0.0.0.0', () => {
-    console.log(`[StockOracle] Server running on http://0.0.0.0:${PORT}`);
-  });
-} else if (!process.env.VERCEL) {
-  // Fallback for local concurrently usage
+// Only listen if not on Vercel (local dev)
+if (!process.env.VERCEL) {
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`[StockOracle] Server running on http://0.0.0.0:${PORT}`);
   });

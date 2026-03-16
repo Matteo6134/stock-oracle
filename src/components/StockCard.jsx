@@ -91,10 +91,20 @@ export default function StockCard({ stock, rank }) {
     breakdown.technical ?? 0,
   ]
 
+  const hasEarningsResult = stock.earningsResult?.isReported;
+  const isBigMove = hasEarningsResult && Math.abs(stock.earningsResult.reaction) >= 5;
+  const glowClass = isBigMove 
+    ? stock.earningsResult.sentiment === 'bullish' 
+      ? 'shadow-[0_0_15px_rgba(16,185,129,0.3)] border-oracle-green/30' 
+      : 'shadow-[0_0_15px_rgba(239,68,68,0.3)] border-oracle-red/30'
+    : '';
+
+  const borderClass = getScoreBorderColor(score);
+
   return (
     <div
       onClick={() => navigate(`/stock/${symbol}`)}
-      className={`glass-card hover:bg-white/[0.03] p-4 cursor-pointer transition-all duration-300 border-l-4 ${getScoreBorderColor(score)} active:scale-[0.98]`}
+      className={`glass-card p-4 relative overflow-hidden transition-all duration-300 hover:bg-white/[0.03] active:scale-[0.98] cursor-pointer group border-l-4 ${borderClass} ${glowClass}`}
     >
       <div className="flex items-start justify-between">
         {/* Left side: stock info */}
@@ -137,8 +147,21 @@ export default function StockCard({ stock, rank }) {
 
           {/* Upcoming Events - the MAIN forward-looking info */}
           <div className="flex flex-wrap gap-1 mb-2">
-            {/* Earnings Status Badge */}
-            {earningsStatus && (
+            {/* Earnings Result or Status Badge */}
+            {stock.earningsResult?.isReported ? (
+              <span
+                className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-extrabold border shadow-sm ${
+                  stock.earningsResult.sentiment === 'bullish'
+                    ? 'bg-oracle-green/20 text-oracle-green border-oracle-green/40 shadow-oracle-green/20'
+                    : stock.earningsResult.sentiment === 'bearish'
+                      ? 'bg-oracle-red/20 text-oracle-red border-oracle-red/40 shadow-oracle-red/20'
+                      : 'bg-oracle-muted/10 text-oracle-muted border-oracle-muted/20'
+                }`}
+                title={stock.earningsResult.summary}
+              >
+                {stock.earningsResult.status} ({stock.earningsResult.reaction > 0 ? '+' : ''}{stock.earningsResult.reaction}%)
+              </span>
+            ) : earningsStatus && (
                <span
                 className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold border ${
                   earningsStatus.finished

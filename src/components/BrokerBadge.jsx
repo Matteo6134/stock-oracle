@@ -1,4 +1,3 @@
-import { MarketIcon } from 'lucide-react' // Note: MarketIcon is not real, using ExternalLink or similar
 import { ExternalLink, CheckCircle } from 'lucide-react'
 
 export default function BrokerBadge({ name, available, url }) {
