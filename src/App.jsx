@@ -9,6 +9,7 @@ import SectorDetail from './pages/SectorDetail'
 import TrendingPage from './pages/TrendingPage'
 import TomorrowPage from './pages/TomorrowPage'
 import BacktesterPage from './pages/BacktesterPage'
+import packageJson from '../package.json'
 
 const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Home' },
@@ -99,6 +100,7 @@ export default function App() {
         {/* Sidebar footer */}
         <div className="px-5 py-4">
           <div className="text-oracle-muted text-[10px] uppercase font-bold">AI-Powered Predictions</div>
+          <div className="text-oracle-muted/50 text-[9px] mt-1">v{packageJson.version}</div>
         </div>
       </nav>
 
