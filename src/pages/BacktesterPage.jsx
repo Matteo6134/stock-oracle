@@ -139,39 +139,89 @@ function WinRateRing({ rate, size = 50 }) {
 
 function PickCard({ pick, onClick }) {
   const isSettled = pick.status === 'settled';
+  const isLive = pick.status === 'live';
   const isCorrect = pick.verdict === 'correct';
   const isWrong = pick.verdict === 'wrong';
+  const isFlat = pick.verdict === 'flat';
+
+  const exitPrice = pick.nextDayClose || pick.currentPrice || pick.entryPrice;
+  const entryFormatted = pick.entryPrice ? `$${Number(pick.entryPrice).toFixed(2)}` : '—';
+  const exitFormatted = exitPrice ? `$${Number(exitPrice).toFixed(2)}` : '—';
+
+  // Verdict config
+  const verdictConfig = isCorrect
+    ? { label: 'RIGHT', bg: 'bg-oracle-green', text: 'text-white', glow: 'shadow-[0_0_12px_rgba(52,211,153,0.4)]' }
+    : isWrong
+    ? { label: 'WRONG', bg: 'bg-oracle-red', text: 'text-white', glow: 'shadow-[0_0_12px_rgba(248,113,113,0.4)]' }
+    : isFlat
+    ? { label: 'FLAT', bg: 'bg-oracle-muted/30', text: 'text-oracle-muted', glow: '' }
+    : isLive
+    ? { label: 'LIVE', bg: 'bg-oracle-accent/20', text: 'text-oracle-accent', glow: '' }
+    : { label: 'PENDING', bg: 'bg-oracle-muted/10', text: 'text-oracle-muted', glow: '' };
 
   return (
-    <div 
+    <div
       onClick={onClick}
-      className={`glass-card p-3 mb-2 flex items-center justify-between hover:bg-white/[0.04] transition-all cursor-pointer border-l-2 ${
-        isCorrect ? 'border-oracle-green' : isWrong ? 'border-oracle-red' : 'border-oracle-muted/20'
+      className={`glass-card p-4 mb-3 hover:bg-white/[0.04] transition-all cursor-pointer overflow-hidden ${
+        isCorrect ? 'border-l-4 border-oracle-green' : isWrong ? 'border-l-4 border-oracle-red' : 'border-l-4 border-oracle-muted/20'
       }`}
     >
-      <div className="flex items-center gap-3">
-        <div className={`p-1.5 rounded-lg ${isCorrect ? 'bg-oracle-green/10 text-oracle-green' : isWrong ? 'bg-oracle-red/10 text-oracle-red' : 'bg-oracle-muted/10 text-oracle-muted'}`}>
-          {isCorrect ? <CheckCircle2 size={16} /> : isWrong ? <XCircle size={16} /> : <MinusCircle size={16} />}
-        </div>
+      {/* Top row: Symbol + Verdict badge */}
+      <div className="flex items-center justify-between mb-3">
         <div>
-          <div className="flex items-center gap-1.5">
-            <span className="text-sm font-bold text-oracle-text">{pick.symbol}</span>
-            <span className="text-[10px] text-oracle-muted px-1 border border-oracle-muted/20 rounded uppercase">{pick.status}</span>
+          <div className="flex items-center gap-2">
+            <span className="text-base font-bold text-oracle-text">{pick.symbol}</span>
+            <span className="text-[10px] text-oracle-muted truncate max-w-[120px]">{pick.name}</span>
           </div>
-          <p className="text-[10px] text-oracle-muted truncate max-w-[150px]">{pick.name}</p>
+          {pick.score > 0 && (
+            <div className="text-[10px] text-oracle-muted mt-0.5">
+              Score: {pick.score} · {pick.confidence || ''} · {pick.earningsTiming !== 'N/A' ? pick.earningsTiming : ''}
+            </div>
+          )}
+        </div>
+        {/* RIGHT / WRONG badge */}
+        <div className={`px-3 py-1.5 rounded-xl font-black text-sm ${verdictConfig.bg} ${verdictConfig.text} ${verdictConfig.glow}`}>
+          {verdictConfig.label}
         </div>
       </div>
-      
-      <div className="text-right">
-        <div className={`text-sm font-bold ${pick.plPercent >= 0 ? 'text-oracle-green' : 'text-oracle-red'}`}>
-          {pick.plPercent >= 0 ? '+' : ''}{pick.plPercent}%
+
+      {/* Price flow: BUY → RESULT */}
+      <div className="flex items-center gap-2">
+        {/* Buy Signal */}
+        <div className="flex-1 glass-inner rounded-xl p-2.5 text-center">
+          <div className="text-[9px] text-oracle-accent font-bold uppercase mb-1 flex items-center justify-center gap-1">
+            <ArrowUpRight size={10} />
+            Buy Signal
+          </div>
+          <div className="text-lg font-black text-oracle-text">{entryFormatted}</div>
         </div>
-        <div className="text-[9px] text-oracle-muted flex items-center justify-end gap-1">
-          <span>${pick.entryPrice}</span>
-          <ArrowRight size={8} />
-          <span>${pick.currentPrice || pick.nextDayClose}</span>
+
+        {/* Arrow */}
+        <div className="flex flex-col items-center px-1">
+          <ArrowRight size={16} className="text-oracle-muted" />
+          <span className={`text-[10px] font-bold mt-0.5 ${pick.plPercent >= 0 ? 'text-oracle-green' : 'text-oracle-red'}`}>
+            {pick.plPercent >= 0 ? '+' : ''}{pick.plPercent}%
+          </span>
+        </div>
+
+        {/* Next Day Price */}
+        <div className="flex-1 glass-inner rounded-xl p-2.5 text-center">
+          <div className="text-[9px] text-oracle-muted font-bold uppercase mb-1 flex items-center justify-center gap-1">
+            {isLive ? <Clock size={10} /> : isSettled ? <CheckCircle2 size={10} /> : <Clock size={10} />}
+            {isLive ? 'Current' : isSettled ? 'Next Day' : 'Pending'}
+          </div>
+          <div className={`text-lg font-black ${isCorrect ? 'text-oracle-green' : isWrong ? 'text-oracle-red' : 'text-oracle-text'}`}>
+            {exitFormatted}
+          </div>
         </div>
       </div>
+
+      {/* Settlement source */}
+      {pick.settlingSource && (
+        <div className="text-[9px] text-oracle-muted/60 text-right mt-1.5">
+          Settled via {pick.settlingSource}
+        </div>
+      )}
     </div>
   );
 }
