@@ -22,8 +22,9 @@ function getConfidenceBadge(confidence) {
   return { label: 'Low', cls: 'bg-oracle-red/15 text-oracle-red border-oracle-red/30' }
 }
 
-const breakdownColors = ['bg-blue-500', 'bg-purple-500', 'bg-orange-500', 'bg-cyan-500']
-const breakdownLabels = ['Catalyst', 'Social', 'News', 'Tech']
+const breakdownColors = ['bg-blue-500', 'bg-emerald-500', 'bg-yellow-500', 'bg-purple-500', 'bg-orange-500', 'bg-cyan-500']
+const breakdownLabels = ['Cat', 'EPS', 'Rev', 'Soc', 'News', 'Tech']
+const breakdownMaxes = [20, 20, 15, 10, 15, 20]
 
 export default function StockCard({ stock, rank }) {
   const navigate = useNavigate()
@@ -85,7 +86,9 @@ export default function StockCard({ stock, rank }) {
   const isPositive = change >= 0
   const confidenceBadge = getConfidenceBadge(confidence)
   const breakdownValues = [
-    breakdown.earnings ?? breakdown.fundamental ?? 0,
+    breakdown.catalyst ?? breakdown.earnings ?? breakdown.fundamental ?? 0,
+    breakdown.earningsQuality ?? 0,
+    breakdown.revision ?? 0,
     breakdown.social ?? breakdown.sentiment ?? 0,
     breakdown.news ?? 0,
     breakdown.technical ?? 0,
@@ -228,11 +231,11 @@ export default function StockCard({ stock, rank }) {
           {/* Mini breakdown bars */}
           <div className="flex items-center gap-1">
             {breakdownValues.map((val, i) => (
-              <div key={i} className="flex-1" title={`${breakdownLabels[i]}: ${val}/25`}>
+              <div key={i} className="flex-1" title={`${breakdownLabels[i]}: ${val}/${breakdownMaxes[i]}`}>
                 <div className="h-1.5 rounded-full bg-oracle-border overflow-hidden">
                   <div
                     className={`h-full rounded-full ${breakdownColors[i]}`}
-                    style={{ width: `${(val / 25) * 100}%` }}
+                    style={{ width: `${Math.min(100, (val / breakdownMaxes[i]) * 100)}%` }}
                   />
                 </div>
               </div>

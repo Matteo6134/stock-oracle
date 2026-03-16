@@ -96,6 +96,7 @@ export default function StockDetail() {
   const entrySignal = stock.entrySignal
   const entryLabel = stock.entryLabel
   const entryReason = stock.entryReason
+  const earningsQuality = stock.earningsQuality || {}
 
   const isPositive = change >= 0
   const chartData = priceHistory.map((p, i) => {
@@ -443,11 +444,70 @@ export default function StockDetail() {
       {/* Score Breakdown */}
       <div className="glass-card p-4 mb-4 space-y-3">
         <h3 className="text-xs text-oracle-muted font-medium mb-1">Score Breakdown</h3>
-        <ScoreBar label="Catalyst" score={breakdown.earnings ?? breakdown.fundamental ?? 0} color="blue" />
-        <ScoreBar label="Social" score={breakdown.social ?? breakdown.sentiment ?? 0} color="purple" />
-        <ScoreBar label="News" score={breakdown.news ?? 0} color="orange" />
-        <ScoreBar label="Technical" score={breakdown.technical ?? 0} color="cyan" />
+        <ScoreBar label="Catalyst" score={breakdown.catalyst ?? breakdown.earnings ?? 0} maxScore={20} color="blue" />
+        <ScoreBar label="Earnings Quality" score={breakdown.earningsQuality ?? 0} maxScore={20} color="green" />
+        <ScoreBar label="Revisions" score={breakdown.revision ?? 0} maxScore={15} color="yellow" />
+        <ScoreBar label="Social" score={breakdown.social ?? 0} maxScore={10} color="purple" />
+        <ScoreBar label="News" score={breakdown.news ?? 0} maxScore={15} color="orange" />
+        <ScoreBar label="Technical" score={breakdown.technical ?? 0} maxScore={20} color="cyan" />
+        {(breakdown.pead ?? 0) !== 0 && (
+          <ScoreBar label="PEAD Drift" score={breakdown.pead} maxScore={5} color={breakdown.pead > 0 ? 'green' : 'red'} />
+        )}
       </div>
+
+      {/* Earnings Quality */}
+      {(earningsQuality.beatStreak > 0 || earningsQuality.sue !== 0 || earningsQuality.revisionMomentum !== 0) && (
+        <div className="glass-card p-4 mb-4">
+          <h3 className="text-xs text-oracle-muted font-medium mb-3">Earnings Intelligence</h3>
+          <div className="grid grid-cols-2 gap-3">
+            {earningsQuality.beatStreak > 0 && (
+              <div className="glass-inner rounded-lg p-3 text-center">
+                <div className="text-lg font-bold text-oracle-green">{earningsQuality.beatStreak}Q</div>
+                <div className="text-[10px] text-oracle-muted">Beat Streak</div>
+              </div>
+            )}
+            {earningsQuality.sue !== 0 && (
+              <div className="glass-inner rounded-lg p-3 text-center">
+                <div className={`text-lg font-bold ${earningsQuality.sue > 0 ? 'text-oracle-green' : 'text-oracle-red'}`}>
+                  {earningsQuality.sue > 0 ? '+' : ''}{earningsQuality.sue}
+                </div>
+                <div className="text-[10px] text-oracle-muted">SUE Score</div>
+              </div>
+            )}
+            {earningsQuality.avgSurprise !== 0 && (
+              <div className="glass-inner rounded-lg p-3 text-center">
+                <div className={`text-lg font-bold ${earningsQuality.avgSurprise > 0 ? 'text-oracle-green' : 'text-oracle-red'}`}>
+                  {earningsQuality.avgSurprise > 0 ? '+' : ''}{earningsQuality.avgSurprise}%
+                </div>
+                <div className="text-[10px] text-oracle-muted">Avg Surprise</div>
+              </div>
+            )}
+            {earningsQuality.revisionMomentum !== 0 && (
+              <div className="glass-inner rounded-lg p-3 text-center">
+                <div className={`text-lg font-bold ${earningsQuality.revisionMomentum > 0 ? 'text-oracle-green' : 'text-oracle-red'}`}>
+                  {earningsQuality.revisionMomentum > 0 ? '↑' : '↓'} {Math.abs(Math.round(earningsQuality.revisionMomentum * 100))}%
+                </div>
+                <div className="text-[10px] text-oracle-muted">Est. Revisions</div>
+              </div>
+            )}
+          </div>
+          {earningsQuality.recentSurprises?.length > 0 && (
+            <div className="mt-3 space-y-1.5">
+              <div className="text-[10px] text-oracle-muted font-medium">Recent Quarters</div>
+              {earningsQuality.recentSurprises.slice(0, 4).map((q, i) => (
+                <div key={i} className="flex items-center justify-between text-xs">
+                  <span className="text-oracle-muted">{q.quarter ? new Date(q.quarter).toLocaleDateString('en-US', { month: 'short', year: '2-digit' }) : `Q${i+1}`}</span>
+                  <span className="text-oracle-muted">Est: ${q.estimate?.toFixed(2) ?? '—'}</span>
+                  <span className="text-oracle-text">Act: ${q.actual?.toFixed(2) ?? '—'}</span>
+                  <span className={`font-medium ${q.surprisePct > 0 ? 'text-oracle-green' : q.surprisePct < 0 ? 'text-oracle-red' : 'text-oracle-muted'}`}>
+                    {q.surprisePct > 0 ? '+' : ''}{q.surprisePct}%
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Broker Availability */}
       {(brokerData.etoro !== undefined || brokerData.revolut !== undefined) && (

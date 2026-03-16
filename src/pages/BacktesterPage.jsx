@@ -316,6 +316,39 @@ export default function BacktesterPage() {
         </div>
       )}
 
+      {/* Factor Accuracy & Confidence Breakdown */}
+      {overall.factorAccuracy && Object.keys(overall.factorAccuracy).length > 0 && (
+        <div className="glass-card p-4 mb-4">
+          <div className="text-[10px] text-oracle-muted uppercase font-bold mb-2">Factor Win Rates</div>
+          <div className="grid grid-cols-3 gap-2">
+            {Object.entries(overall.factorAccuracy).map(([factor, data]) => (
+              <div key={factor} className="glass-inner rounded-lg p-2 text-center">
+                <div className={`text-sm font-bold ${data.winRate >= 55 ? 'text-oracle-green' : data.winRate >= 45 ? 'text-oracle-yellow' : 'text-oracle-red'}`}>
+                  {data.winRate ?? '—'}%
+                </div>
+                <div className="text-[9px] text-oracle-muted capitalize">{factor.replace(/([A-Z])/g, ' $1').trim()}</div>
+                <div className="text-[8px] text-oracle-muted/60">n={data.sampleSize}</div>
+              </div>
+            ))}
+          </div>
+          {overall.byConfidence && (
+            <div className="mt-3 flex gap-2">
+              {['HIGH', 'MEDIUM', 'LOW'].map(level => {
+                const d = overall.byConfidence[level]
+                if (!d || d.total === 0) return null
+                const color = level === 'HIGH' ? 'text-oracle-green' : level === 'MEDIUM' ? 'text-oracle-yellow' : 'text-oracle-red'
+                return (
+                  <div key={level} className="flex-1 glass-inner rounded-lg p-2 text-center">
+                    <div className={`text-sm font-bold ${color}`}>{d.winRate ?? '—'}%</div>
+                    <div className="text-[9px] text-oracle-muted">{level} ({d.total})</div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Day Selector - simple prev/next */}
       <div className="flex items-center justify-between glass-card px-3 py-2 mb-4">
         <button

@@ -1,5 +1,6 @@
 import express from 'express';
 import * as yahooFinance from '../services/yahooFinance.js';
+import { getEarningsHistory } from '../services/yahooFinance.js';
 import { getRedditSentiment } from '../services/reddit.js';
 import { getStockTwitsSentiment, getTrending as getStockTwitsTrending } from '../services/stocktwits.js';
 import { getNewsForStock, getMarketNews } from '../services/news.js';
@@ -260,18 +261,20 @@ function analyzeEarningsResult(symbol, news, quote, timing) {
 
 // ── Shared Symbol Scoring Helper (Individual) ──
 async function scoreSymbol(symbol, earningsCalendar) {
-  const [quote, history, catalysts, reddit, stocktwits, news] = await Promise.allSettled([
+  const [quote, history, catalysts, reddit, stocktwits, news, earningsHist] = await Promise.allSettled([
     yahooFinance.getQuote(symbol),
     yahooFinance.getHistoricalData(symbol),
     yahooFinance.getUpcomingCatalysts(symbol),
     getRedditSentiment(symbol),
     getStockTwitsSentiment(symbol),
-    getNewsForStock(symbol, '')
+    getNewsForStock(symbol, ''),
+    getEarningsHistory(symbol)
   ]);
 
   const quoteData = quote.status === 'fulfilled' ? quote.value : {};
   const catalystList = catalysts.status === 'fulfilled' ? catalysts.value : [];
   const earningsEntry = earningsCalendar.find(e => (e.symbol || e.ticker) === symbol);
+  const earningsHistData = earningsHist.status === 'fulfilled' ? earningsHist.value : {};
 
   const stockData = {
     symbol,
@@ -283,6 +286,7 @@ async function scoreSymbol(symbol, earningsCalendar) {
     hasEarningsToday: !!earningsEntry?.isToday,
     hasEarningsTomorrow: !!earningsEntry?.isTomorrow,
     catalysts: catalystList,
+    earningsHistory: earningsHistData,
     brokerAvailability: checkAvailability(symbol),
     sector: classifySector(symbol, quoteData?.shortName || '')
   };
@@ -330,6 +334,14 @@ async function scoreSymbol(symbol, earningsCalendar) {
     tradeSetup,
     earningsTiming: earningsEntry?.timing || 'N/A',
     earningsResult: stockData.hasEarningsToday ? analyzeEarningsResult(symbol, stockData.news, quoteData, earningsEntry?.timing) : null,
+    // Earnings quality indicators (new)
+    earningsQuality: {
+      beatStreak: earningsHistData.beatStreak || 0,
+      sue: earningsHistData.sue || 0,
+      avgSurprise: earningsHistData.avgSurprise || 0,
+      revisionMomentum: earningsHistData.revisionMomentum || 0,
+      recentSurprises: earningsHistData.recentSurprises || []
+    },
     // Keep raw data for detail routes
     _social: { reddit: stockData.reddit, stocktwits: stockData.stocktwits },
     _news: stockData.news,
@@ -361,9 +373,10 @@ async function scoreSymbols(symbols, earningsCalendar, opts = { light: false }) 
         // Parallel fetch for remaining data
         const tasks = [
           yahooFinance.getHistoricalData(symbol),
-          yahooFinance.getUpcomingCatalysts(symbol)
+          yahooFinance.getUpcomingCatalysts(symbol),
+          getEarningsHistory(symbol)
         ];
-        
+
         // Skip social/news on light mode to speed up sector detail requests
         if (!opts.light) {
           tasks.push(
@@ -372,14 +385,15 @@ async function scoreSymbols(symbols, earningsCalendar, opts = { light: false }) 
             getNewsForStock(symbol, '')
           );
         }
-        
+
         const results = await Promise.allSettled(tasks);
-        
+
         const history = results[0].status === 'fulfilled' ? results[0].value : [];
         const catalysts = results[1].status === 'fulfilled' ? results[1].value : [];
-        const reddit = !opts.light && results[2].status === 'fulfilled' ? results[2].value : { mentions: 0, sentiment: 0 };
-        const stocktwits = !opts.light && results[3].status === 'fulfilled' ? results[3].value : { bearish: 0, bullish: 0, total: 0 };
-        const news = !opts.light && results[4].status === 'fulfilled' ? results[4].value : [];
+        const earningsHistData = results[2].status === 'fulfilled' ? results[2].value : {};
+        const reddit = !opts.light && results[3]?.status === 'fulfilled' ? results[3].value : { mentions: 0, sentiment: 0 };
+        const stocktwits = !opts.light && results[4]?.status === 'fulfilled' ? results[4].value : { bearish: 0, bullish: 0, total: 0 };
+        const news = !opts.light && results[5]?.status === 'fulfilled' ? results[5].value : [];
 
         const stockData = {
           symbol,
@@ -390,7 +404,8 @@ async function scoreSymbols(symbols, earningsCalendar, opts = { light: false }) 
           news,
           hasEarningsToday: !!earningsCalendar.find(e => (e.symbol || e.ticker) === symbol && e.isToday),
           hasEarningsTomorrow: !!earningsCalendar.find(e => (e.symbol || e.ticker) === symbol && e.isTomorrow),
-          catalysts
+          catalysts,
+          earningsHistory: earningsHistData
         };
 
         const score = calculateScore(stockData);
@@ -416,6 +431,7 @@ async function scoreSymbols(symbols, earningsCalendar, opts = { light: false }) 
           price: currentPrice,
           change,
           score: score.totalScore,
+          breakdown: score.breakdown,
           probability: score.probability,
           confidence: score.confidence,
           sector: classifySector(symbol, quoteData?.shortName || ''),
@@ -430,6 +446,14 @@ async function scoreSymbols(symbols, earningsCalendar, opts = { light: false }) 
           entryLabel: entry.label,
           entryReason: entry.reason,
           tradeSetup,
+          earningsTiming: earningsEntry?.timing || 'N/A',
+          earningsResult: hasEarningsToday ? analyzeEarningsResult(symbol, news, quoteData, earningsEntry?.timing) : null,
+          earningsQuality: {
+            beatStreak: earningsHistData.beatStreak || 0,
+            sue: earningsHistData.sue || 0,
+            avgSurprise: earningsHistData.avgSurprise || 0,
+            revisionMomentum: earningsHistData.revisionMomentum || 0,
+          },
           // Keep raw data for detail routes
           _social: { reddit: stockData.reddit, stocktwits: stockData.stocktwits },
           _news: stockData.news,

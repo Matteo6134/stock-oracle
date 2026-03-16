@@ -82,6 +82,130 @@ export async function getEarningsCalendar() {
  * Get upcoming catalysts for a stock using quoteSummary.
  * Returns earnings date, ex-dividend date, and other events.
  */
+/**
+ * Fetch historical earnings data for a symbol.
+ * Returns EPS beat streak, SUE, and revision momentum.
+ */
+export async function getEarningsHistory(symbol) {
+  try {
+    const summary = await yf.quoteSummary(symbol, {
+      modules: ['earnings', 'earningsHistory', 'earningsTrend']
+    });
+
+    const result = {
+      beatStreak: 0,          // consecutive quarters beating estimates
+      avgSurprise: 0,         // average EPS surprise %
+      sue: 0,                 // Standardized Unexpected Earnings
+      revisionMomentum: 0,    // estimate revision direction (-1 to +1)
+      quarterCount: 0,        // how many quarters of data we have
+      recentSurprises: []     // last 4 quarters of surprise data
+    };
+
+    // --- EPS Beat Streak & Surprise History ---
+    const hist = summary?.earningsHistory?.history || [];
+    if (hist.length > 0) {
+      result.quarterCount = hist.length;
+      const surprises = [];
+      let streak = 0;
+
+      // hist is ordered oldest-to-newest typically, reverse to check streak from most recent
+      const sorted = [...hist].sort((a, b) => {
+        const da = a.quarter ? new Date(a.quarter) : 0;
+        const db = b.quarter ? new Date(b.quarter) : 0;
+        return db - da; // newest first
+      });
+
+      for (const q of sorted) {
+        const actual = q.epsActual?.raw ?? q.epsActual;
+        const estimate = q.epsEstimate?.raw ?? q.epsEstimate;
+        if (actual != null && estimate != null) {
+          const surprise = estimate !== 0 ? ((actual - estimate) / Math.abs(estimate)) * 100 : 0;
+          surprises.push(surprise);
+          result.recentSurprises.push({
+            quarter: q.quarter,
+            actual: typeof actual === 'number' ? actual : null,
+            estimate: typeof estimate === 'number' ? estimate : null,
+            surprisePct: Math.round(surprise * 100) / 100
+          });
+        }
+      }
+
+      // Beat streak: count consecutive beats from most recent
+      for (const s of surprises) {
+        if (s > 0) streak++;
+        else break;
+      }
+      result.beatStreak = streak;
+
+      // Average surprise
+      if (surprises.length > 0) {
+        result.avgSurprise = Math.round(
+          (surprises.reduce((a, b) => a + b, 0) / surprises.length) * 100
+        ) / 100;
+      }
+
+      // SUE = mean(surprise) / stddev(surprise)
+      if (surprises.length >= 2) {
+        const mean = surprises.reduce((a, b) => a + b, 0) / surprises.length;
+        const variance = surprises.reduce((sum, s) => sum + (s - mean) ** 2, 0) / (surprises.length - 1);
+        const stddev = Math.sqrt(variance);
+        result.sue = stddev > 0 ? Math.round((mean / stddev) * 100) / 100 : 0;
+      }
+    }
+
+    // --- Analyst Revision Momentum ---
+    // earningsTrend has current quarter and next quarter estimates with revisions
+    const trend = summary?.earningsTrend?.trend || [];
+    if (trend.length > 0) {
+      let totalRevision = 0;
+      let revCount = 0;
+
+      for (const period of trend) {
+        const est = period.earningsEstimate;
+        if (!est) continue;
+
+        const current = est.avg?.raw ?? est.avg;
+        const ago7 = est.yearAgoEps?.raw ?? est.yearAgoEps; // 7 days ago estimate
+        const ago30 = period.epsTrend?.['30daysAgo']?.raw ?? period.epsTrend?.['30daysAgo'];
+        const ago90 = period.epsTrend?.['90daysAgo']?.raw ?? period.epsTrend?.['90daysAgo'];
+
+        // Check 30-day revision direction
+        if (current != null && ago30 != null && ago30 !== 0) {
+          const rev = (current - ago30) / Math.abs(ago30);
+          totalRevision += rev;
+          revCount++;
+        } else if (current != null && ago90 != null && ago90 !== 0) {
+          const rev = (current - ago90) / Math.abs(ago90);
+          totalRevision += rev;
+          revCount++;
+        }
+
+        // Also check number of up vs down revisions
+        const numUp = period.epsTrend?.['7daysAgo']?.raw != null && current > period.epsTrend['7daysAgo'].raw ? 1 : 0;
+        const numDown = period.epsTrend?.['7daysAgo']?.raw != null && current < period.epsTrend['7daysAgo'].raw ? 1 : 0;
+        if (numUp || numDown) {
+          totalRevision += (numUp - numDown) * 0.2;
+          revCount++;
+        }
+      }
+
+      if (revCount > 0) {
+        // Normalize to -1 to +1 range
+        result.revisionMomentum = Math.max(-1, Math.min(1,
+          Math.round((totalRevision / revCount) * 100) / 100
+        ));
+      }
+    }
+
+    return result;
+  } catch (err) {
+    return {
+      beatStreak: 0, avgSurprise: 0, sue: 0, revisionMomentum: 0,
+      quarterCount: 0, recentSurprises: []
+    };
+  }
+}
+
 export async function getUpcomingCatalysts(symbol) {
   try {
     const summary = await yf.quoteSummary(symbol, {

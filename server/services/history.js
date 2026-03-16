@@ -39,8 +39,13 @@ export async function saveDailyPicks(category, predictions) {
       entryPrice: p.price || 0,
       reason: p.reason || '',
       score: p.score || 0,
+      confidence: p.confidence || 'LOW',
       entrySignal: p.entrySignal || '',
       earningsTiming: p.earningsTiming || 'N/A',
+      // Store ATR for smarter win/loss threshold
+      atr: p.tradeSetup?.atr || 0,
+      // Store breakdown for factor accuracy tracking
+      breakdown: p.breakdown || {},
       timestamp: new Date().toISOString()
     }));
 
@@ -171,6 +176,22 @@ export async function getHistoryWithPerformance() {
 
           if (settlingPrice !== null && p.entryPrice > 0) {
             const plPercent = ((settlingPrice - p.entryPrice) / p.entryPrice) * 100;
+
+            // ATR-relative threshold: use 0.25x ATR% as the "noise" threshold
+            // instead of flat ±0.1%. This adapts to each stock's volatility.
+            let winThreshold = 0.3;  // default fallback
+            let lossThreshold = -0.3;
+            if (p.atr && p.entryPrice > 0) {
+              const atrPct = (p.atr / p.entryPrice) * 100;
+              winThreshold = Math.max(0.2, atrPct * 0.25);   // at least 0.2%
+              lossThreshold = -winThreshold;
+            }
+
+            let verdict;
+            if (plPercent > winThreshold) verdict = 'correct';
+            else if (plPercent < lossThreshold) verdict = 'wrong';
+            else verdict = 'flat';
+
             return {
               ...p,
               nextDayClose: Math.round(settlingPrice * 100) / 100,
@@ -178,7 +199,7 @@ export async function getHistoryWithPerformance() {
               currentPrice: current.currentSessionPrice || settlingPrice,
               plPercent: Math.round(plPercent * 100) / 100,
               status: 'settled',
-              verdict: plPercent > 0.1 ? 'correct' : plPercent < -0.1 ? 'wrong' : 'flat'
+              verdict
             };
           }
 
@@ -239,6 +260,43 @@ export async function getHistoryWithPerformance() {
       ? Math.round(pastDays.reduce((s, d) => s + (d.dayStats.avgPl || 0) * d.dayStats.total, 0) / totalSettled * 100) / 100
       : null;
 
+    // Factor accuracy tracking — which scoring factors correlate with correct predictions
+    const factorAccuracy = {};
+    const allSettledPicks = pastDays.flatMap(d =>
+      d.categories.flatMap(c => c.picks.filter(p => p.status === 'settled' && p.breakdown))
+    );
+    if (allSettledPicks.length > 0) {
+      const factors = ['catalyst', 'earningsQuality', 'revision', 'social', 'news', 'technical', 'pead'];
+      for (const factor of factors) {
+        // Split into picks where this factor was high (above median) vs low
+        const scores = allSettledPicks.map(p => p.breakdown?.[factor] || 0).filter(v => v > 0);
+        if (scores.length === 0) continue;
+        const median = scores.sort((a, b) => a - b)[Math.floor(scores.length / 2)];
+
+        const highFactor = allSettledPicks.filter(p => (p.breakdown?.[factor] || 0) >= median);
+        const highCorrect = highFactor.filter(p => p.verdict === 'correct').length;
+        const highWinRate = highFactor.length > 0 ? Math.round((highCorrect / highFactor.length) * 100) : null;
+
+        factorAccuracy[factor] = {
+          sampleSize: highFactor.length,
+          winRate: highWinRate,
+          avgScore: scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length * 10) / 10 : 0
+        };
+      }
+    }
+
+    // Win rate by confidence level
+    const byConfidence = {};
+    for (const level of ['HIGH', 'MEDIUM', 'LOW']) {
+      const picks = allSettledPicks.filter(p => p.confidence === level);
+      const correct = picks.filter(p => p.verdict === 'correct').length;
+      byConfidence[level] = {
+        total: picks.length,
+        correct,
+        winRate: picks.length > 0 ? Math.round((correct / picks.length) * 100) : null
+      };
+    }
+
     return {
       days,
       overall: {
@@ -246,7 +304,9 @@ export async function getHistoryWithPerformance() {
         totalPicks: totalSettled,
         totalCorrect,
         winRate: overallWinRate,
-        avgPl: overallAvgPl
+        avgPl: overallAvgPl,
+        factorAccuracy,
+        byConfidence
       }
     };
   } catch (err) {
