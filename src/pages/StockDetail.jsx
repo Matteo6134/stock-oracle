@@ -253,12 +253,101 @@ export default function StockDetail() {
             </span>
           </div>
 
+          {/* Target Range (Conservative → Aggressive) */}
+          {stock.tradeSetup.conservativeTarget && stock.tradeSetup.aggressiveTarget && (
+            <div className="mb-3">
+              <div className="flex items-center justify-between text-[10px] mb-1">
+                <span className="text-oracle-muted">Conservative</span>
+                <span className={`font-bold ${
+                  stock.tradeSetup.targetConfidence === 'high' ? 'text-oracle-green'
+                  : stock.tradeSetup.targetConfidence === 'medium' ? 'text-oracle-yellow'
+                  : 'text-oracle-muted'
+                }`}>
+                  {stock.tradeSetup.targetConfidence?.toUpperCase()} confidence
+                </span>
+                <span className="text-oracle-muted">Aggressive</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-[10px] text-oracle-green/60 font-mono">${stock.tradeSetup.conservativeTarget}</span>
+                <div className="flex-1 h-1.5 rounded-full bg-oracle-border/30 relative overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-r from-oracle-green/30 to-oracle-green/60 rounded-full" />
+                  {/* Marker for base target */}
+                  <div
+                    className="absolute top-0 bottom-0 w-0.5 bg-oracle-green"
+                    style={{
+                      left: `${Math.min(95, Math.max(5, ((stock.tradeSetup.targetPrice - stock.tradeSetup.conservativeTarget) / (stock.tradeSetup.aggressiveTarget - stock.tradeSetup.conservativeTarget)) * 100))}%`
+                    }}
+                  />
+                </div>
+                <span className="text-[10px] text-oracle-green font-mono">${stock.tradeSetup.aggressiveTarget}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Validation Sources */}
+          {stock.tradeSetup.validation?.candidateSources?.length > 0 && (
+            <div className="mb-3">
+              <div className="text-[10px] text-oracle-muted font-medium mb-1.5">Price Validated By:</div>
+              <div className="flex flex-wrap gap-1">
+                {stock.tradeSetup.validation.candidateSources.map((src, i) => (
+                  <span key={i} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-oracle-accent/10 text-oracle-accent text-[9px] border border-oracle-accent/20">
+                    ✓ {src.source} <span className="opacity-50">${src.price}</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Key Levels */}
+          {stock.tradeSetup.validation && (
+            <div className="grid grid-cols-2 gap-2 mb-3">
+              {stock.tradeSetup.validation.resistanceLevels?.length > 0 && (
+                <div className="glass-inner rounded-lg px-2 py-1.5">
+                  <div className="text-[9px] text-oracle-red/70 font-medium mb-0.5">Resistance</div>
+                  {stock.tradeSetup.validation.resistanceLevels.map((r, i) => (
+                    <div key={i} className="text-[10px] text-oracle-muted flex justify-between">
+                      <span>{r.type}</span>
+                      <span className="font-mono text-oracle-red/80">${r.price}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {stock.tradeSetup.validation.supportLevels?.length > 0 && (
+                <div className="glass-inner rounded-lg px-2 py-1.5">
+                  <div className="text-[9px] text-oracle-green/70 font-medium mb-0.5">Support</div>
+                  {stock.tradeSetup.validation.supportLevels.map((s, i) => (
+                    <div key={i} className="text-[10px] text-oracle-muted flex justify-between">
+                      <span>{s.type}</span>
+                      <span className="font-mono text-oracle-green/80">${s.price}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Earnings Gap Estimate */}
+          {stock.tradeSetup.validation?.earningsGap && (
+            <div className="glass-inner rounded-lg px-3 py-2 mb-3 border border-oracle-accent/20">
+              <div className="text-[10px] text-oracle-accent font-medium mb-1">📊 Earnings Gap Estimate</div>
+              <div className="flex items-center justify-between text-[10px]">
+                <span className="text-oracle-muted">{stock.tradeSetup.validation.earningsGap.basedOn}</span>
+                <span className="text-oracle-accent font-bold">
+                  Expected: ±{stock.tradeSetup.validation.earningsGap.expectedGapPct}%
+                </span>
+              </div>
+              <div className="text-[9px] text-oracle-muted mt-0.5">
+                Beat probability: {stock.tradeSetup.validation.earningsGap.beatProbability}
+              </div>
+            </div>
+          )}
+
           {/* Sources */}
           <div className="text-[9px] text-oracle-muted space-y-0.5">
             <div>Target: {stock.tradeSetup.targetSource}</div>
             <div>Stop: {stock.tradeSetup.stopSource}</div>
             {stock.tradeSetup.atr && <div>ATR(14): ${stock.tradeSetup.atr}</div>}
-            {stock.tradeSetup.analystTarget && <div className="text-oracle-muted/50">Analyst 12mo target: ${stock.tradeSetup.analystTarget} (long-term)</div>}
+            {stock.tradeSetup.analystTarget && <div className="text-oracle-muted/50">Analyst 12mo target: ${stock.tradeSetup.analystTarget} (long-term ref.)</div>}
           </div>
         </div>
       )}

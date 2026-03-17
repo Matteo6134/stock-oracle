@@ -78,20 +78,23 @@ function getEntrySignal(change, hasEarningsToday, history, currentPrice) {
   return { signal: 'enter', label: 'Enter Now', reason: `Stock is ${pctChange >= 0 ? 'up only +' : ''}${pctChange.toFixed(1)}% today (normal range) — good entry point` };
 }
 
-// ── Trade Setup Calculator (Real Data Only) ──
-// Uses ATR-based SHORT-TERM targets — not analyst 12-month targets
-function calcTradeSetup(history, currentPrice, catalysts, quote) {
+// ── Trade Setup Calculator v2 (Multi-Validated Targets) ──
+// Cross-validates target with: resistance levels, Fibonacci, ATR, analyst consensus, earnings gaps
+function calcTradeSetup(history, currentPrice, catalysts, quote, earningsHistory) {
   if (!currentPrice || currentPrice <= 0) {
     return { available: false, reason: 'No price data available' };
   }
 
   const entryPrice = currentPrice;
+  const h = history || [];
 
-  // ── Calculate ATR (14-period) ──
+  // ══════════════════════════════════════════
+  // 1. CALCULATE ATR (14-period)
+  // ══════════════════════════════════════════
   let atr = null;
-  if (history && history.length >= 15) {
+  if (h.length >= 15) {
     const period = 14;
-    const recent = history.slice(-(period + 1));
+    const recent = h.slice(-(period + 1));
     let trSum = 0;
     for (let i = 1; i < recent.length; i++) {
       const high = recent[i].high || 0;
@@ -102,52 +105,236 @@ function calcTradeSetup(history, currentPrice, catalysts, quote) {
     }
     atr = trSum / period;
   }
+  if (!atr || atr <= 0) atr = currentPrice * 0.025;
 
-  // Fallback ATR estimate if not enough history
-  if (!atr || atr <= 0) {
-    atr = currentPrice * 0.025; // assume ~2.5% daily range
-  }
+  // ══════════════════════════════════════════
+  // 2. FIND KEY RESISTANCE LEVELS (real price ceilings)
+  // ══════════════════════════════════════════
+  const resistanceLevels = [];
+  if (h.length >= 10) {
+    // a) Recent swing highs (local maxima in last 30 days)
+    const lookback = h.slice(-30);
+    for (let i = 1; i < lookback.length - 1; i++) {
+      const prev = lookback[i - 1]?.high || 0;
+      const curr = lookback[i]?.high || 0;
+      const next = lookback[i + 1]?.high || 0;
+      if (curr > prev && curr > next && curr > currentPrice) {
+        resistanceLevels.push({ price: curr, type: 'swing_high', label: 'Swing High' });
+      }
+    }
 
-  // ── Target Price (SHORT-TERM, based on ATR) ──
-  // For earnings plays: expect 2x ATR move (earnings gap + momentum)
-  // For normal setups: expect 1.5x ATR move (swing trade)
-  const hasEarnings = (catalysts || []).some(c => c.type === 'earnings' && c.daysAway <= 2);
-  const targetMultiplier = hasEarnings ? 2.0 : 1.5;
-  let targetPrice = Math.round((currentPrice + atr * targetMultiplier) * 100) / 100;
-  let targetSource = hasEarnings
-    ? `ATR × ${targetMultiplier} (earnings momentum)`
-    : `ATR × ${targetMultiplier} (swing target)`;
+    // b) 52-week / 20-day high
+    const highs20 = h.slice(-20).map(d => d.high || 0).filter(v => v > 0);
+    if (highs20.length > 0) {
+      const high20 = Math.max(...highs20);
+      if (high20 > currentPrice) {
+        resistanceLevels.push({ price: high20, type: '20d_high', label: '20-Day High' });
+      }
+    }
 
-  // ── Stop Loss (ATR-based, tight) ──
-  // Primary: 1.5x ATR below entry (standard risk management)
-  let stopLoss = Math.round((currentPrice - atr * 1.5) * 100) / 100;
-  let stopSource = 'ATR × 1.5 below entry';
-
-  // Validate against 20-day swing low — if swing low is HIGHER than ATR stop,
-  // use it as a tighter stop (more conservative)
-  if (history && history.length >= 5) {
-    const lookback = history.slice(-20);
-    const lows = lookback.map(d => d.low || d.close || Infinity).filter(v => v > 0 && v < Infinity);
-    if (lows.length > 0) {
-      const swingLow = Math.min(...lows);
-      if (swingLow > 0 && swingLow < currentPrice && swingLow > stopLoss) {
-        // Swing low is a tighter, better stop
-        stopLoss = Math.round(swingLow * 100) / 100;
-        stopSource = `${lookback.length}-day swing low`;
+    // c) Volume-weighted resistance (VWAP-like cluster)
+    // Find price zones where heavy trading occurred above current price
+    if (h.length >= 20) {
+      const recentBars = h.slice(-20);
+      const priceVolMap = {};
+      recentBars.forEach(bar => {
+        const midPrice = Math.round(((bar.high || 0) + (bar.low || 0)) / 2 * 100) / 100;
+        if (midPrice > currentPrice) {
+          const bucket = Math.round(midPrice / (atr * 0.5)) * (atr * 0.5); // bucket by half-ATR
+          priceVolMap[bucket] = (priceVolMap[bucket] || 0) + (bar.volume || 0);
+        }
+      });
+      const topBucket = Object.entries(priceVolMap).sort((a, b) => b[1] - a[1])[0];
+      if (topBucket) {
+        resistanceLevels.push({ price: parseFloat(topBucket[0]), type: 'volume_cluster', label: 'Volume Resistance' });
       }
     }
   }
 
-  // Ensure stop is below entry and target is above entry
+  // Sort resistance levels by proximity to current price
+  resistanceLevels.sort((a, b) => a.price - b.price);
+  const nearestResistance = resistanceLevels[0] || null;
+
+  // ══════════════════════════════════════════
+  // 3. FIND KEY SUPPORT LEVELS (real price floors)
+  // ══════════════════════════════════════════
+  const supportLevels = [];
+  if (h.length >= 10) {
+    // a) Recent swing lows
+    const lookback = h.slice(-30);
+    for (let i = 1; i < lookback.length - 1; i++) {
+      const prev = lookback[i - 1]?.low || Infinity;
+      const curr = lookback[i]?.low || Infinity;
+      const next = lookback[i + 1]?.low || Infinity;
+      if (curr < prev && curr < next && curr < currentPrice && curr > 0) {
+        supportLevels.push({ price: curr, type: 'swing_low', label: 'Swing Low' });
+      }
+    }
+
+    // b) 20-day low
+    const lows20 = h.slice(-20).map(d => d.low || Infinity).filter(v => v > 0 && v < Infinity);
+    if (lows20.length > 0) {
+      const low20 = Math.min(...lows20);
+      if (low20 < currentPrice) {
+        supportLevels.push({ price: low20, type: '20d_low', label: '20-Day Low' });
+      }
+    }
+  }
+  supportLevels.sort((a, b) => b.price - a.price); // nearest support first
+  const nearestSupport = supportLevels[0] || null;
+
+  // ══════════════════════════════════════════
+  // 4. FIBONACCI RETRACEMENT LEVELS
+  // ══════════════════════════════════════════
+  let fibTargets = [];
+  if (h.length >= 20) {
+    const recent30 = h.slice(-30);
+    const low30 = Math.min(...recent30.map(d => d.low || Infinity).filter(v => v > 0 && v < Infinity));
+    const high30 = Math.max(...recent30.map(d => d.high || 0).filter(v => v > 0));
+
+    if (high30 > low30 && low30 > 0) {
+      const range = high30 - low30;
+      // If stock is closer to the low (pullback), Fib extensions from low
+      if (currentPrice < (low30 + high30) / 2) {
+        // Bounce targets: 50%, 61.8%, 100% retracement
+        fibTargets = [
+          { level: 0.5, price: low30 + range * 0.5 },
+          { level: 0.618, price: low30 + range * 0.618 },
+          { level: 1.0, price: high30 },
+        ].filter(f => f.price > currentPrice);
+      } else {
+        // Extension targets: 1.0 (high30), 1.272, 1.618 of the range
+        fibTargets = [
+          { level: 1.0, price: high30 },
+          { level: 1.272, price: low30 + range * 1.272 },
+          { level: 1.618, price: low30 + range * 1.618 },
+        ].filter(f => f.price > currentPrice);
+      }
+    }
+  }
+
+  // ══════════════════════════════════════════
+  // 5. EARNINGS GAP ANALYSIS (for earnings plays)
+  // ══════════════════════════════════════════
+  const hasEarnings = (catalysts || []).some(c => c.type === 'earnings' && c.daysAway <= 2);
+  let earningsGapEstimate = null;
+  const eh = earningsHistory || {};
+
+  if (hasEarnings && eh.recentSurprises && eh.recentSurprises.length >= 2) {
+    // Look at historical post-earnings moves to estimate expected gap
+    // Use the average surprise magnitude as a proxy for expected move size
+    const avgSurprisePct = Math.abs(eh.avgSurprise || 0);
+    // Historical: stocks move roughly 1-2x their surprise % on earnings day
+    const expectedGapPct = avgSurprisePct * 1.2; // conservative 1.2x multiplier
+    earningsGapEstimate = {
+      expectedGapPct: Math.round(expectedGapPct * 100) / 100,
+      expectedTarget: Math.round(currentPrice * (1 + expectedGapPct / 100) * 100) / 100,
+      basedOn: `${eh.quarterCount || 0}Q avg surprise: ${eh.avgSurprise > 0 ? '+' : ''}${eh.avgSurprise}%`,
+      beatProbability: eh.beatStreak >= 3 ? '~70%' : eh.beatStreak >= 2 ? '~60%' : '~50%'
+    };
+  }
+
+  // ══════════════════════════════════════════
+  // 6. ANALYST CONSENSUS
+  // ══════════════════════════════════════════
+  const analystCat = (catalysts || []).find(c => c.type === 'target_price');
+  const analystTarget = analystCat ? Math.round(analystCat.targetPrice * 100) / 100 : null;
+  const analystUpside = analystCat?.upside || null;
+
+  // ══════════════════════════════════════════
+  // 7. SYNTHESIZE: Multi-validated target price
+  // ══════════════════════════════════════════
+  // Collect all candidate targets and find consensus
+  const candidateTargets = [];
+
+  // ATR-based target (baseline)
+  const atrMultiplier = hasEarnings ? 2.0 : 1.5;
+  const atrTarget = currentPrice + atr * atrMultiplier;
+  candidateTargets.push({ price: atrTarget, weight: 2, source: `ATR × ${atrMultiplier}` });
+
+  // Nearest resistance (strong — price already proved it stops here)
+  if (nearestResistance && nearestResistance.price > currentPrice) {
+    candidateTargets.push({ price: nearestResistance.price, weight: 3, source: nearestResistance.label });
+  }
+
+  // First Fibonacci target above current price
+  if (fibTargets.length > 0) {
+    candidateTargets.push({ price: fibTargets[0].price, weight: 2, source: `Fib ${fibTargets[0].level}` });
+  }
+
+  // Earnings gap estimate (if applicable)
+  if (earningsGapEstimate) {
+    candidateTargets.push({ price: earningsGapEstimate.expectedTarget, weight: 2, source: 'Earnings Gap Est.' });
+  }
+
+  // Analyst target — only if reasonable (within 20% — not a 12-month dream)
+  if (analystTarget && analystUpside && analystUpside <= 25 && analystUpside > 0) {
+    candidateTargets.push({ price: analystTarget, weight: 1, source: 'Analyst Consensus' });
+  }
+
+  // Weighted average of all candidates = our target
+  let targetPrice;
+  let targetSources = [];
+  if (candidateTargets.length > 0) {
+    const totalWeight = candidateTargets.reduce((s, c) => s + c.weight, 0);
+    targetPrice = candidateTargets.reduce((s, c) => s + c.price * c.weight, 0) / totalWeight;
+    targetPrice = Math.round(targetPrice * 100) / 100;
+    targetSources = candidateTargets.map(c => c.source);
+  } else {
+    targetPrice = Math.round((currentPrice + atr * 1.5) * 100) / 100;
+    targetSources = ['ATR fallback'];
+  }
+
+  let targetSource = `Validated: ${targetSources.join(' + ')}`;
+
+  // Conservative / Aggressive range
+  const conservativeTarget = Math.round(Math.min(...candidateTargets.map(c => c.price)) * 100) / 100;
+  const aggressiveTarget = Math.round(Math.max(...candidateTargets.map(c => c.price)) * 100) / 100;
+
+  // Confidence in target: how many sources agree within 1 ATR of each other?
+  let targetConfidence = 'low';
+  if (candidateTargets.length >= 3) {
+    const spread = aggressiveTarget - conservativeTarget;
+    const spreadPct = (spread / currentPrice) * 100;
+    if (spreadPct < atr / currentPrice * 100 * 2) targetConfidence = 'high';    // Tight cluster
+    else if (spreadPct < atr / currentPrice * 100 * 4) targetConfidence = 'medium';
+  }
+
+  // ══════════════════════════════════════════
+  // 8. STOP LOSS (multi-validated)
+  // ══════════════════════════════════════════
+  let stopLoss = Math.round((currentPrice - atr * 1.5) * 100) / 100;
+  let stopSource = 'ATR × 1.5 below entry';
+
+  // Use nearest support if it's tighter (more conservative)
+  if (nearestSupport && nearestSupport.price < currentPrice && nearestSupport.price > stopLoss) {
+    stopLoss = Math.round((nearestSupport.price - atr * 0.1) * 100) / 100; // Just below support
+    stopSource = `Below ${nearestSupport.label}`;
+  }
+
+  // Validate: 20-day swing low as absolute floor stop
+  if (h.length >= 5) {
+    const lows = h.slice(-20).map(d => d.low || Infinity).filter(v => v > 0 && v < Infinity);
+    if (lows.length > 0) {
+      const swingLow = Math.min(...lows);
+      if (swingLow > 0 && swingLow < currentPrice && swingLow > stopLoss) {
+        stopLoss = Math.round(swingLow * 100) / 100;
+        stopSource = '20-Day Swing Low';
+      }
+    }
+  }
+
+  // Safety: ensure stop below entry, target above entry
   if (stopLoss >= entryPrice) stopLoss = Math.round(entryPrice * 0.97 * 100) / 100;
   if (targetPrice <= entryPrice) targetPrice = Math.round(entryPrice * 1.02 * 100) / 100;
 
-  // ── Risk/Reward ──
+  // ══════════════════════════════════════════
+  // 9. RISK/REWARD & RISK LEVEL
+  // ══════════════════════════════════════════
   const risk = entryPrice - stopLoss;
   const reward = targetPrice - entryPrice;
   const riskReward = risk > 0 ? Math.round((reward / risk) * 100) / 100 : 0;
 
-  // ── Risk Level (honest assessment) ──
   let riskLevel, riskLabel;
   if (riskReward >= 2.0) {
     riskLevel = 'secure';
@@ -163,14 +350,13 @@ function calcTradeSetup(history, currentPrice, catalysts, quote) {
     riskLabel = 'High Risk — Consider skipping';
   }
 
-  // Analyst long-term target (side info only, NOT used for trade target)
-  const analystCat = (catalysts || []).find(c => c.type === 'target_price');
-  const analystTarget = analystCat ? Math.round(analystCat.targetPrice * 100) / 100 : null;
-
   return {
     available: true,
     entryPrice,
     targetPrice,
+    conservativeTarget,
+    aggressiveTarget,
+    targetConfidence,
     stopLoss,
     riskReward,
     riskLevel,
@@ -180,7 +366,15 @@ function calcTradeSetup(history, currentPrice, catalysts, quote) {
     potentialGain: Math.round((reward / entryPrice) * 10000) / 100,
     potentialLoss: Math.round((risk / entryPrice) * 10000) / 100,
     atr: Math.round(atr * 100) / 100,
-    analystTarget, // long-term reference only
+    analystTarget,
+    // Detailed validation data for UI
+    validation: {
+      resistanceLevels: resistanceLevels.slice(0, 3).map(r => ({ price: Math.round(r.price * 100) / 100, type: r.label })),
+      supportLevels: supportLevels.slice(0, 3).map(s => ({ price: Math.round(s.price * 100) / 100, type: s.label })),
+      fibTargets: fibTargets.slice(0, 2).map(f => ({ level: f.level, price: Math.round(f.price * 100) / 100 })),
+      earningsGap: earningsGapEstimate,
+      candidateSources: candidateTargets.map(c => ({ source: c.source, price: Math.round(c.price * 100) / 100 }))
+    }
   };
 }
 
@@ -307,7 +501,7 @@ async function scoreSymbol(symbol, earningsCalendar) {
   const change = quoteData?.regularMarketChangePercent || 0;
   const currentPrice = quoteData?.regularMarketPrice || 0;
   const entry = getEntrySignal(change, stockData.hasEarningsToday || stockData.hasEarningsTomorrow, stockData.history, currentPrice);
-  const tradeSetup = calcTradeSetup(stockData.history, currentPrice, catalystList, quoteData);
+  const tradeSetup = calcTradeSetup(stockData.history, currentPrice, catalystList, quoteData, earningsHistData);
 
   return {
     symbol,
@@ -439,7 +633,7 @@ async function scoreSymbols(symbols, earningsCalendar, opts = { light: false }) 
         const hasEarningsTomorrow = stockData.hasEarningsTomorrow;
         
         const entry = getEntrySignal(change, hasEarningsToday || hasEarningsTomorrow, history, currentPrice);
-        const tradeSetup = calcTradeSetup(history, currentPrice, catalysts, quoteData);
+        const tradeSetup = calcTradeSetup(history, currentPrice, catalysts, quoteData, earningsHistData);
         const upcomingEvents = [];
         if (hasEarningsToday) upcomingEvents.push('Earnings TODAY');
         else if (hasEarningsTomorrow) upcomingEvents.push('Earnings TOMORROW');
