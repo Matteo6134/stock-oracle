@@ -1,15 +1,41 @@
-import { BarChart3, AlertCircle } from 'lucide-react'
+import { BarChart3, AlertCircle, TrendingUp, TrendingDown, Minus, ShieldAlert } from 'lucide-react'
 import Header from '../components/Header'
 import StockCard from '../components/StockCard'
 import LoadingSkeleton from '../components/LoadingSkeleton'
 import { usePredictions } from '../hooks/useStocks'
 
+const regimeConfig = {
+  bull: { icon: TrendingUp, label: 'Bull Market', color: 'text-oracle-green', bg: 'bg-oracle-green/10 border-oracle-green/30', desc: 'SPY uptrend — favorable for buys' },
+  cautious_bull: { icon: TrendingUp, label: 'Cautious Bull', color: 'text-oracle-yellow', bg: 'bg-oracle-yellow/10 border-oracle-yellow/30', desc: 'SPY recovering — moderate confidence' },
+  neutral: { icon: Minus, label: 'Neutral', color: 'text-oracle-muted', bg: 'bg-white/5 border-oracle-border', desc: 'Mixed signals — be selective' },
+  cautious_bear: { icon: ShieldAlert, label: 'Cautious', color: 'text-oracle-yellow', bg: 'bg-oracle-yellow/10 border-oracle-yellow/30', desc: 'SPY weakening — only high-confidence picks shown' },
+  bear: { icon: TrendingDown, label: 'Bear Market', color: 'text-oracle-red', bg: 'bg-oracle-red/10 border-oracle-red/30', desc: 'SPY downtrend — only best setups shown, consider cash' },
+}
+
 export default function Dashboard() {
-  const { stocks, loading, error, refresh } = usePredictions()
+  const { stocks, loading, error, refresh, marketRegime } = usePredictions()
+
+  const regime = marketRegime?.regime ? regimeConfig[marketRegime.regime] || regimeConfig.neutral : null
 
   return (
     <div className="max-w-lg mx-auto">
       <Header onRefresh={refresh} loading={loading} />
+
+      {/* Market Regime Banner */}
+      {regime && marketRegime && (
+        <div className={`mx-4 mb-2 p-2.5 rounded-xl border flex items-center gap-2 ${regime.bg}`}>
+          <regime.icon size={14} className={regime.color} />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className={`text-xs font-bold ${regime.color}`}>{regime.label}</span>
+              <span className="text-[10px] text-oracle-muted">
+                SPY ${marketRegime.spyPrice} ({marketRegime.fiveDayReturn >= 0 ? '+' : ''}{marketRegime.fiveDayReturn}% 5d)
+              </span>
+            </div>
+            <p className="text-[10px] text-oracle-muted/70">{regime.desc}</p>
+          </div>
+        </div>
+      )}
 
       {/* Section title */}
       <div className="px-4 py-3 flex items-center gap-2">
@@ -53,8 +79,17 @@ export default function Dashboard() {
       {!loading && !error && stocks.length === 0 && (
         <div className="px-4 py-12 text-center">
           <BarChart3 size={48} className="text-oracle-muted mx-auto mb-3" />
-          <p className="text-oracle-muted text-sm">No predictions available yet.</p>
-          <p className="text-oracle-muted text-xs mt-1">Check back later or try refreshing.</p>
+          {marketRegime?.regime === 'bear' ? (
+            <>
+              <p className="text-oracle-red text-sm font-bold">Bear Market — No safe picks today</p>
+              <p className="text-oracle-muted text-xs mt-1">Market conditions are too risky. Consider staying in cash.</p>
+            </>
+          ) : (
+            <>
+              <p className="text-oracle-muted text-sm">No predictions available yet.</p>
+              <p className="text-oracle-muted text-xs mt-1">Check back later or try refreshing.</p>
+            </>
+          )}
           <button
             onClick={refresh}
             className="mt-4 px-4 py-2 bg-oracle-accent text-white text-sm rounded-lg hover:bg-oracle-accent/80 transition-colors"

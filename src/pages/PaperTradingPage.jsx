@@ -63,6 +63,19 @@ export default function PaperTradingPage() {
           const pl = ((currentPrice - t.entryPrice) / t.entryPrice) * 100
           const plDollar = (currentPrice - t.entryPrice) * t.shares
 
+          // TRAILING STOP: move stop up as price rises (lock in profits)
+          let trailingStop = t.trailingStop || t.stopLoss
+          const highWaterMark = Math.max(t.highWaterMark || t.entryPrice, currentPrice)
+
+          if (currentPrice > t.entryPrice) {
+            // Once in profit, trail stop at 50% of max gain
+            const maxGain = highWaterMark - t.entryPrice
+            const trailedLevel = t.entryPrice + maxGain * 0.5
+            if (trailedLevel > trailingStop) {
+              trailingStop = Math.round(trailedLevel * 100) / 100
+            }
+          }
+
           // Check if target or stop hit
           let newStatus = 'open'
           let exitReason = null
@@ -71,11 +84,11 @@ export default function PaperTradingPage() {
           if (currentPrice >= t.targetPrice) {
             newStatus = 'won'
             exitPrice = t.targetPrice
-            exitReason = 'Target hit!'
-          } else if (currentPrice <= t.stopLoss) {
-            newStatus = 'lost'
-            exitPrice = t.stopLoss
-            exitReason = 'Stop loss triggered'
+            exitReason = '🎯 Target hit!'
+          } else if (currentPrice <= trailingStop) {
+            newStatus = pl > 0 ? 'won' : 'lost'
+            exitPrice = trailingStop
+            exitReason = trailingStop > t.stopLoss ? '📈 Trailing stop (profit locked)' : 'Stop loss triggered'
           }
 
           // Check end of day (4 PM ET) — auto-close
@@ -96,6 +109,8 @@ export default function PaperTradingPage() {
             currentPrice,
             pl: Math.round(pl * 100) / 100,
             plDollar: Math.round(plDollar * 100) / 100,
+            trailingStop,
+            highWaterMark,
             lastUpdate: now,
             ...(newStatus !== 'open' ? { status: newStatus, exitPrice, exitReason, closedAt: new Date().toISOString() } : {})
           }
@@ -313,24 +328,38 @@ export default function PaperTradingPage() {
                 <div className="relative h-6 rounded-full bg-oracle-border/20 overflow-hidden mb-1.5">
                   {/* Stop zone */}
                   <div className="absolute left-0 top-0 bottom-0 bg-oracle-red/20 rounded-l-full"
-                    style={{ width: `${Math.max(5, ((t.entryPrice - t.stopLoss) / (t.targetPrice - t.stopLoss)) * 100)}%` }} />
+                    style={{ width: `${Math.max(5, ((t.entryPrice - (t.trailingStop || t.stopLoss)) / (t.targetPrice - (t.trailingStop || t.stopLoss))) * 100)}%` }} />
                   {/* Target zone */}
                   <div className="absolute right-0 top-0 bottom-0 bg-oracle-green/20 rounded-r-full"
-                    style={{ width: `${Math.max(5, ((t.targetPrice - t.entryPrice) / (t.targetPrice - t.stopLoss)) * 100)}%` }} />
+                    style={{ width: `${Math.max(5, ((t.targetPrice - t.entryPrice) / (t.targetPrice - (t.trailingStop || t.stopLoss))) * 100)}%` }} />
+                  {/* Trailing stop marker (yellow line when active) */}
+                  {t.trailingStop && t.trailingStop > t.stopLoss && (
+                    <div className="absolute top-0 bottom-0 w-0.5 bg-oracle-yellow rounded-full z-10"
+                      style={{
+                        left: `${Math.max(1, Math.min(99, ((t.trailingStop - (t.trailingStop || t.stopLoss)) / (t.targetPrice - (t.trailingStop || t.stopLoss))) * 100))}%`
+                      }} />
+                  )}
                   {/* Current price marker */}
-                  <div className="absolute top-0 bottom-0 w-1 bg-oracle-accent rounded-full transition-all duration-500"
+                  <div className="absolute top-0 bottom-0 w-1 bg-oracle-accent rounded-full transition-all duration-500 z-20"
                     style={{
-                      left: `${Math.max(2, Math.min(98, ((t.currentPrice - t.stopLoss) / (t.targetPrice - t.stopLoss)) * 100))}%`
+                      left: `${Math.max(2, Math.min(98, ((t.currentPrice - (t.trailingStop || t.stopLoss)) / (t.targetPrice - (t.trailingStop || t.stopLoss))) * 100))}%`
                     }} />
                 </div>
 
                 <div className="flex justify-between text-[9px]">
-                  <span className="text-oracle-red font-mono">SL ${t.stopLoss?.toFixed(2)}</span>
+                  <span className="text-oracle-red font-mono">
+                    {t.trailingStop && t.trailingStop > t.stopLoss ? '🔒' : 'SL'} ${(t.trailingStop || t.stopLoss)?.toFixed(2)}
+                  </span>
                   <span className="text-oracle-muted font-mono">
                     Entry ${t.entryPrice?.toFixed(2)} → Now ${t.currentPrice?.toFixed(2)}
                   </span>
                   <span className="text-oracle-green font-mono">TP ${t.targetPrice?.toFixed(2)}</span>
                 </div>
+                {t.trailingStop && t.trailingStop > t.stopLoss && (
+                  <div className="text-[8px] text-oracle-green/60 mt-0.5">
+                    Trailing stop active — original SL was ${t.stopLoss?.toFixed(2)}
+                  </div>
+                )}
 
                 <div className="flex justify-between text-[9px] text-oracle-muted mt-1">
                   <span>{t.shares} shares × {formatMoney(t.invested)}</span>

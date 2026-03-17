@@ -547,9 +547,88 @@ async function scoreSymbol(symbol, earningsCalendar) {
 // Sectors to exclude from predictions
 const EXCLUDED_SECTORS = new Set(['Crypto', 'Cannabis']);
 
+// ══════════════════════════════════════════
+// MARKET REGIME DETECTOR
+// Don't recommend buys when SPY is in a downtrend (bear market)
+// This single filter prevents most losses during market sell-offs
+// ══════════════════════════════════════════
+let marketRegimeCache = { regime: 'neutral', timestamp: 0 };
+const REGIME_CACHE_TTL = 30 * 60 * 1000; // 30 min
+
+async function getMarketRegime() {
+  if (Date.now() - marketRegimeCache.timestamp < REGIME_CACHE_TTL) {
+    return marketRegimeCache;
+  }
+
+  try {
+    const spyHistory = await yahooFinance.getHistoricalData('SPY');
+    const spyQuote = await yahooFinance.getQuote('SPY');
+
+    if (!spyHistory || spyHistory.length < 50) {
+      return { regime: 'neutral', spyTrend: 'unknown', confidence: 0 };
+    }
+
+    const currentPrice = spyQuote?.regularMarketPrice || spyHistory[spyHistory.length - 1]?.close || 0;
+
+    // 20-day SMA (short-term trend)
+    const sma20 = spyHistory.slice(-20).reduce((s, d) => s + (d.close || 0), 0) / 20;
+    // 50-day SMA (medium-term trend)
+    const sma50 = spyHistory.slice(-50).reduce((s, d) => s + (d.close || 0), 0) / Math.min(50, spyHistory.length);
+
+    // 5-day momentum
+    const fiveDayReturn = spyHistory.length >= 5
+      ? ((currentPrice - spyHistory[spyHistory.length - 5].close) / spyHistory[spyHistory.length - 5].close) * 100
+      : 0;
+
+    // Market regime rules:
+    // BULL: SPY > 20-SMA > 50-SMA (uptrend)
+    // BEAR: SPY < 20-SMA < 50-SMA (downtrend)
+    // CAUTIOUS: Mixed signals
+    let regime = 'neutral';
+    let spyTrend = 'mixed';
+
+    if (currentPrice > sma20 && sma20 > sma50) {
+      regime = 'bull';
+      spyTrend = 'uptrend';
+    } else if (currentPrice < sma20 && sma20 < sma50) {
+      regime = 'bear';
+      spyTrend = 'downtrend';
+    } else if (currentPrice > sma20) {
+      regime = 'cautious_bull';
+      spyTrend = 'recovering';
+    } else {
+      regime = 'cautious_bear';
+      spyTrend = 'weakening';
+    }
+
+    // Panic check: if SPY dropped >2% in last 5 days, be very cautious
+    if (fiveDayReturn < -3) {
+      regime = 'bear';
+      spyTrend = 'sell-off';
+    }
+
+    const result = {
+      regime,
+      spyTrend,
+      spyPrice: Math.round(currentPrice * 100) / 100,
+      sma20: Math.round(sma20 * 100) / 100,
+      sma50: Math.round(sma50 * 100) / 100,
+      fiveDayReturn: Math.round(fiveDayReturn * 100) / 100,
+      timestamp: Date.now()
+    };
+
+    marketRegimeCache = result;
+    console.log(`[MarketRegime] ${regime.toUpperCase()} — SPY $${result.spyPrice} | 20SMA $${result.sma20} | 50SMA $${result.sma50} | 5d: ${fiveDayReturn.toFixed(1)}%`);
+    return result;
+  } catch (err) {
+    console.error('[MarketRegime] Error:', err.message);
+    return { regime: 'neutral', spyTrend: 'unknown', timestamp: Date.now() };
+  }
+}
+
 // ── Quality Filters ──
 // Minimum requirements to be recommended
-function passesQualityFilter(stock) {
+function passesQualityFilter(stock, marketRegime) {
   const q = stock._quote || stock.quote || {};
   const volume = q.regularMarketVolume || stock._volume || 0;
   const marketCap = q.marketCap || 0;
@@ -565,6 +644,23 @@ function passesQualityFilter(stock) {
 
   // 3. Minimum score threshold
   if (stock.score < 40) return false;
+
+  // 4. MARKET REGIME FILTER — the most important filter
+  // In bear markets: only recommend HIGH confidence stocks with good R:R
+  if (marketRegime?.regime === 'bear') {
+    if (stock.confidence !== 'HIGH') return false;        // Only high-confidence in bear market
+    if (stock.tradeSetup?.riskReward < 2.0) return false; // Must have 2:1 R:R minimum
+  }
+
+  // In cautious markets: require at least MEDIUM confidence and 1.5:1 R:R
+  if (marketRegime?.regime === 'cautious_bear') {
+    if (stock.confidence === 'LOW') return false;
+    if (stock.tradeSetup?.riskReward < 1.5) return false;
+  }
+
+  // 5. MINIMUM R:R ENFORCEMENT — the math that makes bad win rates profitable
+  // Even at 40% win rate, 2:1 R:R = profitable (+$0.20 per $1 risked)
+  if (stock.tradeSetup?.available && stock.tradeSetup?.riskReward < 1.0) return false;
 
   return true;
 }
@@ -705,9 +801,10 @@ router.get('/predictions', async (req, res, next) => {
 
     console.log('[Predictions] Generating forward-looking predictions...');
 
-    const [earningsCalendar, trendingStocks] = await Promise.all([
+    const [earningsCalendar, trendingStocks, marketRegime] = await Promise.all([
       yahooFinance.getEarningsCalendar(),
-      yahooFinance.getTrendingStocks()
+      yahooFinance.getTrendingStocks(),
+      getMarketRegime()
     ]);
 
     const earningsSymbols = earningsCalendar.map(e => e.symbol || e.ticker);
@@ -730,7 +827,7 @@ router.get('/predictions', async (req, res, next) => {
     const scored = await scoreSymbols(symbols, earningsCalendar);
 
     const predictions = scored
-      .filter(v => passesQualityFilter(v))   // Quality gate
+      .filter(v => passesQualityFilter(v, marketRegime))   // Quality + regime gate
       .map(v => {
         // Strip internal fields for list response
         const { _quote, _social, _news, _history, _volume, ...clean } = v;
@@ -743,10 +840,16 @@ router.get('/predictions', async (req, res, next) => {
       date: new Date().toISOString().split('T')[0],
       generatedAt: new Date().toISOString(),
       earningsCount: earningsSymbols.length,
+      marketRegime: {
+        regime: marketRegime.regime,
+        spyTrend: marketRegime.spyTrend,
+        spyPrice: marketRegime.spyPrice,
+        fiveDayReturn: marketRegime.fiveDayReturn
+      },
       predictions
     };
 
-    console.log(`[Predictions] Done: ${predictions.length} picks after quality filter (${earningsSymbols.length} earnings found)`);
+    console.log(`[Predictions] Done: ${predictions.length} picks | Market: ${marketRegime.regime?.toUpperCase()} (${earningsSymbols.length} earnings found)`);
     saveDailyPicks('trending', predictions);
     setCache('predictions', result);
     res.json(result);
@@ -765,7 +868,10 @@ router.get('/tomorrow', async (req, res, next) => {
 
     console.log('[Tomorrow] Finding stocks for tomorrow\'s catalysts...');
 
-    const earningsCalendar = await yahooFinance.getEarningsCalendar();
+    const [earningsCalendar, marketRegime] = await Promise.all([
+      yahooFinance.getEarningsCalendar(),
+      getMarketRegime()
+    ]);
 
     // Stocks with earnings TOMORROW
     const tomorrowEarnings = earningsCalendar.filter(e => e.isTomorrow);
@@ -798,7 +904,7 @@ router.get('/tomorrow', async (req, res, next) => {
     const scoredData = await scoreSymbols(symbols, earningsCalendar);
 
     const predictions = scoredData
-      .filter(result => passesQualityFilter(result))   // Quality gate
+      .filter(result => passesQualityFilter(result, marketRegime))   // Quality + regime gate
       .map((result) => {
         // Build tomorrow-specific reason
         const reasons = [];

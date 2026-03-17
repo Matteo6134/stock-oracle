@@ -75,6 +75,7 @@ function useLivePrices(stocks, enabled = true) {
 
 export function usePredictions() {
   const [stocks, setStocks] = useState([])
+  const [marketRegime, setMarketRegime] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -86,6 +87,7 @@ export function usePredictions() {
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data = await res.json()
       setStocks(data.predictions || data || [])
+      if (data.marketRegime) setMarketRegime(data.marketRegime)
     } catch (err) {
       setError(err.message || 'Failed to fetch predictions')
     } finally {
@@ -99,7 +101,7 @@ export function usePredictions() {
 
   const { liveStocks, lastUpdated } = useLivePrices(stocks, !loading)
 
-  return { stocks: liveStocks, loading, error, refresh: fetchPredictions, lastUpdated }
+  return { stocks: liveStocks, loading, error, refresh: fetchPredictions, lastUpdated, marketRegime }
 }
 
 export function useTomorrow() {
