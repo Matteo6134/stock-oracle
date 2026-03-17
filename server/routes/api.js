@@ -1099,7 +1099,13 @@ router.get('/prices', async (req, res, next) => {
         // Don't have history for live price update, use fallback thresholds
         const entry = getEntrySignal(change, false, null, d.regularMarketPrice);
         prices[d.symbol] = {
-          price: d.regularMarketPrice || null,
+          price: d.currentSessionPrice || d.regularMarketPrice || null,
+          regularPrice: d.regularMarketPrice || null,
+          preMarketPrice: d.preMarketPrice || null,
+          postMarketPrice: d.postMarketPrice || null,
+          preMarketChange: d.preMarketChangePercent || null,
+          postMarketChange: d.postMarketChangePercent || null,
+          marketState: d.marketState || null, // PRE, REGULAR, POST, CLOSED
           change,
           volume: d.regularMarketVolume || null,
           entrySignal: entry.signal,

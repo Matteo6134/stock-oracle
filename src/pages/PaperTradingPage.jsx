@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { DollarSign, TrendingUp, TrendingDown, Target, Clock, CheckCircle, XCircle, Loader2, RefreshCw, Trash2 } from 'lucide-react'
+import { DollarSign, TrendingUp, TrendingDown, Target, Clock, CheckCircle, XCircle, Loader2, RefreshCw, Trash2, Bell, BellOff, AlertTriangle, Sun, Moon, Sunrise, Sunset } from 'lucide-react'
+import { sendLocalNotification, isNotificationEnabled } from '../lib/notifications'
 
 const API = import.meta.env.VITE_API_URL || ''
 const STORAGE_KEY = 'paper_trades'
+const MARKET_NOTIF_KEY = 'market_notif_state'
 const POLL_INTERVAL = 60_000 // 1 min price refresh
 
 function loadTrades() {
@@ -25,13 +27,163 @@ function formatPct(n) {
   return `${sign}${n.toFixed(2)}%`
 }
 
+// ── Market Hours (US Eastern) ──
+function getMarketSession() {
+  const now = new Date()
+  const nyStr = now.toLocaleString('en-US', { timeZone: 'America/New_York' })
+  const ny = new Date(nyStr)
+  const hr = ny.getHours()
+  const min = ny.getMinutes()
+  const totalMin = hr * 60 + min
+  const day = ny.getDay() // 0=Sun, 6=Sat
+
+  // Weekend
+  if (day === 0 || day === 6) {
+    return {
+      session: 'CLOSED',
+      label: 'Weekend — Market Closed',
+      icon: Moon,
+      color: 'text-oracle-muted',
+      bg: 'bg-white/5 border-oracle-border',
+      canTrade: false,
+      nextEvent: day === 6 ? 'Opens Monday 9:30 AM ET' : 'Opens Tomorrow 9:30 AM ET',
+      nyTime: ny
+    }
+  }
+
+  // Premarket: 4:00 AM - 9:29 AM ET
+  if (totalMin >= 240 && totalMin < 570) {
+    const minsToOpen = 570 - totalMin
+    return {
+      session: 'PRE',
+      label: 'Pre-Market',
+      icon: Sunrise,
+      color: 'text-oracle-yellow',
+      bg: 'bg-oracle-yellow/10 border-oracle-yellow/30',
+      canTrade: false,
+      nextEvent: `Market opens in ${Math.floor(minsToOpen / 60)}h ${minsToOpen % 60}m`,
+      nyTime: ny
+    }
+  }
+
+  // Regular: 9:30 AM - 3:59 PM ET
+  if (totalMin >= 570 && totalMin < 960) {
+    const minsToClose = 960 - totalMin
+    return {
+      session: 'REGULAR',
+      label: 'Market Open',
+      icon: Sun,
+      color: 'text-oracle-green',
+      bg: 'bg-oracle-green/10 border-oracle-green/30',
+      canTrade: true,
+      nextEvent: `Closes in ${Math.floor(minsToClose / 60)}h ${minsToClose % 60}m`,
+      nyTime: ny
+    }
+  }
+
+  // After hours: 4:00 PM - 7:59 PM ET
+  if (totalMin >= 960 && totalMin < 1200) {
+    return {
+      session: 'POST',
+      label: 'After Hours',
+      icon: Sunset,
+      color: 'text-oracle-purple',
+      bg: 'bg-oracle-purple/10 border-oracle-purple/30',
+      canTrade: false,
+      nextEvent: 'Opens tomorrow 9:30 AM ET',
+      nyTime: ny
+    }
+  }
+
+  // Closed: 8:00 PM - 3:59 AM ET
+  return {
+    session: 'CLOSED',
+    label: 'Market Closed',
+    icon: Moon,
+    color: 'text-oracle-muted',
+    bg: 'bg-white/5 border-oracle-border',
+    canTrade: false,
+    nextEvent: totalMin < 240 ? 'Pre-market starts at 4:00 AM ET' : 'Opens tomorrow 9:30 AM ET',
+    nyTime: ny
+  }
+}
+
+// ── Market event notifications ──
+function checkMarketNotifications(session) {
+  if (!isNotificationEnabled()) return
+
+  try {
+    const state = JSON.parse(localStorage.getItem(MARKET_NOTIF_KEY) || '{}')
+    const today = new Date().toISOString().slice(0, 10)
+
+    // Reset daily flags
+    if (state.date !== today) {
+      state.date = today
+      state.preMarketNotified = false
+      state.openNotified = false
+      state.closeWarningNotified = false
+      state.closeNotified = false
+      state.afterHoursNotified = false
+    }
+
+    const ny = session.nyTime
+    const hr = ny.getHours()
+    const min = ny.getMinutes()
+    const totalMin = hr * 60 + min
+
+    // Pre-market opens (4:00 AM ET)
+    if (totalMin >= 240 && totalMin < 245 && !state.preMarketNotified) {
+      sendLocalNotification('🌅 Pre-Market Open', 'Pre-market trading has started. Check early movers!', '/paper')
+      state.preMarketNotified = true
+    }
+
+    // Market opens (9:30 AM ET)
+    if (totalMin >= 570 && totalMin < 575 && !state.openNotified) {
+      sendLocalNotification('🔔 Market Open!', 'US market is now open. Time to check your picks!', '/paper')
+      state.openNotified = true
+    }
+
+    // 15 min before close warning (3:45 PM ET)
+    if (totalMin >= 945 && totalMin < 950 && !state.closeWarningNotified) {
+      sendLocalNotification('⚠️ Market Closing Soon', 'Market closes in 15 minutes. Review your open positions!', '/paper')
+      state.closeWarningNotified = true
+    }
+
+    // Market close (4:00 PM ET)
+    if (totalMin >= 960 && totalMin < 965 && !state.closeNotified) {
+      sendLocalNotification('🔕 Market Closed', 'Regular trading hours ended. After-hours trading is active.', '/paper')
+      state.closeNotified = true
+    }
+
+    // After hours active (4:05 PM ET)
+    if (totalMin >= 965 && totalMin < 970 && !state.afterHoursNotified) {
+      sendLocalNotification('🌙 After Hours Active', 'After-hours prices are updating. No new paper trades during this session.', '/paper')
+      state.afterHoursNotified = true
+    }
+
+    localStorage.setItem(MARKET_NOTIF_KEY, JSON.stringify(state))
+  } catch { /* silent */ }
+}
+
 export default function PaperTradingPage() {
   const navigate = useNavigate()
   const [trades, setTrades] = useState(loadTrades)
   const [predictions, setPredictions] = useState([])
   const [loading, setLoading] = useState(true)
   const [investAmount, setInvestAmount] = useState(1000)
+  const [marketSession, setMarketSession] = useState(getMarketSession)
+  const [confirmCancel, setConfirmCancel] = useState(null) // trade id to confirm cancel
   const pollRef = useRef(null)
+
+  // Update market session every 30s
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const session = getMarketSession()
+      setMarketSession(session)
+      checkMarketNotifications(session)
+    }, 30_000)
+    return () => clearInterval(interval)
+  }, [])
 
   // Load predictions for quick-add
   useEffect(() => {
@@ -41,7 +193,7 @@ export default function PaperTradingPage() {
     }).catch(() => setLoading(false))
   }, [])
 
-  // Poll live prices for open trades
+  // Poll live prices for open trades (works during ALL sessions for display)
   const updatePrices = useCallback(async () => {
     const openTrades = trades.filter(t => t.status === 'open')
     if (openTrades.length === 0) return
@@ -53,22 +205,36 @@ export default function PaperTradingPage() {
       if (!data.prices) return
 
       const now = Date.now()
+      const session = getMarketSession()
+
       setTrades(prev => {
         const updated = prev.map(t => {
           if (t.status !== 'open') return t
           const priceData = data.prices[t.symbol]
-          if (!priceData?.price) return t
+          if (!priceData) return t
 
-          const currentPrice = priceData.price
+          // Use session-appropriate price
+          const mktState = priceData.marketState || session.session
+          let currentPrice = priceData.price || priceData.regularPrice || t.currentPrice
+          let sessionPrice = null
+          let sessionLabel = null
+
+          if (mktState === 'PRE' && priceData.preMarketPrice) {
+            sessionPrice = priceData.preMarketPrice
+            sessionLabel = `Pre: $${priceData.preMarketPrice.toFixed(2)} (${priceData.preMarketChange >= 0 ? '+' : ''}${(priceData.preMarketChange || 0).toFixed(2)}%)`
+          } else if ((mktState === 'POST' || mktState === 'CLOSED') && priceData.postMarketPrice) {
+            sessionPrice = priceData.postMarketPrice
+            sessionLabel = `AH: $${priceData.postMarketPrice.toFixed(2)} (${priceData.postMarketChange >= 0 ? '+' : ''}${(priceData.postMarketChange || 0).toFixed(2)}%)`
+          }
+
           const pl = ((currentPrice - t.entryPrice) / t.entryPrice) * 100
           const plDollar = (currentPrice - t.entryPrice) * t.shares
 
-          // TRAILING STOP: move stop up as price rises (lock in profits)
+          // TRAILING STOP: only during regular hours
           let trailingStop = t.trailingStop || t.stopLoss
           const highWaterMark = Math.max(t.highWaterMark || t.entryPrice, currentPrice)
 
-          if (currentPrice > t.entryPrice) {
-            // Once in profit, trail stop at 50% of max gain
+          if (currentPrice > t.entryPrice && session.session === 'REGULAR') {
             const maxGain = highWaterMark - t.entryPrice
             const trailedLevel = t.entryPrice + maxGain * 0.5
             if (trailedLevel > trailingStop) {
@@ -76,37 +242,53 @@ export default function PaperTradingPage() {
             }
           }
 
-          // Check if target or stop hit
+          // Check if target or stop hit — ONLY during regular market hours
           let newStatus = 'open'
           let exitReason = null
           let exitPrice = null
 
-          if (currentPrice >= t.targetPrice) {
-            newStatus = 'won'
-            exitPrice = t.targetPrice
-            exitReason = '🎯 Target hit!'
-          } else if (currentPrice <= trailingStop) {
-            newStatus = pl > 0 ? 'won' : 'lost'
-            exitPrice = trailingStop
-            exitReason = trailingStop > t.stopLoss ? '📈 Trailing stop (profit locked)' : 'Stop loss triggered'
-          }
+          if (session.session === 'REGULAR') {
+            if (currentPrice >= t.targetPrice) {
+              newStatus = 'won'
+              exitPrice = t.targetPrice
+              exitReason = '🎯 Target hit!'
+              if (isNotificationEnabled()) {
+                sendLocalNotification(
+                  `🎯 ${t.symbol} HIT TARGET!`,
+                  `${t.symbol} reached $${currentPrice.toFixed(2)}. P/L: +${pl.toFixed(1)}%`,
+                  '/paper'
+                )
+              }
+            } else if (currentPrice <= trailingStop) {
+              newStatus = pl > 0 ? 'won' : 'lost'
+              exitPrice = trailingStop
+              exitReason = trailingStop > t.stopLoss ? '📈 Trailing stop (profit locked)' : 'Stop loss triggered'
+              if (isNotificationEnabled()) {
+                const emoji = pl > 0 ? '📈' : '🛑'
+                sendLocalNotification(
+                  `${emoji} ${t.symbol} ${pl > 0 ? 'TRAILING STOP' : 'STOP HIT'}`,
+                  `${t.symbol} at $${currentPrice.toFixed(2)}. P/L: ${formatPct(pl)}`,
+                  '/paper'
+                )
+              }
+            }
 
-          // Check end of day (4 PM ET) — auto-close
-          const nyTime = new Intl.DateTimeFormat('en-US', {
-            timeZone: 'America/New_York', hour: 'numeric', minute: 'numeric', hour12: false
-          }).format(new Date())
-          const [hr, min] = nyTime.split(':').map(Number)
-          const isMarketClosed = hr >= 16 || hr < 9 || (hr === 9 && min < 30)
-
-          if (isMarketClosed && t.autoCloseEOD && newStatus === 'open') {
-            newStatus = pl > 0 ? 'won' : 'lost'
-            exitPrice = currentPrice
-            exitReason = 'Market closed — auto-exit'
+            // Auto-close at market close (3:55 PM ET — 5 min buffer)
+            const nyNow = session.nyTime
+            const totalMin = nyNow.getHours() * 60 + nyNow.getMinutes()
+            if (totalMin >= 955 && t.autoCloseEOD && newStatus === 'open') {
+              newStatus = pl > 0 ? 'won' : 'lost'
+              exitPrice = currentPrice
+              exitReason = 'Market closing — auto-exit'
+            }
           }
 
           return {
             ...t,
             currentPrice,
+            sessionPrice,
+            sessionLabel,
+            marketState: mktState,
             pl: Math.round(pl * 100) / 100,
             plDollar: Math.round(plDollar * 100) / 100,
             trailingStop,
@@ -132,6 +314,8 @@ export default function PaperTradingPage() {
 
   // Add a paper trade from prediction
   const addTrade = (stock) => {
+    if (!marketSession.canTrade) return // Block trades outside market hours
+
     const shares = Math.floor(investAmount / stock.price)
     if (shares <= 0) return
 
@@ -151,7 +335,7 @@ export default function PaperTradingPage() {
       currentPrice: stock.price,
       pl: 0,
       plDollar: 0,
-      status: 'open', // open | won | lost
+      status: 'open',
       exitPrice: null,
       exitReason: null,
       autoCloseEOD: true,
@@ -165,10 +349,34 @@ export default function PaperTradingPage() {
     saveTrades(updated)
   }
 
-  const removeTrade = (id) => {
-    const updated = trades.filter(t => t.id !== id)
-    setTrades(updated)
-    saveTrades(updated)
+  // Cancel/remove a single trade (open or closed)
+  const cancelTrade = (id) => {
+    setTrades(prev => {
+      const trade = prev.find(t => t.id === id)
+      if (!trade) return prev
+
+      // If open, close it as cancelled first
+      if (trade.status === 'open') {
+        const updated = prev.map(t => {
+          if (t.id !== id) return t
+          return {
+            ...t,
+            status: t.pl > 0 ? 'won' : 'lost',
+            exitPrice: t.currentPrice,
+            exitReason: '✖ Cancelled',
+            closedAt: new Date().toISOString()
+          }
+        })
+        saveTrades(updated)
+        return updated
+      }
+
+      // If already closed, remove entirely
+      const updated = prev.filter(t => t.id !== id)
+      saveTrades(updated)
+      return updated
+    })
+    setConfirmCancel(null)
   }
 
   const clearClosed = () => {
@@ -178,13 +386,15 @@ export default function PaperTradingPage() {
   }
 
   const manualClose = (id) => {
+    if (!marketSession.canTrade && marketSession.session !== 'POST') return // Can't sell outside hours (allow after-hours sell)
+
     const updated = trades.map(t => {
       if (t.id !== id || t.status !== 'open') return t
       return {
         ...t,
         status: t.pl > 0 ? 'won' : 'lost',
         exitPrice: t.currentPrice,
-        exitReason: 'Manual close',
+        exitReason: marketSession.session === 'POST' ? 'Manual close (after hours)' : 'Manual close',
         closedAt: new Date().toISOString()
       }
     })
@@ -201,10 +411,33 @@ export default function PaperTradingPage() {
   const winRate = closedTrades.length > 0 ? Math.round((wins / closedTrades.length) * 100) : null
   const openPl = openTrades.reduce((s, t) => s + (t.plDollar || 0), 0)
 
+  const SessionIcon = marketSession.icon
+
   return (
     <div className="px-4 pb-24 pt-2 max-w-lg mx-auto">
       <h1 className="text-lg font-bold text-oracle-text mb-1">Paper Trading</h1>
-      <p className="text-xs text-oracle-muted mb-4">Simulate trades with virtual money. Track if targets get hit.</p>
+      <p className="text-xs text-oracle-muted mb-3">Simulate trades with virtual money. Track if targets get hit.</p>
+
+      {/* Market Session Banner */}
+      <div className={`p-2.5 rounded-xl border flex items-center gap-2 mb-4 ${marketSession.bg}`}>
+        <SessionIcon size={16} className={marketSession.color} />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2">
+            <span className={`text-xs font-bold ${marketSession.color}`}>{marketSession.label}</span>
+            <span className="text-[10px] text-oracle-muted">
+              {marketSession.nyTime.toLocaleTimeString('en-US', {
+                timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', hour12: true
+              })} ET
+            </span>
+          </div>
+          <p className="text-[10px] text-oracle-muted/70">{marketSession.nextEvent}</p>
+        </div>
+        {!marketSession.canTrade && (
+          <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-oracle-red/15 text-oracle-red font-bold">
+            NO TRADING
+          </span>
+        )}
+      </div>
 
       {/* Portfolio Stats */}
       <div className="glass-card p-3 mb-4">
@@ -260,16 +493,32 @@ export default function PaperTradingPage() {
           <h2 className="text-xs text-oracle-muted font-medium">Today's Picks — Tap to simulate</h2>
           {loading && <Loader2 size={12} className="animate-spin text-oracle-muted" />}
         </div>
+
+        {/* Market closed warning */}
+        {!marketSession.canTrade && predictions.length > 0 && (
+          <div className="flex items-center gap-1.5 p-2 rounded-lg bg-oracle-yellow/10 border border-oracle-yellow/20 mb-2">
+            <AlertTriangle size={12} className="text-oracle-yellow shrink-0" />
+            <span className="text-[10px] text-oracle-yellow">
+              {marketSession.session === 'PRE'
+                ? 'Pre-market — trading disabled. Prices shown are pre-market prices.'
+                : marketSession.session === 'POST'
+                ? 'After hours — trading disabled. After-hours prices shown.'
+                : 'Market closed — you can view picks but can\'t open new trades.'}
+            </span>
+          </div>
+        )}
+
         <div className="space-y-1.5">
           {predictions.slice(0, 6).map(stock => {
             const alreadyAdded = trades.some(t => t.symbol === stock.symbol && t.status === 'open')
+            const disabled = alreadyAdded || !marketSession.canTrade
             return (
               <button
                 key={stock.symbol}
-                onClick={() => !alreadyAdded && addTrade(stock)}
-                disabled={alreadyAdded}
+                onClick={() => !disabled && addTrade(stock)}
+                disabled={disabled}
                 className={`w-full glass-card p-2.5 flex items-center justify-between transition-all ${
-                  alreadyAdded ? 'opacity-40' : 'hover:bg-white/[0.03] active:scale-[0.98]'
+                  disabled ? 'opacity-40' : 'hover:bg-white/[0.03] active:scale-[0.98]'
                 }`}
               >
                 <div className="flex items-center gap-2">
@@ -285,6 +534,8 @@ export default function PaperTradingPage() {
                   }`}>{stock.score}</span>
                   {alreadyAdded ? (
                     <CheckCircle size={14} className="text-oracle-green" />
+                  ) : !marketSession.canTrade ? (
+                    <Clock size={14} className="text-oracle-muted" />
                   ) : (
                     <DollarSign size={14} className="text-oracle-accent" />
                   )}
@@ -315,35 +566,68 @@ export default function PaperTradingPage() {
                     </span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <button onClick={() => manualClose(t.id)} className="text-[9px] px-1.5 py-0.5 rounded bg-oracle-yellow/15 text-oracle-yellow border border-oracle-yellow/30 font-bold">
-                      SELL
-                    </button>
-                    <button onClick={() => removeTrade(t.id)} className="text-oracle-muted hover:text-oracle-red">
-                      <Trash2 size={12} />
-                    </button>
+                    {marketSession.canTrade || marketSession.session === 'POST' ? (
+                      <button onClick={() => manualClose(t.id)} className="text-[9px] px-1.5 py-0.5 rounded bg-oracle-yellow/15 text-oracle-yellow border border-oracle-yellow/30 font-bold">
+                        SELL
+                      </button>
+                    ) : null}
+                    {confirmCancel === t.id ? (
+                      <div className="flex items-center gap-1">
+                        <button onClick={() => cancelTrade(t.id)} className="text-[8px] px-1.5 py-0.5 rounded bg-oracle-red/20 text-oracle-red border border-oracle-red/30 font-bold">
+                          CONFIRM
+                        </button>
+                        <button onClick={() => setConfirmCancel(null)} className="text-[8px] px-1 py-0.5 text-oracle-muted">
+                          NO
+                        </button>
+                      </div>
+                    ) : (
+                      <button onClick={() => setConfirmCancel(t.id)} className="text-oracle-muted hover:text-oracle-red">
+                        <XCircle size={13} />
+                      </button>
+                    )}
                   </div>
                 </div>
 
+                {/* Pre/Post market price indicator */}
+                {t.sessionLabel && marketSession.session !== 'REGULAR' && (
+                  <div className={`text-[9px] mb-1.5 px-2 py-0.5 rounded-full inline-block ${
+                    marketSession.session === 'PRE'
+                      ? 'bg-oracle-yellow/10 text-oracle-yellow'
+                      : 'bg-oracle-purple/10 text-oracle-purple'
+                  }`}>
+                    {t.sessionLabel}
+                  </div>
+                )}
+
                 {/* Price ladder */}
                 <div className="relative h-6 rounded-full bg-oracle-border/20 overflow-hidden mb-1.5">
-                  {/* Stop zone */}
-                  <div className="absolute left-0 top-0 bottom-0 bg-oracle-red/20 rounded-l-full"
-                    style={{ width: `${Math.max(5, ((t.entryPrice - (t.trailingStop || t.stopLoss)) / (t.targetPrice - (t.trailingStop || t.stopLoss))) * 100)}%` }} />
-                  {/* Target zone */}
-                  <div className="absolute right-0 top-0 bottom-0 bg-oracle-green/20 rounded-r-full"
-                    style={{ width: `${Math.max(5, ((t.targetPrice - t.entryPrice) / (t.targetPrice - (t.trailingStop || t.stopLoss))) * 100)}%` }} />
-                  {/* Trailing stop marker (yellow line when active) */}
-                  {t.trailingStop && t.trailingStop > t.stopLoss && (
-                    <div className="absolute top-0 bottom-0 w-0.5 bg-oracle-yellow rounded-full z-10"
-                      style={{
-                        left: `${Math.max(1, Math.min(99, ((t.trailingStop - (t.trailingStop || t.stopLoss)) / (t.targetPrice - (t.trailingStop || t.stopLoss))) * 100))}%`
-                      }} />
-                  )}
-                  {/* Current price marker */}
-                  <div className="absolute top-0 bottom-0 w-1 bg-oracle-accent rounded-full transition-all duration-500 z-20"
-                    style={{
-                      left: `${Math.max(2, Math.min(98, ((t.currentPrice - (t.trailingStop || t.stopLoss)) / (t.targetPrice - (t.trailingStop || t.stopLoss))) * 100))}%`
-                    }} />
+                  {(() => {
+                    const effectiveStop = t.trailingStop || t.stopLoss
+                    const range = t.targetPrice - effectiveStop
+                    if (range <= 0) return null
+                    return (
+                      <>
+                        {/* Stop zone */}
+                        <div className="absolute left-0 top-0 bottom-0 bg-oracle-red/20 rounded-l-full"
+                          style={{ width: `${Math.max(5, ((t.entryPrice - effectiveStop) / range) * 100)}%` }} />
+                        {/* Target zone */}
+                        <div className="absolute right-0 top-0 bottom-0 bg-oracle-green/20 rounded-r-full"
+                          style={{ width: `${Math.max(5, ((t.targetPrice - t.entryPrice) / range) * 100)}%` }} />
+                        {/* Trailing stop marker (yellow line when active) */}
+                        {t.trailingStop && t.trailingStop > t.stopLoss && (
+                          <div className="absolute top-0 bottom-0 w-0.5 bg-oracle-yellow rounded-full z-10"
+                            style={{
+                              left: `${Math.max(1, Math.min(99, ((t.trailingStop - effectiveStop) / range) * 100))}%`
+                            }} />
+                        )}
+                        {/* Current price marker */}
+                        <div className="absolute top-0 bottom-0 w-1 bg-oracle-accent rounded-full transition-all duration-500 z-20"
+                          style={{
+                            left: `${Math.max(2, Math.min(98, ((t.currentPrice - effectiveStop) / range) * 100))}%`
+                          }} />
+                      </>
+                    )
+                  })()}
                 </div>
 
                 <div className="flex justify-between text-[9px]">
@@ -362,7 +646,7 @@ export default function PaperTradingPage() {
                 )}
 
                 <div className="flex justify-between text-[9px] text-oracle-muted mt-1">
-                  <span>{t.shares} shares × {formatMoney(t.invested)}</span>
+                  <span>{t.shares} shares x {formatMoney(t.invested)}</span>
                   <span>{new Date(t.openedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                 </div>
               </div>
@@ -376,7 +660,7 @@ export default function PaperTradingPage() {
         <div>
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-xs text-oracle-muted font-medium">Closed ({closedTrades.length})</h2>
-            <button onClick={clearClosed} className="text-[10px] text-oracle-muted hover:text-oracle-red">Clear</button>
+            <button onClick={clearClosed} className="text-[10px] text-oracle-muted hover:text-oracle-red">Clear all</button>
           </div>
           <div className="space-y-1.5">
             {closedTrades.map(t => (
@@ -391,10 +675,16 @@ export default function PaperTradingPage() {
                       {formatPct(t.pl)} ({formatMoney(t.plDollar)})
                     </span>
                   </div>
-                  <span className="text-[9px] text-oracle-muted">{t.exitReason}</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[9px] text-oracle-muted">{t.exitReason}</span>
+                    <button onClick={() => cancelTrade(t.id)} className="text-oracle-muted/40 hover:text-oracle-red">
+                      <Trash2 size={10} />
+                    </button>
+                  </div>
                 </div>
                 <div className="text-[9px] text-oracle-muted mt-0.5">
                   ${t.entryPrice?.toFixed(2)} → ${t.exitPrice?.toFixed(2)} • {t.shares} shares
+                  {t.closedAt && ` • ${new Date(t.closedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
                 </div>
               </div>
             ))}
@@ -407,7 +697,12 @@ export default function PaperTradingPage() {
         <div className="text-center py-12">
           <DollarSign size={32} className="mx-auto text-oracle-muted/30 mb-3" />
           <p className="text-oracle-muted text-sm">No paper trades yet</p>
-          <p className="text-oracle-muted/60 text-xs mt-1">Tap a pick above to start simulating</p>
+          <p className="text-oracle-muted/60 text-xs mt-1">
+            {marketSession.canTrade
+              ? 'Tap a pick above to start simulating'
+              : `Market is ${marketSession.session === 'PRE' ? 'in pre-market' : marketSession.session === 'POST' ? 'in after hours' : 'closed'}. Come back during market hours (9:30 AM - 4:00 PM ET) to trade.`
+            }
+          </p>
         </div>
       )}
     </div>
