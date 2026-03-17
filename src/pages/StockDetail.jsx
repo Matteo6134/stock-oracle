@@ -5,6 +5,7 @@ import ScoreCircle from '../components/ScoreCircle'
 import ScoreBar from '../components/ScoreBar'
 import SourceLinks from '../components/SourceLinks'
 import BrokerBadge from '../components/BrokerBadge'
+import StockNavBar from '../components/StockNavBar'
 import { useStockDetail } from '../hooks/useStocks'
 
 function ProbabilityBadge({ probability }) {
@@ -140,12 +141,17 @@ export default function StockDetail() {
   return (
     <div className="max-w-lg mx-auto px-4 pt-2 pb-6">
       {/* Back button */}
-      <button
-        onClick={() => navigate(-1)}
-        className="flex items-center gap-1 text-oracle-muted text-sm mb-4 hover:text-oracle-text transition-colors"
-      >
-        <ArrowLeft size={16} /> Back
-      </button>
+      <div className="flex items-center gap-2 mb-2">
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-1 text-oracle-muted text-sm hover:text-oracle-text transition-colors"
+        >
+          <ArrowLeft size={16} /> Back
+        </button>
+      </div>
+
+      {/* Stock Navigation Bar — switch between picks */}
+      <StockNavBar currentSymbol={symbol} />
 
       {/* Header: Symbol + Price */}
       <div className="flex items-start justify-between mb-4">
@@ -166,6 +172,17 @@ export default function StockDetail() {
             {isPositive ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
             {isPositive ? '+' : ''}{typeof change === 'number' ? change.toFixed(2) : change}%
           </div>
+          {/* Pre/Post market price */}
+          {stock.marketState === 'PRE' && stock.preMarketPrice && (
+            <div className="text-[10px] text-oracle-yellow mt-0.5">
+              Pre: ${stock.preMarketPrice.toFixed(2)} ({stock.preMarketChange >= 0 ? '+' : ''}{(stock.preMarketChange || 0).toFixed(1)}%)
+            </div>
+          )}
+          {(stock.marketState === 'POST' || stock.marketState === 'CLOSED') && stock.postMarketPrice && (
+            <div className="text-[10px] text-oracle-purple mt-0.5">
+              AH: ${stock.postMarketPrice.toFixed(2)} ({stock.postMarketChange >= 0 ? '+' : ''}{(stock.postMarketChange || 0).toFixed(1)}%)
+            </div>
+          )}
         </div>
       </div>
 

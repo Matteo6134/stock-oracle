@@ -277,6 +277,23 @@ export default function StockCard({ stock, rank }) {
               {isPositive ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
               {isPositive ? '+' : ''}{typeof change === 'number' ? change.toFixed(2) : change}%
             </div>
+            {/* Pre/Post market price */}
+            {stock.marketState === 'PRE' && stock.preMarketPrice && (
+              <div className="text-[9px] text-oracle-yellow mt-0.5">
+                Pre: ${stock.preMarketPrice.toFixed(2)}
+                <span className="opacity-70 ml-0.5">
+                  ({stock.preMarketChange >= 0 ? '+' : ''}{(stock.preMarketChange || 0).toFixed(1)}%)
+                </span>
+              </div>
+            )}
+            {(stock.marketState === 'POST' || stock.marketState === 'CLOSED') && stock.postMarketPrice && (
+              <div className="text-[9px] text-oracle-purple mt-0.5">
+                AH: ${stock.postMarketPrice.toFixed(2)}
+                <span className="opacity-70 ml-0.5">
+                  ({stock.postMarketChange >= 0 ? '+' : ''}{(stock.postMarketChange || 0).toFixed(1)}%)
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Routes, Route, NavLink, useLocation, matchPath } from 'react-router-dom'
 import { LayoutDashboard, TrendingUp, PieChart, CalendarDays, History as HistoryIcon, DollarSign, Menu, X } from 'lucide-react'
 import ErrorBoundary from './components/ErrorBoundary'
+import LandscapeSplit from './components/LandscapeSplit'
 import Dashboard from './pages/Dashboard'
 import StockDetail from './pages/StockDetail'
 import SectorsPage from './pages/SectorsPage'
@@ -55,6 +56,9 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-oracle-bg">
+      {/* Landscape split view — appears when phone is rotated */}
+      <LandscapeSplit />
+
       {/* Sticky top bar with hamburger — flows with content, no gap */}
       {!isDetailPage && (
         <div className="sticky top-0 z-40 px-4 py-2">

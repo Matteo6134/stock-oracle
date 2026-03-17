@@ -138,3 +138,60 @@ html {
   animation: shimmer 1.5s ease-in-out infinite;
   border-radius: 0.5rem;
 }
+
+/* Hide scrollbar for horizontal stock nav */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── Landscape Split View ── */
+/* When phone is rotated to landscape, show split view layout */
+@media (orientation: landscape) and (max-height: 500px) {
+  .landscape-split {
+    display: flex !important;
+    flex-direction: row !important;
+    height: 100vh;
+    overflow: hidden;
+  }
+
+  .landscape-split > .landscape-panel {
+    flex: 1;
+    overflow-y: auto;
+    height: 100vh;
+    border-right: 1px solid rgba(148, 163, 184, 0.1);
+  }
+
+  .landscape-split > .landscape-panel:last-child {
+    border-right: none;
+  }
+
+  /* Make cards more compact in landscape */
+  .landscape-split .glass-card {
+    border-radius: 0.75rem;
+  }
+
+  .landscape-split .max-w-lg {
+    max-width: none;
+  }
+}
+
+/* Landscape panel tab selector */
+.landscape-tab-bar {
+  display: none;
+}
+
+@media (orientation: landscape) and (max-height: 500px) {
+  .landscape-tab-bar {
+    display: flex;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    gap: 0;
+  }
+}
