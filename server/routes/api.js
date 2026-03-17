@@ -353,6 +353,28 @@ async function scoreSymbol(symbol, earningsCalendar) {
 // Sectors to exclude from predictions
 const EXCLUDED_SECTORS = new Set(['Crypto', 'Cannabis']);
 
+// ── Quality Filters ──
+// Minimum requirements to be recommended
+function passesQualityFilter(stock) {
+  const q = stock._quote || stock.quote || {};
+  const volume = q.regularMarketVolume || stock._volume || 0;
+  const marketCap = q.marketCap || 0;
+  const price = stock.price || q.regularMarketPrice || 0;
+
+  // 1. Minimum liquidity — avoid penny stocks and illiquid names
+  if (price < 2) return false;              // No penny stocks
+  if (volume < 200000) return false;         // Minimum 200K daily volume
+  if (marketCap > 0 && marketCap < 200e6) return false;  // Min $200M market cap (if data available)
+
+  // 2. Don't recommend stocks we tell users NOT to buy
+  if (stock.entrySignal === 'too_late') return false;
+
+  // 3. Minimum score threshold
+  if (stock.score < 40) return false;
+
+  return true;
+}
+
 // ── Batch Scoring Helper ──
 async function scoreSymbols(symbols, earningsCalendar, opts = { light: false }) {
   if (!symbols || symbols.length === 0) return [];
@@ -455,6 +477,7 @@ async function scoreSymbols(symbols, earningsCalendar, opts = { light: false }) 
             revisionMomentum: earningsHistData.revisionMomentum || 0,
           },
           // Keep raw data for detail routes
+          _quote: quoteData,
           _social: { reddit: stockData.reddit, stocktwits: stockData.stocktwits },
           _news: stockData.news,
           _history: stockData.history,
@@ -497,21 +520,26 @@ router.get('/predictions', async (req, res, next) => {
     const trendingSymbols = trendingStocks.map(t => t.symbol || t);
     const majorStocks = [
       'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'META', 'NVDA', 'AMD',
-      'JPM', 'BAC', 'V', 'NFLX', 'DIS', 'PFE', 'LLY', 'UNH'
+      'JPM', 'BAC', 'V', 'NFLX', 'DIS', 'PFE', 'LLY', 'UNH',
+      'ADBE', 'CRM', 'ORCL', 'COIN', 'PLTR', 'UBER', 'SQ', 'SHOP',
+      'SNOW', 'ABNB', 'PYPL', 'INTC', 'MU', 'QCOM'
     ];
 
     const symbolSet = new Set();
+    // Prioritize earnings stocks and majors (more predictable)
     earningsSymbols.slice(0, 15).forEach(s => symbolSet.add(s));
-    trendingSymbols.slice(0, 10).forEach(s => symbolSet.add(s));
     majorStocks.forEach(s => symbolSet.add(s));
-    const symbols = Array.from(symbolSet).slice(0, 25);
+    // Add trending last (these are often already pumped)
+    trendingSymbols.slice(0, 8).forEach(s => symbolSet.add(s));
+    const symbols = Array.from(symbolSet).slice(0, 35);
 
     const scored = await scoreSymbols(symbols, earningsCalendar);
 
     const predictions = scored
+      .filter(v => passesQualityFilter(v))   // Quality gate
       .map(v => {
         // Strip internal fields for list response
-        const { _social, _news, _history, _volume, ...clean } = v;
+        const { _quote, _social, _news, _history, _volume, ...clean } = v;
         return clean;
       })
       .sort((a, b) => b.score - a.score)
@@ -524,7 +552,7 @@ router.get('/predictions', async (req, res, next) => {
       predictions
     };
 
-    console.log(`[Predictions] Done: ${predictions.length} picks (${earningsSymbols.length} earnings found)`);
+    console.log(`[Predictions] Done: ${predictions.length} picks after quality filter (${earningsSymbols.length} earnings found)`);
     saveDailyPicks('trending', predictions);
     setCache('predictions', result);
     res.json(result);
@@ -576,6 +604,7 @@ router.get('/tomorrow', async (req, res, next) => {
     const scoredData = await scoreSymbols(symbols, earningsCalendar);
 
     const predictions = scoredData
+      .filter(result => passesQualityFilter(result))   // Quality gate
       .map((result) => {
         // Build tomorrow-specific reason
         const reasons = [];
@@ -587,7 +616,7 @@ router.get('/tomorrow', async (req, res, next) => {
             reasons.push(`${Math.round(c.buyPercentage * 100)}% analyst buy rating`);
         });
 
-        const { _social, _news, _history, _volume, ...clean } = result;
+        const { _quote, _social, _news, _history, _volume, ...clean } = result;
         return {
           ...clean,
           reason: reasons.length > 0 ? reasons.join('. ') + '.' : 'Momentum play heading into tomorrow.'
@@ -721,7 +750,7 @@ router.get('/sectors/:sectorName', async (req, res, next) => {
         });
         if (result.socialMentions > 10) reasons.push(`High social buzz (${result.socialMentions} mentions)`);
 
-        const { _social, _news, _history, _volume, ...clean } = result;
+        const { _quote, _social, _news, _history, _volume, ...clean } = result;
         return {
           ...clean,
           reason: reasons.length > 0

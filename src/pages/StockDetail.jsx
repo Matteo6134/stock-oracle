@@ -444,14 +444,17 @@ export default function StockDetail() {
       {/* Score Breakdown */}
       <div className="glass-card p-4 mb-4 space-y-3">
         <h3 className="text-xs text-oracle-muted font-medium mb-1">Score Breakdown</h3>
-        <ScoreBar label="Catalyst" score={breakdown.catalyst ?? breakdown.earnings ?? 0} maxScore={20} color="blue" />
-        <ScoreBar label="Earnings Quality" score={breakdown.earningsQuality ?? 0} maxScore={20} color="green" />
-        <ScoreBar label="Revisions" score={breakdown.revision ?? 0} maxScore={15} color="yellow" />
-        <ScoreBar label="Social" score={breakdown.social ?? 0} maxScore={10} color="purple" />
-        <ScoreBar label="News" score={breakdown.news ?? 0} maxScore={15} color="orange" />
-        <ScoreBar label="Technical" score={breakdown.technical ?? 0} maxScore={20} color="cyan" />
+        <ScoreBar label="Catalyst" score={breakdown.catalyst ?? breakdown.earnings ?? 0} maxScore={12} color="blue" />
+        <ScoreBar label="Earnings Quality" score={breakdown.earningsQuality ?? 0} maxScore={25} color="green" />
+        <ScoreBar label="Revisions" score={breakdown.revision ?? 0} maxScore={18} color="yellow" />
+        <ScoreBar label="Technical" score={breakdown.technical ?? 0} maxScore={25} color="cyan" />
+        <ScoreBar label="News" score={breakdown.news ?? 0} maxScore={10} color="orange" />
+        <ScoreBar label="Liquidity" score={breakdown.liquidity ?? 0} maxScore={5} color="purple" />
         {(breakdown.pead ?? 0) !== 0 && (
           <ScoreBar label="PEAD Drift" score={breakdown.pead} maxScore={5} color={breakdown.pead > 0 ? 'green' : 'red'} />
+        )}
+        {(breakdown.overextension ?? 0) < 0 && (
+          <ScoreBar label="Overextension" score={breakdown.overextension} maxScore={0} color="red" />
         )}
       </div>
 
