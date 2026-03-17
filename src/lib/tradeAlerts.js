@@ -2,7 +2,7 @@
  * Smart Trade Alert System
  *
  * Monitors predictions in real-time during market hours and sends
- * actionable "BUY NOW" push notifications with:
+ * actionable push notifications with:
  * - Which stock to buy and why
  * - How much to invest (based on user setting)
  * - Entry price, target price, stop loss
@@ -112,30 +112,34 @@ export function checkSmartAlerts(predictions, openTrades = []) {
 
       if (!target || !stop || !price) return
 
-      const shares = Math.floor(investAmount / price)
+      // Apply dynamic position sizing
+      const sizeMult = stock.positionSizing?.sizeMultiplier || 1.0
+      const adjustedInvest = Math.round(investAmount * sizeMult)
+      const shares = Math.floor(adjustedInvest / price)
       if (shares <= 0) return
 
       const potentialProfit = ((target - price) / price * 100).toFixed(1)
       const riskPct = ((price - stop) / price * 100).toFixed(1)
+      const sizeNote = sizeMult < 1.0 ? ` (${Math.round(sizeMult * 100)}% size)` : ''
 
       // HIGH confidence + good entry + strong R:R
-      if (score >= 70 && entry === 'enter' && rr >= 1.5 && confidence === 'HIGH') {
+      if (score >= 70 && (entry === 'enter' || entry === 'mean_revert') && rr >= 1.5 && confidence === 'HIGH') {
         sendLocalNotification(
-          `🚀 BUY ${stock.symbol} NOW — Score ${score}`,
-          `$${price.toFixed(2)} → Target $${target.toFixed(2)} (+${potentialProfit}%)\n` +
-          `Invest $${investAmount} (${shares} shares) | Stop $${stop.toFixed(2)} (-${riskPct}%)\n` +
+          `BUY ${stock.symbol} — Score ${score}`,
+          `$${price.toFixed(2)} > Target $${target.toFixed(2)} (+${potentialProfit}%)\n` +
+          `$${adjustedInvest} / ${shares} shares${sizeNote} | Stop $${stop.toFixed(2)} (-${riskPct}%)\n` +
           `R:R ${rr}x | ${stock.tradeSetup?.riskLabel || ''}`,
           `/stock/${stock.symbol}`
         )
         markAlerted(state, stock.symbol, 'buy')
       }
       // MEDIUM confidence but very strong R:R (>= 2.0) — worth a look
-      else if (score >= 55 && entry === 'enter' && rr >= 2.0 && idx < 5) {
+      else if (score >= 55 && (entry === 'enter' || entry === 'mean_revert') && rr >= 2.0 && idx < 5) {
         sendLocalNotification(
-          `📊 Consider ${stock.symbol} — Score ${score}`,
-          `$${price.toFixed(2)} → Target $${target.toFixed(2)} (+${potentialProfit}%)\n` +
-          `R:R ${rr}x — strong risk/reward. Invest $${investAmount} (${shares} shares)\n` +
-          `Stop at $${stop.toFixed(2)} (-${riskPct}%)`,
+          `Consider ${stock.symbol} — Score ${score}`,
+          `$${price.toFixed(2)} > Target $${target.toFixed(2)} (+${potentialProfit}%)\n` +
+          `R:R ${rr}x | $${adjustedInvest} / ${shares} shares${sizeNote}\n` +
+          `Stop $${stop.toFixed(2)} (-${riskPct}%)`,
           `/stock/${stock.symbol}`
         )
         markAlerted(state, stock.symbol, 'buy')
@@ -165,9 +169,9 @@ export function checkSmartAlerts(predictions, openTrades = []) {
         const shares = Math.floor(investAmount / price)
 
         sendLocalNotification(
-          `💰 DIP BUY: ${stock.symbol} down ${change.toFixed(1)}%`,
-          `Now $${price.toFixed(2)} (dipped!) → Target $${target.toFixed(2)} (+${newUpside}%)\n` +
-          `Score ${stock.score} — better entry than earlier. ${shares} shares for $${investAmount}`,
+          `DIP BUY: ${stock.symbol} ${change.toFixed(1)}%`,
+          `Now $${price.toFixed(2)} > Target $${target.toFixed(2)} (+${newUpside}%)\n` +
+          `Score ${stock.score} — better entry. ${shares} shares / $${investAmount}`,
           `/stock/${stock.symbol}`
         )
         markAlerted(state, stock.symbol, 'dip')
@@ -187,9 +191,9 @@ export function checkSmartAlerts(predictions, openTrades = []) {
         const reaction = stock.earningsResult.reaction || 0
         if (reaction >= 2) {
           sendLocalNotification(
-            `✅ ${stock.symbol} BEAT EARNINGS (+${reaction.toFixed(1)}%)`,
+            `${stock.symbol} BEAT EARNINGS (+${reaction.toFixed(1)}%)`,
             `${stock.earningsResult.status} — ${stock.earningsResult.summary}\n` +
-            `Score ${stock.score}. Watch for entry at market open 9:30 AM ET.`,
+            `Score ${stock.score}. Watch for entry at open 9:30 AM ET.`,
             `/stock/${stock.symbol}`
           )
           markAlerted(state, stock.symbol, 'premarket')
@@ -201,9 +205,9 @@ export function checkSmartAlerts(predictions, openTrades = []) {
         const gap = ((stock.preMarketPrice - stock.price) / stock.price * 100)
         if (gap >= 1 && gap <= 3 && !wasRecentlyAlerted(state, stock.symbol, 'pregap')) {
           sendLocalNotification(
-            `🌅 ${stock.symbol} gapping up +${gap.toFixed(1)}% pre-market`,
+            `${stock.symbol} gapping +${gap.toFixed(1)}% pre-market`,
             `Pre: $${stock.preMarketPrice.toFixed(2)} | Score ${stock.score}\n` +
-            `Positive pre-market momentum. Watch for entry at open.`,
+            `Positive momentum. Watch for entry at open.`,
             `/stock/${stock.symbol}`
           )
           markAlerted(state, stock.symbol, 'pregap')
@@ -226,10 +230,10 @@ export function checkSmartAlerts(predictions, openTrades = []) {
       // Approaching target (within 1%)
       if (trade.targetPrice && price >= trade.targetPrice * 0.99 && !wasRecentlyAlerted(state, trade.symbol, 'near_target')) {
         sendLocalNotification(
-          `🎯 ${trade.symbol} NEAR TARGET — Take Profit?`,
+          `${trade.symbol} NEAR TARGET — Take Profit?`,
           `Now $${price.toFixed(2)} (target $${trade.targetPrice.toFixed(2)})\n` +
-          `P/L: +${pl.toFixed(1)}% (+${trade.plDollar?.toFixed(2) || '?'})\n` +
-          `Consider selling now or let trailing stop protect gains.`,
+          `P/L: +${pl.toFixed(1)}% (+$${trade.plDollar?.toFixed(2) || '?'})\n` +
+          `Consider selling or let trailing stop protect gains.`,
           `/stock/${trade.symbol}`
         )
         markAlerted(state, trade.symbol, 'near_target')
@@ -238,8 +242,8 @@ export function checkSmartAlerts(predictions, openTrades = []) {
       // Significant profit (>3%) — remind to consider taking some off
       if (pl >= 3 && !wasRecentlyAlerted(state, trade.symbol, 'profit_3pct', 60 * 60 * 1000)) {
         sendLocalNotification(
-          `📈 ${trade.symbol} +${pl.toFixed(1)}% — Lock Profits?`,
-          `$${trade.entryPrice.toFixed(2)} → $${price.toFixed(2)} | +$${trade.plDollar?.toFixed(2) || '?'}\n` +
+          `${trade.symbol} +${pl.toFixed(1)}% — Lock Profits?`,
+          `$${trade.entryPrice.toFixed(2)} > $${price.toFixed(2)} | +$${trade.plDollar?.toFixed(2) || '?'}\n` +
           `Trailing stop at $${(trade.trailingStop || trade.stopLoss)?.toFixed(2)}. Consider partial sell.`,
           `/stock/${trade.symbol}`
         )
@@ -249,10 +253,10 @@ export function checkSmartAlerts(predictions, openTrades = []) {
       // DANGER — losing >2% and approaching stop
       if (pl <= -2 && price <= trade.stopLoss * 1.02 && !wasRecentlyAlerted(state, trade.symbol, 'danger')) {
         sendLocalNotification(
-          `⚠️ ${trade.symbol} DANGER — Near Stop Loss`,
+          `${trade.symbol} — Near Stop Loss`,
           `Now $${price.toFixed(2)} | Stop $${trade.stopLoss.toFixed(2)}\n` +
           `P/L: ${pl.toFixed(1)}% ($${trade.plDollar?.toFixed(2) || '?'})\n` +
-          `Consider selling manually if thesis is broken.`,
+          `Consider selling if thesis is broken.`,
           `/stock/${trade.symbol}`
         )
         markAlerted(state, trade.symbol, 'danger')
@@ -279,19 +283,32 @@ export function getAlertReason(stock) {
   if (b.catalyst >= 8) reasons.push('Upcoming earnings catalyst')
   if (b.prePostMarket >= 3) reasons.push('Positive pre-market activity')
   if (b.liquidity >= 4) reasons.push('High liquidity (safer)')
+  if (b.meanReversion >= 4) reasons.push('Mean reversion opportunity — quality stock on pullback')
 
   if (stock.tradeSetup?.riskReward >= 2.0) reasons.push(`Excellent risk/reward (${stock.tradeSetup.riskReward}x)`)
   if (stock.earningsQuality?.beatStreak >= 3) reasons.push(`${stock.earningsQuality.beatStreak} quarter beat streak`)
   if (stock.entrySignal === 'enter') reasons.push('Entry timing is good (not overextended)')
+  if (stock.entrySignal === 'mean_revert') reasons.push('Mean reversion buy — strong fundamentals despite drop')
+  if (stock.entrySignal === 'gap_fade') reasons.push('Gap fade opportunity — watching for pullback entry')
+  if (stock.peadDrift) reasons.push('Post-earnings drift — momentum expected to continue')
+
+  // Dynamic sizing info
+  if (stock.positionSizing?.sizeMultiplier < 0.5) reasons.push('Reduced position size due to market conditions')
 
   // Negatives
-  if (b.overextension < -3) reasons.push('⚠️ Already extended — smaller position recommended')
-  if (b.prePostMarket < -3) reasons.push('⚠️ Negative overnight sentiment')
+  if (b.overextension < -3) reasons.push('Already extended — smaller position recommended')
+  if (b.prePostMarket < -3) reasons.push('Negative overnight sentiment')
+  if (b.vixAdj < -5) reasons.push('High VIX — market fear is elevated')
+
+  // Dynamic invest amount based on position sizing
+  const sizeMult = stock.positionSizing?.sizeMultiplier || 1.0
+  const adjustedInvest = Math.round(getInvestAmount() * sizeMult)
 
   return {
     reasons,
     summary: reasons.slice(0, 3).join(' • '),
-    investAmount: getInvestAmount(),
-    shares: stock.price ? Math.floor(getInvestAmount() / stock.price) : 0
+    investAmount: adjustedInvest,
+    sizeMultiplier: sizeMult,
+    shares: stock.price ? Math.floor(adjustedInvest / stock.price) : 0
   }
 }

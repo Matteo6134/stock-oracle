@@ -1,4 +1,4 @@
-import { BarChart3, AlertCircle, TrendingUp, TrendingDown, Minus, ShieldAlert } from 'lucide-react'
+import { BarChart3, AlertCircle, TrendingUp, TrendingDown, Minus, ShieldAlert, Skull } from 'lucide-react'
 import Header from '../components/Header'
 import StockCard from '../components/StockCard'
 import LoadingSkeleton from '../components/LoadingSkeleton'
@@ -10,6 +10,15 @@ const regimeConfig = {
   neutral: { icon: Minus, label: 'Neutral', color: 'text-oracle-muted', bg: 'bg-white/5 border-oracle-border', desc: 'Mixed signals — be selective' },
   cautious_bear: { icon: ShieldAlert, label: 'Cautious', color: 'text-oracle-yellow', bg: 'bg-oracle-yellow/10 border-oracle-yellow/30', desc: 'SPY weakening — only high-confidence picks shown' },
   bear: { icon: TrendingDown, label: 'Bear Market', color: 'text-oracle-red', bg: 'bg-oracle-red/10 border-oracle-red/30', desc: 'SPY downtrend — only best setups shown, consider cash' },
+  fear: { icon: Skull, label: 'Extreme Fear', color: 'text-oracle-red', bg: 'bg-oracle-red/20 border-oracle-red/50', desc: 'VIX > 30 — market panic. Only top setups, minimal size. Consider cash.' },
+}
+
+const vixColors = {
+  low: 'text-oracle-green',
+  normal: 'text-oracle-muted',
+  elevated: 'text-oracle-yellow',
+  high: 'text-oracle-red',
+  extreme: 'text-oracle-red',
 }
 
 export default function Dashboard() {
@@ -26,13 +35,21 @@ export default function Dashboard() {
         <div className={`mx-4 mb-2 p-2.5 rounded-xl border flex items-center gap-2 ${regime.bg}`}>
           <regime.icon size={14} className={regime.color} />
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <span className={`text-xs font-bold ${regime.color}`}>{regime.label}</span>
               <span className="text-[10px] text-oracle-muted">
                 SPY ${marketRegime.spyPrice} ({marketRegime.fiveDayReturn >= 0 ? '+' : ''}{marketRegime.fiveDayReturn}% 5d)
               </span>
+              {marketRegime.vix != null && (
+                <span className={`text-[10px] font-semibold ${vixColors[marketRegime.vixLevel] || 'text-oracle-muted'}`}>
+                  VIX {marketRegime.vix}
+                </span>
+              )}
             </div>
             <p className="text-[10px] text-oracle-muted/70">{regime.desc}</p>
+            {marketRegime.complacent && (
+              <p className="text-[10px] text-oracle-yellow/80 mt-0.5">VIX very low — market may be complacent, watch for sudden drops</p>
+            )}
           </div>
         </div>
       )}
@@ -40,7 +57,7 @@ export default function Dashboard() {
       {/* Section title */}
       <div className="px-4 py-3 flex items-center gap-2">
         <BarChart3 size={16} className="text-oracle-accent" />
-        <h2 className="text-sm font-semibold text-oracle-text">Top 10 Picks Today</h2>
+        <h2 className="text-sm font-semibold text-oracle-text">Top Picks Today</h2>
         {!loading && stocks.length > 0 && (
           <span className="text-oracle-muted text-xs ml-auto">{stocks.length} stocks</span>
         )}
@@ -79,10 +96,14 @@ export default function Dashboard() {
       {!loading && !error && stocks.length === 0 && (
         <div className="px-4 py-12 text-center">
           <BarChart3 size={48} className="text-oracle-muted mx-auto mb-3" />
-          {marketRegime?.regime === 'bear' ? (
+          {marketRegime?.regime === 'bear' || marketRegime?.regime === 'fear' ? (
             <>
-              <p className="text-oracle-red text-sm font-bold">Bear Market — No safe picks today</p>
-              <p className="text-oracle-muted text-xs mt-1">Market conditions are too risky. Consider staying in cash.</p>
+              <p className="text-oracle-red text-sm font-bold">
+                {marketRegime.regime === 'fear' ? 'Extreme Fear — Stay in cash' : 'Bear Market — No safe picks today'}
+              </p>
+              <p className="text-oracle-muted text-xs mt-1">
+                {marketRegime.vix ? `VIX at ${marketRegime.vix}. ` : ''}Market conditions are too risky. Consider staying in cash.
+              </p>
             </>
           ) : (
             <>

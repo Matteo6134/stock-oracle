@@ -133,31 +133,31 @@ function checkMarketNotifications(session) {
 
     // Pre-market opens (4:00 AM ET)
     if (totalMin >= 240 && totalMin < 245 && !state.preMarketNotified) {
-      sendLocalNotification('🌅 Pre-Market Open', 'Pre-market trading has started. Check early movers!', '/paper')
+      sendLocalNotification('Pre-Market Open', 'Pre-market trading has started. Check early movers.', '/paper')
       state.preMarketNotified = true
     }
 
     // Market opens (9:30 AM ET)
     if (totalMin >= 570 && totalMin < 575 && !state.openNotified) {
-      sendLocalNotification('🔔 Market Open!', 'US market is now open. Time to check your picks!', '/paper')
+      sendLocalNotification('Market Open', 'US market is now open. Check your picks.', '/paper')
       state.openNotified = true
     }
 
     // 15 min before close warning (3:45 PM ET)
     if (totalMin >= 945 && totalMin < 950 && !state.closeWarningNotified) {
-      sendLocalNotification('⚠️ Market Closing Soon', 'Market closes in 15 minutes. Review your open positions!', '/paper')
+      sendLocalNotification('Market Closing Soon', 'Market closes in 15 minutes. Review open positions.', '/paper')
       state.closeWarningNotified = true
     }
 
     // Market close (4:00 PM ET)
     if (totalMin >= 960 && totalMin < 965 && !state.closeNotified) {
-      sendLocalNotification('🔕 Market Closed', 'Regular trading hours ended. After-hours trading is active.', '/paper')
+      sendLocalNotification('Market Closed', 'Regular hours ended. After-hours trading active.', '/paper')
       state.closeNotified = true
     }
 
     // After hours active (4:05 PM ET)
     if (totalMin >= 965 && totalMin < 970 && !state.afterHoursNotified) {
-      sendLocalNotification('🌙 After Hours Active', 'After-hours prices are updating. No new paper trades during this session.', '/paper')
+      sendLocalNotification('After Hours Active', 'After-hours prices updating. No new paper trades.', '/paper')
       state.afterHoursNotified = true
     }
 
@@ -257,23 +257,22 @@ export default function PaperTradingPage() {
             if (currentPrice >= t.targetPrice) {
               newStatus = 'won'
               exitPrice = t.targetPrice
-              exitReason = '🎯 Target hit!'
+              exitReason = 'Target hit'
               if (isNotificationEnabled()) {
                 sendLocalNotification(
-                  `🎯 ${t.symbol} HIT TARGET!`,
-                  `${t.symbol} reached $${currentPrice.toFixed(2)}. P/L: +${pl.toFixed(1)}%`,
+                  `${t.symbol} HIT TARGET`,
+                  `$${currentPrice.toFixed(2)} | P/L: +${pl.toFixed(1)}%`,
                   '/paper'
                 )
               }
             } else if (currentPrice <= trailingStop) {
               newStatus = pl > 0 ? 'won' : 'lost'
               exitPrice = trailingStop
-              exitReason = trailingStop > t.stopLoss ? '📈 Trailing stop (profit locked)' : 'Stop loss triggered'
+              exitReason = trailingStop > t.stopLoss ? 'Trailing stop (profit locked)' : 'Stop loss triggered'
               if (isNotificationEnabled()) {
-                const emoji = pl > 0 ? '📈' : '🛑'
                 sendLocalNotification(
-                  `${emoji} ${t.symbol} ${pl > 0 ? 'TRAILING STOP' : 'STOP HIT'}`,
-                  `${t.symbol} at $${currentPrice.toFixed(2)}. P/L: ${formatPct(pl)}`,
+                  `${t.symbol} ${pl > 0 ? 'TRAILING STOP' : 'STOP HIT'}`,
+                  `$${currentPrice.toFixed(2)} | P/L: ${formatPct(pl)}`,
                   '/paper'
                 )
               }
@@ -318,12 +317,21 @@ export default function PaperTradingPage() {
     return () => clearInterval(pollRef.current)
   }, [updatePrices])
 
-  // Add a paper trade from prediction
+  // Add a paper trade from prediction (dynamic position sizing)
   const addTrade = (stock) => {
     if (!marketSession.canTrade) return // Block trades outside market hours
 
-    const shares = Math.floor(investAmount / stock.price)
+    // Dynamic position sizing based on confidence + market regime
+    const sizeMultiplier = stock.positionSizing?.sizeMultiplier || (
+      stock.confidence === 'HIGH' ? 1.0 :
+      stock.confidence === 'MEDIUM' ? 0.7 : 0.4
+    )
+    const adjustedInvest = Math.round(investAmount * sizeMultiplier)
+    const shares = Math.floor(adjustedInvest / stock.price)
     if (shares <= 0) return
+
+    // PEAD drift: don't auto-close at EOD if stock is in post-earnings drift
+    const holdOvernight = stock.peadDrift === true
 
     const newTrade = {
       id: Date.now(),
@@ -336,6 +344,8 @@ export default function PaperTradingPage() {
       aggressiveTarget: stock.tradeSetup?.aggressiveTarget || null,
       shares,
       invested: Math.round(shares * stock.price * 100) / 100,
+      sizeMultiplier,
+      sizeReason: stock.positionSizing?.reason || `${stock.confidence} confidence`,
       score: stock.score,
       confidence: stock.confidence,
       currentPrice: stock.price,
@@ -344,7 +354,8 @@ export default function PaperTradingPage() {
       status: 'open',
       exitPrice: null,
       exitReason: null,
-      autoCloseEOD: true,
+      autoCloseEOD: !holdOvernight,
+      peadDrift: holdOvernight,
       openedAt: new Date().toISOString(),
       closedAt: null,
       lastUpdate: Date.now()
@@ -653,9 +664,17 @@ export default function PaperTradingPage() {
                   </div>
                 )}
 
-                <div className="flex justify-between text-[9px] text-oracle-muted mt-1">
-                  <span>{t.shares} shares x {formatMoney(t.invested)}</span>
-                  <span>{new Date(t.openedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                <div className="flex justify-between items-center text-[9px] text-oracle-muted mt-1">
+                  <span>
+                    {t.shares} shares x {formatMoney(t.invested)}
+                    {t.sizeMultiplier && t.sizeMultiplier < 1.0 && (
+                      <span className="ml-1 text-oracle-yellow">({Math.round(t.sizeMultiplier * 100)}%)</span>
+                    )}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    {t.peadDrift && <span className="text-oracle-accent font-semibold">PEAD</span>}
+                    {new Date(t.openedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </span>
                 </div>
               </div>
             ))}

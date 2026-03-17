@@ -25,8 +25,8 @@ export async function requestNotificationPermission() {
       }
 
       // Send a test notification
-      new Notification('Stock Oracle', {
-        body: 'Notifications enabled! You\'ll get alerts when targets are hit.',
+      new Notification('Alerts Active', {
+        body: 'You\'ll get trade alerts during market hours.',
         icon: '/icon-192.png'
       })
 
@@ -47,6 +47,9 @@ export function disableNotifications() {
 export function sendLocalNotification(title, body, url = '/') {
   if (!isNotificationEnabled()) return
 
+  // Generate a tag from title to group/replace similar notifications
+  const tag = title.replace(/[^a-zA-Z0-9]/g, '_').slice(0, 40)
+
   try {
     if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
       // Use SW for background notifications
@@ -55,14 +58,16 @@ export function sendLocalNotification(title, body, url = '/') {
           body,
           icon: '/icon-192.png',
           badge: '/icon-192.png',
+          tag,
+          renotify: true,
           vibrate: [100, 50, 100],
           data: { url },
-          requireInteraction: true
+          requireInteraction: false
         })
       })
     } else {
       // Fallback to basic notification
-      new Notification(title, { body, icon: '/icon-192.png' })
+      new Notification(title, { body, icon: '/icon-192.png', tag })
     }
   } catch (err) {
     console.error('Notification send error:', err)
@@ -84,21 +89,21 @@ export function checkTradeAlerts(trades) {
 
     if (trade.currentPrice >= trade.targetPrice) {
       sendLocalNotification(
-        `🎯 ${trade.symbol} HIT TARGET!`,
-        `${trade.symbol} reached $${trade.currentPrice.toFixed(2)} (target: $${trade.targetPrice.toFixed(2)}). P/L: +${pl.toFixed(1)}%`,
+        `${trade.symbol} HIT TARGET`,
+        `$${trade.currentPrice.toFixed(2)} (target $${trade.targetPrice.toFixed(2)}) | P/L: +${pl.toFixed(1)}%`,
         `/stock/${trade.symbol}`
       )
     } else if (trade.currentPrice <= trade.stopLoss) {
       sendLocalNotification(
-        `🛑 ${trade.symbol} STOP HIT`,
-        `${trade.symbol} dropped to $${trade.currentPrice.toFixed(2)} (stop: $${trade.stopLoss.toFixed(2)}). P/L: ${pl.toFixed(1)}%`,
+        `${trade.symbol} STOP HIT`,
+        `$${trade.currentPrice.toFixed(2)} (stop $${trade.stopLoss.toFixed(2)}) | P/L: ${pl.toFixed(1)}%`,
         `/stock/${trade.symbol}`
       )
     } else if (pl >= 2) {
       // Alert when significantly positive
       sendLocalNotification(
-        `📈 ${trade.symbol} +${pl.toFixed(1)}%`,
-        `${trade.symbol} is up to $${trade.currentPrice.toFixed(2)}. Consider taking profit.`,
+        `${trade.symbol} +${pl.toFixed(1)}%`,
+        `Now $${trade.currentPrice.toFixed(2)}. Consider taking profit.`,
         `/stock/${trade.symbol}`
       )
     }

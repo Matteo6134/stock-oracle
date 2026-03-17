@@ -104,9 +104,32 @@ function getEntrySignal(change, hasEarningsToday, history, currentPrice, quote) 
   if (effectiveChange > tooLateThreshold) {
     return { signal: 'too_late', label: 'Too Late', reason: `Already up +${effectiveChange.toFixed(1)}% total${preMarketNote} — most of the move has happened` };
   }
+
+  // Gap fade detection: big gap up (>5%) — watch for pullback entry
+  if (totalMovePct > 5 && currentPrice > 0) {
+    const gapAmount = currentPrice * (totalMovePct / 100);
+    const pullbackEntry = currentPrice - (gapAmount * 0.3);
+    return { signal: 'gap_fade', label: 'Gap Fade', reason: `Stock gapped up ${totalMovePct.toFixed(1)}%${preMarketNote} — watch for pullback entry at $${pullbackEntry.toFixed(2)}` };
+  }
+
   if (effectiveChange > riskyThreshold) {
     return { signal: 'risky', label: 'Risky Entry', reason: `Up +${effectiveChange.toFixed(1)}% total${preMarketNote} — high volatility move, but catalyst may push higher` };
   }
+
+  // Mean reversion signal: quality stock down big on broad weakness
+  if (effectiveChange < -5 && arguments.length >= 6) {
+    // earningsHistory and news passed via extra args from enhanced callers
+    const extraEarningsHist = arguments[5];
+    const extraNews = arguments[6];
+    const beatStreak = extraEarningsHist?.beatStreak || 0;
+    const hasStronglyNegativeNews = extraNews && Array.isArray(extraNews) && extraNews.some(n =>
+      (n.sentiment && n.sentiment < -0.5) || (n.title && /downgrade|fraud|SEC|lawsuit|bankrupt/i.test(n.title))
+    );
+    if (beatStreak >= 3 && !hasStronglyNegativeNews) {
+      return { signal: 'mean_revert', label: 'Mean Reversion', reason: `Quality stock down ${effectiveChange.toFixed(1)}% on broad market weakness. Beat streak: ${beatStreak} quarters` };
+    }
+  }
+
   if (effectiveChange < dipThreshold) {
     return { signal: 'caution', label: 'Dip Buy?', reason: `Down ${effectiveChange.toFixed(1)}% total${preMarketNote} — could be a dip-buy if catalyst is strong` };
   }
@@ -523,7 +546,7 @@ function analyzeEarningsResult(symbol, news, quote, timing) {
 }
 
 // ── Shared Symbol Scoring Helper (Individual) ──
-async function scoreSymbol(symbol, earningsCalendar) {
+async function scoreSymbol(symbol, earningsCalendar, vix = 0) {
   const [quote, history, catalysts, reddit, stocktwits, news, earningsHist] = await Promise.allSettled([
     yahooFinance.getQuote(symbol),
     yahooFinance.getHistoricalData(symbol),
@@ -551,7 +574,8 @@ async function scoreSymbol(symbol, earningsCalendar) {
     catalysts: catalystList,
     earningsHistory: earningsHistData,
     brokerAvailability: checkAvailability(symbol),
-    sector: classifySector(symbol, quoteData?.shortName || '')
+    sector: classifySector(symbol, quoteData?.shortName || ''),
+    vix
   };
 
   const score = calculateScore(stockData);
@@ -569,8 +593,27 @@ async function scoreSymbol(symbol, earningsCalendar) {
   const analystData = catalystList.find(c => c.type === 'analyst');
   const change = quoteData?.regularMarketChangePercent || 0;
   const currentPrice = quoteData?.regularMarketPrice || 0;
-  const entry = getEntrySignal(change, stockData.hasEarningsToday || stockData.hasEarningsTomorrow, stockData.history, currentPrice, quoteData);
+  const entry = getEntrySignal(change, stockData.hasEarningsToday || stockData.hasEarningsTomorrow, stockData.history, currentPrice, quoteData, earningsHistData, stockData.news);
   const tradeSetup = calcTradeSetup(stockData.history, currentPrice, catalystList, quoteData, earningsHistData);
+
+  // PEAD drift detection: stock reported earnings in past 5 days, beat, and still has momentum
+  let peadDrift = false;
+  let peadDays = null;
+  const recentSurprises = earningsHistData.recentSurprises || [];
+  if (recentSurprises.length > 0) {
+    const lastEarnings = recentSurprises[0];
+    const earningsDate = lastEarnings?.date ? new Date(lastEarnings.date) : null;
+    if (earningsDate) {
+      const daysSinceEarnings = Math.floor((Date.now() - earningsDate.getTime()) / (1000 * 60 * 60 * 24));
+      const didBeat = lastEarnings.surprise > 0 || lastEarnings.beat === true;
+      const hasRevisionMomentum = (earningsHistData.revisionMomentum || 0) > 0;
+      const positiveTechnical = change >= -1; // not tanking
+      if (daysSinceEarnings <= 5 && didBeat && hasRevisionMomentum && positiveTechnical) {
+        peadDrift = true;
+        peadDays = daysSinceEarnings;
+      }
+    }
+  }
 
   return {
     symbol,
@@ -610,6 +653,8 @@ async function scoreSymbol(symbol, earningsCalendar) {
       revisionMomentum: earningsHistData.revisionMomentum || 0,
       recentSurprises: earningsHistData.recentSurprises || []
     },
+    peadDrift,
+    peadDays,
     // Keep raw data for detail routes
     _social: { reddit: stockData.reddit, stocktwits: stockData.stocktwits },
     _news: stockData.news,
@@ -635,8 +680,11 @@ async function getMarketRegime() {
   }
 
   try {
-    const spyHistory = await yahooFinance.getHistoricalData('SPY');
-    const spyQuote = await yahooFinance.getQuote('SPY');
+    const [spyHistory, spyQuote, vixQuote] = await Promise.all([
+      yahooFinance.getHistoricalData('SPY'),
+      yahooFinance.getQuote('SPY'),
+      yahooFinance.getQuote('^VIX').catch(() => null)
+    ]);
 
     if (!spyHistory || spyHistory.length < 50) {
       return { regime: 'neutral', spyTrend: 'unknown', confidence: 0 };
@@ -653,6 +701,17 @@ async function getMarketRegime() {
     const fiveDayReturn = spyHistory.length >= 5
       ? ((currentPrice - spyHistory[spyHistory.length - 5].close) / spyHistory[spyHistory.length - 5].close) * 100
       : 0;
+
+    // VIX data
+    const vix = vixQuote?.regularMarketPrice || null;
+    let vixLevel = 'normal';
+    if (vix !== null) {
+      if (vix >= 35) vixLevel = 'extreme';
+      else if (vix >= 30) vixLevel = 'high';
+      else if (vix >= 25) vixLevel = 'elevated';
+      else if (vix <= 12) vixLevel = 'low';
+      else vixLevel = 'normal';
+    }
 
     // Market regime rules:
     // BULL: SPY > 20-SMA > 50-SMA (uptrend)
@@ -681,6 +740,23 @@ async function getMarketRegime() {
       spyTrend = 'sell-off';
     }
 
+    // VIX-based regime adjustments (overrides SMA-based regime when extreme)
+    let complacent = false;
+    if (vix !== null) {
+      if (vix > 30) {
+        regime = 'fear';
+        spyTrend = 'fear-driven';
+        console.log(`[MarketRegime] VIX at ${vix.toFixed(1)} — forcing FEAR regime`);
+      } else if (vix > 25 && regime !== 'bear' && regime !== 'fear') {
+        regime = 'cautious_bear';
+        spyTrend = 'vix-elevated';
+        console.log(`[MarketRegime] VIX at ${vix.toFixed(1)} — downgrading to CAUTIOUS_BEAR`);
+      } else if (vix < 12) {
+        complacent = true;
+        console.log(`[MarketRegime] VIX at ${vix.toFixed(1)} — complacency warning`);
+      }
+    }
+
     const result = {
       regime,
       spyTrend,
@@ -688,15 +764,18 @@ async function getMarketRegime() {
       sma20: Math.round(sma20 * 100) / 100,
       sma50: Math.round(sma50 * 100) / 100,
       fiveDayReturn: Math.round(fiveDayReturn * 100) / 100,
+      vix: vix !== null ? Math.round(vix * 100) / 100 : null,
+      vixLevel,
+      complacent,
       timestamp: Date.now()
     };
 
     marketRegimeCache = result;
-    console.log(`[MarketRegime] ${regime.toUpperCase()} — SPY $${result.spyPrice} | 20SMA $${result.sma20} | 50SMA $${result.sma50} | 5d: ${fiveDayReturn.toFixed(1)}%`);
+    console.log(`[MarketRegime] ${regime.toUpperCase()} — SPY $${result.spyPrice} | 20SMA $${result.sma20} | 50SMA $${result.sma50} | 5d: ${fiveDayReturn.toFixed(1)}% | VIX: ${vix !== null ? vix.toFixed(1) : 'N/A'} (${vixLevel})`);
     return result;
   } catch (err) {
     console.error('[MarketRegime] Error:', err.message);
-    return { regime: 'neutral', spyTrend: 'unknown', timestamp: Date.now() };
+    return { regime: 'neutral', spyTrend: 'unknown', vix: null, vixLevel: 'normal', complacent: false, timestamp: Date.now() };
   }
 }
 
@@ -720,6 +799,13 @@ function passesQualityFilter(stock, marketRegime) {
   if (stock.score < 40) return false;
 
   // 4. MARKET REGIME FILTER — the most important filter
+  // In fear regime (VIX > 30): extreme selectivity
+  if (marketRegime?.regime === 'fear') {
+    if (stock.score < 75) return false;                    // Only top scores in fear
+    if (stock.tradeSetup?.riskReward < 2.5) return false;  // Must have 2.5:1 R:R minimum
+    if (stock.confidence !== 'HIGH') return false;          // Only HIGH confidence in fear
+  }
+
   // In bear markets: only recommend HIGH confidence stocks with good R:R
   if (marketRegime?.regime === 'bear') {
     if (stock.confidence !== 'HIGH') return false;        // Only high-confidence in bear market
@@ -746,7 +832,7 @@ function passesQualityFilter(stock, marketRegime) {
 }
 
 // ── Batch Scoring Helper ──
-async function scoreSymbols(symbols, earningsCalendar, opts = { light: false }) {
+async function scoreSymbols(symbols, earningsCalendar, opts = { light: false, vix: 0 }) {
   if (!symbols || symbols.length === 0) return [];
   
   // 1. Fetch all quotes in one batch call
@@ -797,25 +883,45 @@ async function scoreSymbols(symbols, earningsCalendar, opts = { light: false }) 
           hasEarningsToday: !!earningsCalendar.find(e => (e.symbol || e.ticker) === symbol && e.isToday),
           hasEarningsTomorrow: !!earningsCalendar.find(e => (e.symbol || e.ticker) === symbol && e.isTomorrow),
           catalysts,
-          earningsHistory: earningsHistData
+          earningsHistory: earningsHistData,
+          vix: opts.vix || 0
         };
 
         const score = calculateScore(stockData);
         const change = quoteData?.regularMarketChangePercent || 0;
         const currentPrice = quoteData?.regularMarketPrice || 0;
-        
+
         const earningsEntry = earningsCalendar.find(e => (e.symbol || e.ticker) === symbol);
         const hasEarningsToday = stockData.hasEarningsToday;
         const hasEarningsTomorrow = stockData.hasEarningsTomorrow;
         
-        const entry = getEntrySignal(change, hasEarningsToday || hasEarningsTomorrow, history, currentPrice, quoteData);
+        const entry = getEntrySignal(change, hasEarningsToday || hasEarningsTomorrow, history, currentPrice, quoteData, earningsHistData, news);
         const tradeSetup = calcTradeSetup(history, currentPrice, catalysts, quoteData, earningsHistData);
         const upcomingEvents = [];
         if (hasEarningsToday) upcomingEvents.push('Earnings TODAY');
         else if (hasEarningsTomorrow) upcomingEvents.push('Earnings TOMORROW');
-        
+
         const earningsTiming = earningsEntry?.timing || 'N/A';
         const earningsResult = hasEarningsToday ? analyzeEarningsResult(symbol, news, quoteData, earningsTiming) : null;
+
+        // PEAD drift detection
+        let peadDrift = false;
+        let peadDays = null;
+        const recentSurprises = earningsHistData.recentSurprises || [];
+        if (recentSurprises.length > 0) {
+          const lastEarnings = recentSurprises[0];
+          const earningsDate = lastEarnings?.date ? new Date(lastEarnings.date) : null;
+          if (earningsDate) {
+            const daysSinceEarnings = Math.floor((Date.now() - earningsDate.getTime()) / (1000 * 60 * 60 * 24));
+            const didBeat = lastEarnings.surprise > 0 || lastEarnings.beat === true;
+            const hasRevisionMomentum = (earningsHistData.revisionMomentum || 0) > 0;
+            const positiveTechnical = change >= -1;
+            if (daysSinceEarnings <= 5 && didBeat && hasRevisionMomentum && positiveTechnical) {
+              peadDrift = true;
+              peadDays = daysSinceEarnings;
+            }
+          }
+        }
 
         return {
           symbol,
@@ -852,6 +958,8 @@ async function scoreSymbols(symbols, earningsCalendar, opts = { light: false }) 
             avgSurprise: earningsHistData.avgSurprise || 0,
             revisionMomentum: earningsHistData.revisionMomentum || 0,
           },
+          peadDrift,
+          peadDays,
           // Keep raw data for detail routes
           _quote: quoteData,
           _social: { reddit: stockData.reddit, stocktwits: stockData.stocktwits },
@@ -910,17 +1018,85 @@ router.get('/predictions', async (req, res, next) => {
     trendingSymbols.slice(0, 8).forEach(s => symbolSet.add(s));
     const symbols = Array.from(symbolSet).slice(0, 35);
 
-    const scored = await scoreSymbols(symbols, earningsCalendar);
+    const scored = await scoreSymbols(symbols, earningsCalendar, { vix: marketRegime.vix || 0 });
 
-    const predictions = scored
+    // Dynamic position sizing calculator
+    function calcPositionSizing(stock, regime) {
+      let sizeMultiplier = 0.5; // default: neutral
+      let reason = 'Neutral market — standard position';
+
+      if (regime === 'bull' && stock.confidence === 'HIGH' && stock.tradeSetup?.riskReward >= 2.0) {
+        sizeMultiplier = 1.0;
+        reason = 'Bull market + HIGH confidence + strong R:R — full size';
+      } else if (regime === 'bull' && stock.confidence === 'MEDIUM') {
+        sizeMultiplier = 0.7;
+        reason = 'Bull market + MEDIUM confidence — reduced size';
+      } else if (regime === 'bull') {
+        sizeMultiplier = 0.8;
+        reason = 'Bull market — near full size';
+      } else if (regime === 'cautious_bull') {
+        sizeMultiplier = 0.6;
+        reason = 'Cautious bull — moderate position';
+      } else if (regime === 'neutral') {
+        sizeMultiplier = 0.5;
+        reason = 'Neutral market — standard position';
+      } else if (regime === 'cautious_bear') {
+        sizeMultiplier = 0.4;
+        reason = 'Cautious bear — small position';
+      } else if (regime === 'bear') {
+        sizeMultiplier = 0.3;
+        reason = 'Bear market — minimal position';
+      } else if (regime === 'fear') {
+        sizeMultiplier = 0.2;
+        reason = 'Fear regime (VIX > 30) — very small position only';
+      }
+
+      // R:R bonus/penalty
+      const rr = stock.tradeSetup?.riskReward || 0;
+      if (rr >= 2.5) {
+        sizeMultiplier = Math.min(1.0, sizeMultiplier + 0.1);
+        reason += ' | +0.1 R:R bonus (>=2.5)';
+      }
+      if (rr < 1.3 && rr > 0) {
+        sizeMultiplier = Math.max(0.1, sizeMultiplier - 0.1);
+        reason += ' | -0.1 R:R penalty (<1.3)';
+      }
+
+      return {
+        regime,
+        sizeMultiplier: Math.round(sizeMultiplier * 100) / 100,
+        reason
+      };
+    }
+
+    const filtered = scored
       .filter(v => passesQualityFilter(v, marketRegime))   // Quality + regime gate
       .map(v => {
         // Strip internal fields for list response
         const { _quote, _social, _news, _history, _volume, ...clean } = v;
+        // Add position sizing
+        clean.positionSizing = calcPositionSizing(clean, marketRegime.regime);
         return clean;
       })
-      .sort((a, b) => b.score - a.score)
-      .slice(0, 10);
+      .sort((a, b) => b.score - a.score);
+
+    // Sector concentration limit: max 2 stocks per sector
+    const sectorCounts = {};
+    const predictions = [];
+    const removedForConcentration = [];
+    for (const stock of filtered) {
+      const sector = stock.sector || 'Unknown';
+      sectorCounts[sector] = (sectorCounts[sector] || 0) + 1;
+      if (sectorCounts[sector] <= 2) {
+        predictions.push(stock);
+      } else {
+        removedForConcentration.push(`${stock.symbol} (${sector}, score: ${stock.score})`);
+      }
+      if (predictions.length >= 10) break;
+    }
+    if (removedForConcentration.length > 0) {
+      console.log(`[Predictions] Sector concentration limit removed: ${removedForConcentration.join(', ')}`);
+    }
 
     const result = {
       date: new Date().toISOString().split('T')[0],
@@ -930,12 +1106,15 @@ router.get('/predictions', async (req, res, next) => {
         regime: marketRegime.regime,
         spyTrend: marketRegime.spyTrend,
         spyPrice: marketRegime.spyPrice,
-        fiveDayReturn: marketRegime.fiveDayReturn
+        fiveDayReturn: marketRegime.fiveDayReturn,
+        vix: marketRegime.vix,
+        vixLevel: marketRegime.vixLevel,
+        complacent: marketRegime.complacent || false
       },
       predictions
     };
 
-    console.log(`[Predictions] Done: ${predictions.length} picks | Market: ${marketRegime.regime?.toUpperCase()} (${earningsSymbols.length} earnings found)`);
+    console.log(`[Predictions] Done: ${predictions.length} picks | Market: ${marketRegime.regime?.toUpperCase()} | VIX: ${marketRegime.vix || 'N/A'} (${marketRegime.vixLevel}) (${earningsSymbols.length} earnings found)`);
     saveDailyPicks('trending', predictions);
     setCache('predictions', result);
     res.json(result);
@@ -987,7 +1166,7 @@ router.get('/tomorrow', async (req, res, next) => {
     const symbols = Array.from(symbolSet).slice(0, 20);
     console.log(`[Tomorrow] Scoring ${symbols.length} stocks (${tomorrowSymbols.length} with earnings tomorrow)...`);
 
-    const scoredData = await scoreSymbols(symbols, earningsCalendar);
+    const scoredData = await scoreSymbols(symbols, earningsCalendar, { vix: marketRegime.vix || 0 });
 
     const predictions = scoredData
       .filter(result => passesQualityFilter(result, marketRegime))   // Quality + regime gate
@@ -1040,15 +1219,23 @@ router.get('/stock/:symbol', async (req, res, next) => {
     const cached = getCached(cacheKey);
     if (cached) return res.json(cached);
 
-    const earningsCalendar = await yahooFinance.getEarningsCalendar();
-    const scored = await scoreSymbol(symbol, earningsCalendar);
+    const [earningsCalendar, marketRegime] = await Promise.all([
+      yahooFinance.getEarningsCalendar(),
+      getMarketRegime()
+    ]);
+    const scored = await scoreSymbol(symbol, earningsCalendar, marketRegime.vix || 0);
 
     const result = {
       ...scored,
       volume: scored._volume,
       social: scored._social,
       news: scored._news.slice(0, 10),
-      history: scored._history
+      history: scored._history,
+      marketRegime: {
+        regime: marketRegime.regime,
+        vix: marketRegime.vix,
+        vixLevel: marketRegime.vixLevel
+      }
     };
     delete result._social;
     delete result._news;

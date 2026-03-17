@@ -22,9 +22,9 @@ function getConfidenceBadge(confidence) {
   return { label: 'Low', cls: 'bg-oracle-red/15 text-oracle-red border-oracle-red/30' }
 }
 
-const breakdownColors = ['bg-blue-500', 'bg-emerald-500', 'bg-yellow-500', 'bg-cyan-500', 'bg-orange-500', 'bg-purple-500']
-const breakdownLabels = ['Cat', 'EPS', 'Rev', 'Tech', 'News', 'Liq']
-const breakdownMaxes = [12, 25, 18, 25, 10, 5]
+const breakdownColors = ['bg-blue-500', 'bg-emerald-500', 'bg-yellow-500', 'bg-cyan-500', 'bg-orange-500', 'bg-purple-500', 'bg-teal-500']
+const breakdownLabels = ['Cat', 'EPS', 'Rev', 'Tech', 'News', 'Liq', 'MR']
+const breakdownMaxes = [12, 25, 18, 28, 10, 5, 8]
 
 export default function StockCard({ stock, rank }) {
   const navigate = useNavigate()
@@ -92,6 +92,7 @@ export default function StockCard({ stock, rank }) {
     breakdown.technical ?? 0,
     breakdown.news ?? 0,
     breakdown.liquidity ?? 0,
+    breakdown.meanReversion ?? 0,
   ]
 
   const hasEarningsResult = stock.earningsResult?.isReported;
@@ -212,6 +213,25 @@ export default function StockCard({ stock, rank }) {
               <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium border ${confidenceBadge.cls}`}>
                 <Zap size={8} className="inline mr-0.5" />
                 {confidenceBadge.label}
+              </span>
+            )}
+            {stock.positionSizing && stock.positionSizing.sizeMultiplier < 1.0 && (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-oracle-yellow/10 text-oracle-yellow border border-oracle-yellow/20">
+                {Math.round(stock.positionSizing.sizeMultiplier * 100)}% size
+              </span>
+            )}
+            {stock.peadDrift && (
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-oracle-accent/10 text-oracle-accent border border-oracle-accent/20">
+                PEAD drift
+              </span>
+            )}
+            {(stock.entrySignal === 'gap_fade' || stock.entrySignal === 'mean_revert') && (
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                stock.entrySignal === 'mean_revert'
+                  ? 'bg-oracle-green/15 text-oracle-green border-oracle-green/30'
+                  : 'bg-orange-500/15 text-orange-400 border-orange-500/30'
+              }`}>
+                {stock.entryLabel}
               </span>
             )}
             {analystBuyPct != null && analystBuyPct > 0 && (
