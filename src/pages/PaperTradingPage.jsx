@@ -425,9 +425,11 @@ export default function PaperTradingPage() {
           <div className="flex items-center gap-2">
             <span className={`text-xs font-bold ${marketSession.color}`}>{marketSession.label}</span>
             <span className="text-[10px] text-oracle-muted">
-              {marketSession.nyTime.toLocaleTimeString('en-US', {
+              {new Date().toLocaleTimeString('en-US', {
                 timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', hour12: true
               })} ET
+              {' / '}
+              {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })} local
             </span>
           </div>
           <p className="text-[10px] text-oracle-muted/70">{marketSession.nextEvent}</p>

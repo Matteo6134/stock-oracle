@@ -30,22 +30,22 @@ function setCache(key, data) {
 }
 
 // ── Entry Signal Logic (Dynamic ATR-based) ──
-function getEntrySignal(change, hasEarningsToday, history, currentPrice) {
+function getEntrySignal(change, hasEarningsToday, history, currentPrice, quote) {
   const pctChange = change || 0;
-  
+
   // Calculate dynamic thresholds based on Average True Range (ATR)
   let atrPct = 4; // Default fallback ATR%
-  
+
   if (history && history.length >= 14 && currentPrice > 0) {
     const period = 14;
-    const recent = history.slice(-period - 1); // Get 15 days to calculate 14 TRs
+    const recent = history.slice(-period - 1);
     let trSum = 0;
-    
+
     for (let i = 1; i < recent.length; i++) {
       const high = recent[i].high;
       const low = recent[i].low;
       const prevClose = recent[i-1].close;
-      
+
       const tr = Math.max(
         high - low,
         Math.abs(high - prevClose),
@@ -53,29 +53,67 @@ function getEntrySignal(change, hasEarningsToday, history, currentPrice) {
       );
       trSum += tr;
     }
-    
+
     const atr = trSum / period;
     atrPct = (atr / currentPrice) * 100;
   }
-  
+
   // Set thresholds based on ATR
-  const tooLateThreshold = Math.max(8, atrPct * 2); 
+  const tooLateThreshold = Math.max(8, atrPct * 2);
   const riskyThreshold = Math.max(4, atrPct);
   const dipThreshold = Math.min(-5, -atrPct * 1.5);
-  
-  if (pctChange > tooLateThreshold) {
-    return { signal: 'too_late', label: 'Too Late', reason: `Already up +${pctChange.toFixed(1)}% today (greater than 2x average volatility) — most of the move has happened` };
+
+  // ── Pre/Post Market Gap Check ──
+  // If pre-market price is available, calculate TOTAL move (overnight + today)
+  const q = quote || {};
+  const prePrice = q.preMarketPrice;
+  const postPrice = q.postMarketPrice;
+  const prevClose = history && history.length > 0 ? history[history.length - 1]?.close : null;
+  const marketState = q.marketState;
+
+  let totalMovePct = pctChange; // default: just today's regular session change
+  let preMarketNote = '';
+
+  if (prePrice && prevClose && prevClose > 0) {
+    const preGapPct = ((prePrice - prevClose) / prevClose) * 100;
+    // Total move = pre-market gap + regular session move
+    totalMovePct = pctChange + preGapPct;
+
+    if (Math.abs(preGapPct) >= 1) {
+      preMarketNote = ` (pre-market gap: ${preGapPct >= 0 ? '+' : ''}${preGapPct.toFixed(1)}%)`;
+    }
   }
-  if (pctChange > riskyThreshold) {
-    return { signal: 'risky', label: 'Risky Entry', reason: `Up +${pctChange.toFixed(1)}% today (high volatility move already), but catalyst may push higher` };
+
+  // During pre-market: use pre-market price as the effective move
+  if (marketState === 'PRE' && prePrice && prevClose && prevClose > 0) {
+    totalMovePct = ((prePrice - prevClose) / prevClose) * 100;
+    preMarketNote = ' (pre-market)';
   }
-  if (pctChange < dipThreshold) {
-    return { signal: 'caution', label: 'Dip Buy?', reason: `Down ${pctChange.toFixed(1)}% today — could be a dip-buy opportunity if catalyst is strong` };
+
+  // During after-hours: check after-hours move
+  if ((marketState === 'POST' || marketState === 'CLOSED') && postPrice && currentPrice > 0) {
+    const ahMove = ((postPrice - currentPrice) / currentPrice) * 100;
+    if (Math.abs(ahMove) >= 2) {
+      preMarketNote += ` (AH: ${ahMove >= 0 ? '+' : ''}${ahMove.toFixed(1)}%)`;
+    }
+  }
+
+  // Use the LARGER of regular change or total move for "too late" detection
+  const effectiveChange = Math.max(Math.abs(pctChange), Math.abs(totalMovePct)) * Math.sign(totalMovePct || pctChange);
+
+  if (effectiveChange > tooLateThreshold) {
+    return { signal: 'too_late', label: 'Too Late', reason: `Already up +${effectiveChange.toFixed(1)}% total${preMarketNote} — most of the move has happened` };
+  }
+  if (effectiveChange > riskyThreshold) {
+    return { signal: 'risky', label: 'Risky Entry', reason: `Up +${effectiveChange.toFixed(1)}% total${preMarketNote} — high volatility move, but catalyst may push higher` };
+  }
+  if (effectiveChange < dipThreshold) {
+    return { signal: 'caution', label: 'Dip Buy?', reason: `Down ${effectiveChange.toFixed(1)}% total${preMarketNote} — could be a dip-buy if catalyst is strong` };
   }
   if (hasEarningsToday) {
-    return { signal: 'enter', label: 'Enter Now', reason: `Only ${pctChange >= 0 ? '+' : ''}${pctChange.toFixed(1)}% today — position before earnings report` };
+    return { signal: 'enter', label: 'Enter Now', reason: `Only ${effectiveChange >= 0 ? '+' : ''}${effectiveChange.toFixed(1)}% total${preMarketNote} — position before earnings report` };
   }
-  return { signal: 'enter', label: 'Enter Now', reason: `Stock is ${pctChange >= 0 ? 'up only +' : ''}${pctChange.toFixed(1)}% today (normal range) — good entry point` };
+  return { signal: 'enter', label: 'Enter Now', reason: `Stock is ${effectiveChange >= 0 ? 'up ' : ''}${effectiveChange >= 0 ? '+' : ''}${effectiveChange.toFixed(1)}% total${preMarketNote} — good entry point` };
 }
 
 // ── Trade Setup Calculator v2 (Multi-Validated Targets) ──
@@ -85,8 +123,36 @@ function calcTradeSetup(history, currentPrice, catalysts, quote, earningsHistory
     return { available: false, reason: 'No price data available' };
   }
 
-  const entryPrice = currentPrice;
   const h = history || [];
+  const q = quote || {};
+
+  // ── Pre/Post market price intelligence ──
+  // Use the most current price as effective entry (pre-market during PRE, post during POST)
+  const marketState = q.marketState;
+  const prePrice = q.preMarketPrice;
+  const postPrice = q.postMarketPrice;
+  const prevClose = h.length > 0 ? h[h.length - 1]?.close : null;
+
+  let entryPrice = currentPrice;
+  let preMarketGapPct = 0;
+  let entryNote = null;
+
+  // During pre-market: if stock gapped, the actual entry will be at pre-market price
+  if (marketState === 'PRE' && prePrice && prePrice > 0) {
+    entryPrice = prePrice; // Use pre-market price as expected entry
+    if (prevClose && prevClose > 0) {
+      preMarketGapPct = ((prePrice - prevClose) / prevClose) * 100;
+      entryNote = `Pre-market entry at $${prePrice.toFixed(2)} (gap ${preMarketGapPct >= 0 ? '+' : ''}${preMarketGapPct.toFixed(1)}% from prev close)`;
+    }
+  }
+
+  // During after-hours: show AH price impact on setup
+  if ((marketState === 'POST' || marketState === 'CLOSED') && postPrice && postPrice > 0) {
+    const ahChangePct = ((postPrice - currentPrice) / currentPrice) * 100;
+    if (Math.abs(ahChangePct) >= 1) {
+      entryNote = `After-hours: $${postPrice.toFixed(2)} (${ahChangePct >= 0 ? '+' : ''}${ahChangePct.toFixed(1)}% from close)`;
+    }
+  }
 
   // ══════════════════════════════════════════
   // 1. CALCULATE ATR (14-period)
@@ -367,6 +433,9 @@ function calcTradeSetup(history, currentPrice, catalysts, quote, earningsHistory
     potentialLoss: Math.round((risk / entryPrice) * 10000) / 100,
     atr: Math.round(atr * 100) / 100,
     analystTarget,
+    // Pre/Post market context
+    preMarketGapPct: Math.round(preMarketGapPct * 100) / 100,
+    entryNote,
     // Detailed validation data for UI
     validation: {
       resistanceLevels: resistanceLevels.slice(0, 3).map(r => ({ price: Math.round(r.price * 100) / 100, type: r.label })),
@@ -500,7 +569,7 @@ async function scoreSymbol(symbol, earningsCalendar) {
   const analystData = catalystList.find(c => c.type === 'analyst');
   const change = quoteData?.regularMarketChangePercent || 0;
   const currentPrice = quoteData?.regularMarketPrice || 0;
-  const entry = getEntrySignal(change, stockData.hasEarningsToday || stockData.hasEarningsTomorrow, stockData.history, currentPrice);
+  const entry = getEntrySignal(change, stockData.hasEarningsToday || stockData.hasEarningsTomorrow, stockData.history, currentPrice, quoteData);
   const tradeSetup = calcTradeSetup(stockData.history, currentPrice, catalystList, quoteData, earningsHistData);
 
   return {
@@ -662,6 +731,12 @@ function passesQualityFilter(stock, marketRegime) {
   // Even at 40% win rate, 2:1 R:R = profitable (+$0.20 per $1 risked)
   if (stock.tradeSetup?.available && stock.tradeSetup?.riskReward < 1.0) return false;
 
+  // 6. PRE-MARKET GAP FILTER — reject stocks that already gapped too far
+  // If pre-market gap > 6%, the stock has already moved and entry is too risky
+  if (stock.tradeSetup?.preMarketGapPct > 6) return false;
+  // If pre-market gap is negative and large, something broke overnight — avoid
+  if (stock.tradeSetup?.preMarketGapPct < -5) return false;
+
   return true;
 }
 
@@ -728,7 +803,7 @@ async function scoreSymbols(symbols, earningsCalendar, opts = { light: false }) 
         const hasEarningsToday = stockData.hasEarningsToday;
         const hasEarningsTomorrow = stockData.hasEarningsTomorrow;
         
-        const entry = getEntrySignal(change, hasEarningsToday || hasEarningsTomorrow, history, currentPrice);
+        const entry = getEntrySignal(change, hasEarningsToday || hasEarningsTomorrow, history, currentPrice, quoteData);
         const tradeSetup = calcTradeSetup(history, currentPrice, catalysts, quoteData, earningsHistData);
         const upcomingEvents = [];
         if (hasEarningsToday) upcomingEvents.push('Earnings TODAY');
@@ -1097,7 +1172,7 @@ router.get('/prices', async (req, res, next) => {
         const d = q;
         const change = d.regularMarketChangePercent || 0;
         // Don't have history for live price update, use fallback thresholds
-        const entry = getEntrySignal(change, false, null, d.regularMarketPrice);
+        const entry = getEntrySignal(change, false, null, d.regularMarketPrice, d);
         prices[d.symbol] = {
           price: d.currentSessionPrice || d.regularMarketPrice || null,
           regularPrice: d.regularMarketPrice || null,

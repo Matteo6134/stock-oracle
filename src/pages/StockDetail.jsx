@@ -342,11 +342,22 @@ export default function StockDetail() {
             </div>
           )}
 
+          {/* Pre/Post Market Note */}
+          {stock.tradeSetup.entryNote && (
+            <div className="text-[10px] p-2 rounded-lg bg-oracle-purple/10 border border-oracle-purple/20 text-oracle-purple mb-2">
+              {stock.tradeSetup.entryNote}
+            </div>
+          )}
           {/* Sources */}
           <div className="text-[9px] text-oracle-muted space-y-0.5">
             <div>Target: {stock.tradeSetup.targetSource}</div>
             <div>Stop: {stock.tradeSetup.stopSource}</div>
             {stock.tradeSetup.atr && <div>ATR(14): ${stock.tradeSetup.atr}</div>}
+            {stock.tradeSetup.preMarketGapPct !== 0 && stock.tradeSetup.preMarketGapPct && (
+              <div className={stock.tradeSetup.preMarketGapPct > 0 ? 'text-oracle-green' : 'text-oracle-red'}>
+                Pre-market gap: {stock.tradeSetup.preMarketGapPct > 0 ? '+' : ''}{stock.tradeSetup.preMarketGapPct}%
+              </div>
+            )}
             {stock.tradeSetup.analystTarget && <div className="text-oracle-muted/50">Analyst 12mo target: ${stock.tradeSetup.analystTarget} (long-term ref.)</div>}
           </div>
         </div>
@@ -544,6 +555,9 @@ export default function StockDetail() {
         )}
         {(breakdown.overextension ?? 0) < 0 && (
           <ScoreBar label="Overextension" score={breakdown.overextension} maxScore={0} color="red" />
+        )}
+        {(breakdown.prePostMarket ?? 0) !== 0 && (
+          <ScoreBar label="Pre/Post Mkt" score={breakdown.prePostMarket} maxScore={8} color={breakdown.prePostMarket > 0 ? 'cyan' : 'red'} />
         )}
       </div>
 

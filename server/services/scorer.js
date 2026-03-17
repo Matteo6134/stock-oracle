@@ -1,13 +1,10 @@
 /**
- * ENHANCED Prediction Scoring Engine v3
+ * ENHANCED Prediction Scoring Engine v3.1
  *
- * KEY CHANGES from v2:
- * 1. Earnings catalyst REDUCED — having earnings alone is a coin flip
- * 2. Overextension PENALTY — stocks already pumped get penalized
- * 3. Mean reversion awareness — RSI > 70 = overbought penalty
- * 4. Earnings Quality + Revision remain strong (these actually predict)
- * 5. Liquidity bonus — higher volume = more reliable signal
- * 6. Negative filters — entry signal "too_late"/"risky" = score penalty
+ * KEY CHANGES from v3:
+ * 1. Pre/Post Market Intelligence — gaps, after-hours moves factor into scoring
+ * 2. Overextension now includes pre-market gap detection
+ * 3. All previous v3 improvements retained
  *
  * Categories (rebalanced for real accuracy):
  * - Catalyst Score (0-12): Reduced — earnings alone don't predict direction
@@ -16,7 +13,8 @@
  * - Technical Setup (0-25): INCREASED — price action quality matters most short-term
  * - News Score (0-10): Reduced — mostly noise
  * - Social Score (0-5): Minimal — worst predictor
- * - Overextension Penalty (-15 to 0): NEW — punish already-pumped stocks
+ * - Pre/Post Market Score (-8 to +8): NEW — overnight/pre-market intelligence
+ * - Overextension Penalty (-15 to 0): punish already-pumped stocks (includes pre-market)
  * - PEAD Bonus (±5): Post-earnings drift
  *
  * Total: 100 points max
@@ -246,20 +244,99 @@ function calcSocialScore(data) {
   return Math.max(0, Math.min(5, s));
 }
 
-// ── Overextension Penalty (-15 to 0) — NEW ──
+// ── Pre/Post Market Intelligence Score (-8 to +8) — NEW in v3.1 ──
+// Factors: overnight gap direction, pre-market volume sentiment, after-hours earnings reaction
+function calcPrePostMarketScore(data) {
+  let s = 0;
+  const q = data.quote || {};
+  const h = data.history || [];
+
+  const prePrice = q.preMarketPrice;
+  const postPrice = q.postMarketPrice;
+  const regPrice = q.regularMarketPrice;
+  const prevClose = h.length > 0 ? h[h.length - 1]?.close : null;
+  const marketState = q.marketState; // PRE, REGULAR, POST, CLOSED
+
+  // ── 1. Pre-market gap analysis ──
+  // During pre-market or after it: how did the stock gap from yesterday's close?
+  if (prePrice && prevClose && prevClose > 0) {
+    const preGapPct = ((prePrice - prevClose) / prevClose) * 100;
+
+    // Small positive gap (0.5-2%): bullish institutional interest, good entry
+    if (preGapPct >= 0.5 && preGapPct <= 2) s += 4;
+    // Moderate gap up (2-4%): strong interest but entry is getting pricey
+    else if (preGapPct > 2 && preGapPct <= 4) s += 2;
+    // Large gap up (>4%): likely too late, most of the move happened
+    else if (preGapPct > 4 && preGapPct <= 8) s -= 2;
+    // Monster gap (>8%): way too extended, massive risk of reversal
+    else if (preGapPct > 8) s -= 6;
+    // Small gap down (-0.5% to -2%): potential dip buy if thesis is intact
+    else if (preGapPct <= -0.5 && preGapPct >= -2) s += 1;
+    // Medium gap down (-2% to -5%): something is wrong, caution
+    else if (preGapPct < -2 && preGapPct >= -5) s -= 2;
+    // Large gap down (>-5%): bad news broke overnight, avoid
+    else if (preGapPct < -5) s -= 5;
+  }
+
+  // ── 2. After-hours move analysis (from yesterday) ──
+  // If stock moved significantly after hours, it tells us about overnight sentiment
+  if (postPrice && regPrice && regPrice > 0) {
+    const ahChangePct = ((postPrice - regPrice) / regPrice) * 100;
+
+    // After-hours moves are thin volume — less reliable but informative
+    // Positive AH move + earnings = potential beat signal
+    if (ahChangePct > 3 && (data.hasEarningsToday || data.hasEarningsTomorrow)) {
+      s += 3; // Earnings beat in AH — strong signal
+    } else if (ahChangePct < -3 && (data.hasEarningsToday || data.hasEarningsTomorrow)) {
+      s -= 4; // Earnings miss in AH — strong negative signal
+    } else if (ahChangePct > 2) {
+      s += 1; // General positive AH sentiment
+    } else if (ahChangePct < -2) {
+      s -= 1; // General negative AH sentiment
+    }
+  }
+
+  // ── 3. Pre-market vs after-hours convergence ──
+  // If both pre-market AND after-hours agree on direction, stronger signal
+  if (prePrice && postPrice && regPrice && regPrice > 0 && prevClose && prevClose > 0) {
+    const preDirection = prePrice > prevClose ? 1 : -1;
+    const ahDirection = postPrice > regPrice ? 1 : -1;
+
+    if (preDirection === 1 && ahDirection === 1) s += 1; // Both bullish
+    else if (preDirection === -1 && ahDirection === -1) s -= 1; // Both bearish
+    // Divergence = uncertainty, no bonus/penalty
+  }
+
+  return Math.max(-8, Math.min(8, s));
+}
+
+// ── Overextension Penalty (-15 to 0) ──
 // Stocks that already pumped today should NOT be recommended
+// v3.1: Now includes pre-market gap in the calculation
 function calcOverextensionPenalty(data) {
   let penalty = 0;
   const q = data.quote || {};
   const change = q.regularMarketChangePercent || 0;
   const h = data.history || [];
 
-  // Today's move penalty
+  // Today's regular session move penalty
   if (change > 10) penalty -= 10;        // Already up 10%+ — way too late
   else if (change > 6) penalty -= 6;     // Already up 6%+ — too late
   else if (change > 4) penalty -= 3;     // Already up 4%+ — risky entry
   else if (change < -8) penalty -= 5;    // Crashed — don't catch falling knife
   else if (change < -5) penalty -= 2;    // Significant drop — caution
+
+  // Pre-market gap penalty (additional — a stock can be flat during the day
+  // but gapped up 6% pre-market, making total move large)
+  const prePrice = q.preMarketPrice;
+  const prevClose = h.length > 0 ? h[h.length - 1]?.close : null;
+  if (prePrice && prevClose && prevClose > 0) {
+    const preGapPct = ((prePrice - prevClose) / prevClose) * 100;
+    // Only penalize upside gaps (we want to avoid chasing)
+    if (preGapPct > 8) penalty -= 4;       // Massive pre-market gap
+    else if (preGapPct > 5) penalty -= 2;  // Large pre-market gap
+    else if (preGapPct > 3) penalty -= 1;  // Moderate pre-market gap
+  }
 
   // Multi-day overextension: if up >15% in 5 days, mean reversion is likely
   if (h.length >= 5) {
@@ -330,9 +407,10 @@ export function calculateScore(stockData) {
     const pead = calcPEADBonus(stockData);
     const overextension = calcOverextensionPenalty(stockData);
     const liquidity = calcLiquidityBonus(stockData);
+    const prePostMarket = calcPrePostMarketScore(stockData);
 
     const baseScore = catalyst + earningsQuality + revision + social + news + technical + liquidity;
-    const totalScore = Math.max(0, Math.min(100, baseScore + pead + overextension));
+    const totalScore = Math.max(0, Math.min(100, baseScore + pead + overextension + prePostMarket));
 
     return {
       totalScore,
@@ -345,7 +423,8 @@ export function calculateScore(stockData) {
         technical,
         pead,
         overextension,
-        liquidity
+        liquidity,
+        prePostMarket
       },
       confidence: totalScore >= 70 ? 'HIGH' : totalScore >= 50 ? 'MEDIUM' : 'LOW',
       probability: Math.round(50 + (totalScore / 100) * 45)
@@ -353,7 +432,7 @@ export function calculateScore(stockData) {
   } catch (err) {
     return {
       totalScore: 0,
-      breakdown: { catalyst: 0, earningsQuality: 0, revision: 0, social: 0, news: 0, technical: 0, pead: 0, overextension: 0, liquidity: 0 },
+      breakdown: { catalyst: 0, earningsQuality: 0, revision: 0, social: 0, news: 0, technical: 0, pead: 0, overextension: 0, liquidity: 0, prePostMarket: 0 },
       confidence: 'LOW',
       probability: 50
     };

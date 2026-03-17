@@ -266,7 +266,7 @@ export async function getHistoryWithPerformance() {
       d.categories.flatMap(c => c.picks.filter(p => p.status === 'settled' && p.breakdown))
     );
     if (allSettledPicks.length > 0) {
-      const factors = ['catalyst', 'earningsQuality', 'revision', 'technical', 'news', 'liquidity', 'pead', 'overextension'];
+      const factors = ['catalyst', 'earningsQuality', 'revision', 'technical', 'news', 'liquidity', 'pead', 'overextension', 'prePostMarket'];
       for (const factor of factors) {
         // Split into picks where this factor was high (above median) vs low
         const scores = allSettledPicks.map(p => p.breakdown?.[factor] || 0).filter(v => v > 0);
