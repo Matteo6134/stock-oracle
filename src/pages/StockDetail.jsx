@@ -7,6 +7,7 @@ import SourceLinks from '../components/SourceLinks'
 import BrokerBadge from '../components/BrokerBadge'
 import StockNavBar from '../components/StockNavBar'
 import { useStockDetail } from '../hooks/useStocks'
+import { getAlertReason } from '../lib/tradeAlerts'
 
 function ProbabilityBadge({ probability }) {
   const value = probability || 0
@@ -200,6 +201,54 @@ export default function StockDetail() {
           </div>
         </div>
       )}
+
+      {/* Quick Action Summary — "Why buy this?" */}
+      {stock.score >= 50 && stock.tradeSetup?.available && stock.entrySignal !== 'too_late' && (() => {
+        const alert = getAlertReason(stock)
+        if (!alert || alert.reasons.length === 0) return null
+        const isStrong = stock.score >= 70 && stock.confidence === 'HIGH'
+        return (
+          <div className={`glass-card p-4 mb-4 border-l-4 ${isStrong ? 'border-l-oracle-green' : 'border-l-oracle-accent'}`}>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-sm font-bold text-oracle-text">
+                {isStrong ? '🚀 Strong Buy Signal' : '📊 Trade Opportunity'}
+              </span>
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+                isStrong ? 'bg-oracle-green/15 text-oracle-green' : 'bg-oracle-accent/15 text-oracle-accent'
+              }`}>
+                Score {stock.score}
+              </span>
+            </div>
+            <div className="space-y-1.5 mb-3">
+              {alert.reasons.map((r, i) => (
+                <div key={i} className="flex items-start gap-1.5 text-xs text-oracle-muted">
+                  <span className="text-oracle-accent mt-0.5">•</span>
+                  <span>{r}</span>
+                </div>
+              ))}
+            </div>
+            <div className="glass-inner rounded-lg p-2.5">
+              <div className="grid grid-cols-3 gap-2 text-center text-[10px]">
+                <div>
+                  <div className="text-oracle-muted">Invest</div>
+                  <div className="text-oracle-text font-bold text-sm">${alert.investAmount.toLocaleString()}</div>
+                  <div className="text-oracle-muted">{alert.shares} shares</div>
+                </div>
+                <div>
+                  <div className="text-oracle-muted">Target</div>
+                  <div className="text-oracle-green font-bold text-sm">${stock.tradeSetup.targetPrice}</div>
+                  <div className="text-oracle-green">+{stock.tradeSetup.potentialGain}%</div>
+                </div>
+                <div>
+                  <div className="text-oracle-muted">Exit if</div>
+                  <div className="text-oracle-red font-bold text-sm">${stock.tradeSetup.stopLoss}</div>
+                  <div className="text-oracle-red">-{stock.tradeSetup.potentialLoss}%</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Trade Setup Card */}
       {stock.tradeSetup?.available && (

@@ -170,7 +170,13 @@ export default function PaperTradingPage() {
   const [trades, setTrades] = useState(loadTrades)
   const [predictions, setPredictions] = useState([])
   const [loading, setLoading] = useState(true)
-  const [investAmount, setInvestAmount] = useState(1000)
+  const [investAmount, setInvestAmountState] = useState(() => {
+    try { return parseInt(localStorage.getItem('paper_invest_amount')) || 1000 } catch { return 1000 }
+  })
+  const setInvestAmount = (amt) => {
+    setInvestAmountState(amt)
+    localStorage.setItem('paper_invest_amount', String(amt))
+  }
   const [marketSession, setMarketSession] = useState(getMarketSession)
   const [confirmCancel, setConfirmCancel] = useState(null) // trade id to confirm cancel
   const pollRef = useRef(null)

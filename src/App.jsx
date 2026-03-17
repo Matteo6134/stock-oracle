@@ -13,6 +13,7 @@ import BacktesterPage from './pages/BacktesterPage'
 import PaperTradingPage from './pages/PaperTradingPage'
 import packageJson from '../package.json'
 import { isNotificationSupported, isNotificationEnabled, requestNotificationPermission, disableNotifications } from './lib/notifications'
+import { checkSmartAlerts } from './lib/tradeAlerts'
 
 const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Home' },
@@ -43,6 +44,46 @@ export default function App() {
       navigator.serviceWorker.register('/sw.js').catch(() => {})
     }
   }, [])
+
+  // ── Smart Trade Alert Monitor ──
+  // Checks predictions every 5 minutes during market hours and sends buy/sell alerts
+  useEffect(() => {
+    if (!notifEnabled) return
+
+    const runAlertCheck = async () => {
+      try {
+        // Only check during weekdays
+        const day = new Date().getDay()
+        if (day === 0 || day === 6) return
+
+        // Check NY time — only run between 4 AM and 8 PM ET
+        const nyHour = parseInt(new Date().toLocaleString('en-US', { timeZone: 'America/New_York', hour: 'numeric', hour12: false }))
+        if (nyHour < 4 || nyHour >= 20) return
+
+        // Fetch fresh predictions
+        const res = await fetch('/api/predictions')
+        if (!res.ok) return
+        const data = await res.json()
+        const predictions = data.predictions || []
+
+        // Load open paper trades
+        let openTrades = []
+        try {
+          openTrades = JSON.parse(localStorage.getItem('paper_trades') || '[]')
+        } catch {}
+
+        // Run smart alert checks
+        checkSmartAlerts(predictions, openTrades)
+      } catch {
+        // Silent — don't break the app
+      }
+    }
+
+    // Run immediately, then every 5 minutes
+    runAlertCheck()
+    const interval = setInterval(runAlertCheck, 5 * 60 * 1000)
+    return () => clearInterval(interval)
+  }, [notifEnabled])
 
   const toggleNotifications = useCallback(async () => {
     if (notifEnabled) {
