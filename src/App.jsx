@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Routes, Route, NavLink, useLocation, matchPath } from 'react-router-dom'
-import { LayoutDashboard, TrendingUp, PieChart, CalendarDays, History as HistoryIcon, Menu, X } from 'lucide-react'
+import { LayoutDashboard, TrendingUp, PieChart, CalendarDays, History as HistoryIcon, DollarSign, Menu, X } from 'lucide-react'
 import ErrorBoundary from './components/ErrorBoundary'
 import Dashboard from './pages/Dashboard'
 import StockDetail from './pages/StockDetail'
@@ -9,12 +9,15 @@ import SectorDetail from './pages/SectorDetail'
 import TrendingPage from './pages/TrendingPage'
 import TomorrowPage from './pages/TomorrowPage'
 import BacktesterPage from './pages/BacktesterPage'
+import PaperTradingPage from './pages/PaperTradingPage'
 import packageJson from '../package.json'
+import { isNotificationSupported, isNotificationEnabled, requestNotificationPermission, disableNotifications } from './lib/notifications'
 
 const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Home' },
   { to: '/tomorrow', icon: CalendarDays, label: 'Tomorrow' },
   { to: '/trending', icon: TrendingUp, label: 'Trending' },
+  { to: '/paper', icon: DollarSign, label: 'Paper Trade' },
   { to: '/history', icon: HistoryIcon, label: 'History' },
   { to: '/sectors', icon: PieChart, label: 'Sectors' },
 ]
@@ -26,11 +29,29 @@ export default function App() {
   const location = useLocation()
   const isDetailPage = detailPatterns.some(p => matchPath(p, location.pathname))
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [notifEnabled, setNotifEnabled] = useState(isNotificationEnabled())
 
   // Close sidebar on route change
   useEffect(() => {
     setSidebarOpen(false)
   }, [location.pathname])
+
+  // Register SW on mount
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(() => {})
+    }
+  }, [])
+
+  const toggleNotifications = useCallback(async () => {
+    if (notifEnabled) {
+      disableNotifications()
+      setNotifEnabled(false)
+    } else {
+      const ok = await requestNotificationPermission()
+      setNotifEnabled(ok)
+    }
+  }, [notifEnabled])
 
   return (
     <div className="min-h-screen bg-oracle-bg">
@@ -98,9 +119,24 @@ export default function App() {
         </div>
 
         {/* Sidebar footer */}
-        <div className="px-5 py-4">
+        <div className="px-5 py-4 space-y-2">
+          {isNotificationSupported() && (
+            <button
+              onClick={toggleNotifications}
+              className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all ${
+                notifEnabled
+                  ? 'bg-oracle-green/15 text-oracle-green border border-oracle-green/30'
+                  : 'glass-inner text-oracle-muted hover:text-oracle-text'
+              }`}
+            >
+              <span>{notifEnabled ? '🔔 Alerts On' : '🔕 Enable Alerts'}</span>
+              <span className={`w-8 h-4 rounded-full relative transition-all ${notifEnabled ? 'bg-oracle-green' : 'bg-oracle-border'}`}>
+                <span className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all ${notifEnabled ? 'left-[18px]' : 'left-0.5'}`} />
+              </span>
+            </button>
+          )}
           <div className="text-oracle-muted text-[10px] uppercase font-bold">AI-Powered Predictions</div>
-          <div className="text-oracle-muted/50 text-[9px] mt-1">v{packageJson.version}</div>
+          <div className="text-oracle-muted/50 text-[9px]">v{packageJson.version}</div>
         </div>
       </nav>
 
@@ -114,6 +150,7 @@ export default function App() {
             <Route path="/sectors" element={<SectorsPage />} />
             <Route path="/sectors/:sectorName" element={<SectorDetail />} />
             <Route path="/trending" element={<TrendingPage />} />
+            <Route path="/paper" element={<PaperTradingPage />} />
             <Route path="/history" element={<BacktesterPage />} />
           </Routes>
         </ErrorBoundary>
