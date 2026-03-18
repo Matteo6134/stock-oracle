@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Routes, Route, NavLink, useLocation, matchPath } from 'react-router-dom'
-import { LayoutDashboard, TrendingUp, PieChart, CalendarDays, History as HistoryIcon, DollarSign, Zap, Menu, X } from 'lucide-react'
+import { LayoutDashboard, TrendingUp, PieChart, CalendarDays, History as HistoryIcon, DollarSign, Zap, Crosshair, Menu, X } from 'lucide-react'
 import ErrorBoundary from './components/ErrorBoundary'
 import LandscapeSplit from './components/LandscapeSplit'
 import Dashboard from './pages/Dashboard'
@@ -12,12 +12,14 @@ import TomorrowPage from './pages/TomorrowPage'
 import BacktesterPage from './pages/BacktesterPage'
 import PaperTradingPage from './pages/PaperTradingPage'
 import MoversPage from './pages/MoversPage'
+import BuyTomorrowPage from './pages/BuyTomorrowPage'
 import packageJson from '../package.json'
 import { isNotificationSupported, isNotificationEnabled, requestNotificationPermission, disableNotifications } from './lib/notifications'
 import { checkSmartAlerts } from './lib/tradeAlerts'
 
 const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Home' },
+  { to: '/buy-tomorrow', icon: Crosshair, label: 'Buy Tomorrow' },
   { to: '/movers', icon: Zap, label: 'Movers' },
   { to: '/tomorrow', icon: CalendarDays, label: 'Tomorrow' },
   { to: '/trending', icon: TrendingUp, label: 'Trending' },
@@ -192,6 +194,7 @@ export default function App() {
         <ErrorBoundary>
           <Routes>
             <Route path="/" element={<Dashboard />} />
+            <Route path="/buy-tomorrow" element={<BuyTomorrowPage />} />
             <Route path="/movers" element={<MoversPage />} />
             <Route path="/stock/:symbol" element={<StockDetail />} />
             <Route path="/tomorrow" element={<TomorrowPage />} />

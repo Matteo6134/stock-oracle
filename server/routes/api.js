@@ -9,6 +9,7 @@ import { checkAvailability } from '../services/brokerAvailability.js';
 import { classifySector, getSectorTrends, SECTOR_REPS } from '../services/sectorAnalysis.js';
 import { saveDailyPicks, getHistoryWithPerformance } from '../services/history.js';
 import { scanPremarketMovers, getShortSqueezeSetups, getBreakoutSetups } from '../services/premarketScanner.js';
+import { findTomorrowMovers } from '../services/tomorrowMovers.js';
 
 const router = express.Router();
 
@@ -1596,6 +1597,24 @@ router.get('/movers', async (req, res, next) => {
 
     console.log(`[Movers] Done: ${premarketMovers.length} pre-market movers | ${squeezeCandidates.length} squeeze setups | ${breakouts.length} breakouts`);
     setCache('movers', result, 3 * 60 * 1000);
+    res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ── Tomorrow's Big Movers ──────────────────────────────
+// Stocks setting up TODAY for big moves in the next 1-3 days
+// Check this during market hours to get your watchlist for tomorrow
+router.get('/tomorrow-movers', async (req, res, next) => {
+  try {
+    const cached = getCached('tomorrow-movers', 10 * 60 * 1000);
+    if (cached) return res.json(cached);
+
+    console.log('[TomorrowMovers] Scanning for setups...');
+    const result = await findTomorrowMovers();
+    setCache('tomorrow-movers', result, 10 * 60 * 1000);
+    console.log(`[TomorrowMovers] Found ${result.stats.setupsFound} setups (${result.stats.highConviction} high conviction)`);
     res.json(result);
   } catch (err) {
     next(err);
