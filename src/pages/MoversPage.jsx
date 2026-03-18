@@ -558,16 +558,16 @@ export default function MoversPage() {
 
       {/* Pre-Market Movers */}
       {!loading && activeTab === 'premarket' && (
-        <div className="space-y-2">
+        <div className="space-y-2 tab-content" key="premarket">
           {premarket.length > 0 ? (
             premarket.map((stock, i) => (
-              <PreMarketCard key={stock.symbol || i} stock={stock} />
+              <div key={stock.symbol || i} className="card-animate"><PreMarketCard stock={stock} /></div>
             ))
           ) : (
             <EmptyState
               icon={Zap}
               title="No pre-market movers"
-              subtitle="Check back when pre-market opens (4 AM ET)"
+              subtitle="Check back when pre-market opens (4 AM ET / 10 AM CET)"
             />
           )}
         </div>
@@ -575,10 +575,10 @@ export default function MoversPage() {
 
       {/* Squeeze Setups */}
       {!loading && activeTab === 'squeeze' && (
-        <div className="space-y-2">
+        <div className="space-y-2 tab-content" key="squeeze">
           {squeeze.length > 0 ? (
             squeeze.map((stock, i) => (
-              <SqueezeCard key={stock.symbol || i} stock={stock} />
+              <div key={stock.symbol || i} className="card-animate"><SqueezeCard stock={stock} /></div>
             ))
           ) : (
             <EmptyState
@@ -592,10 +592,10 @@ export default function MoversPage() {
 
       {/* Breakouts */}
       {!loading && activeTab === 'breakouts' && (
-        <div className="space-y-2">
+        <div className="space-y-2 tab-content" key="breakouts">
           {breakouts.length > 0 ? (
             breakouts.map((stock, i) => (
-              <BreakoutCard key={stock.symbol || i} stock={stock} />
+              <div key={stock.symbol || i} className="card-animate"><BreakoutCard stock={stock} /></div>
             ))
           ) : (
             <EmptyState
@@ -609,10 +609,10 @@ export default function MoversPage() {
 
       {/* Relative Strength */}
       {!loading && activeTab === 'strength' && (
-        <div className="space-y-2">
+        <div className="space-y-2 tab-content" key="strength">
           {strength.length > 0 ? (
             strength.map((stock, i) => (
-              <RelativeStrengthCard key={stock.symbol || i} stock={stock} />
+              <div key={stock.symbol || i} className="card-animate"><RelativeStrengthCard stock={stock} /></div>
             ))
           ) : (
             <EmptyState

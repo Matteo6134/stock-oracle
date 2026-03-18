@@ -24,6 +24,7 @@ function getConfidenceBadge(confidence) {
 
 const breakdownColors = ['bg-blue-500', 'bg-emerald-500', 'bg-yellow-500', 'bg-cyan-500', 'bg-orange-500', 'bg-purple-500', 'bg-teal-500', 'bg-red-500', 'bg-pink-500', 'bg-indigo-500']
 const breakdownLabels = ['Cat', 'EPS', 'Rev', 'Tech', 'News', 'Liq', 'MR', 'SQ', 'FL', 'BO']
+const breakdownFullNames = ['Catalyst', 'Earnings Quality', 'Revisions', 'Technical', 'News Sentiment', 'Liquidity', 'Mean Reversion', 'Squeeze', 'Float', 'Breakout']
 const breakdownMaxes = [12, 25, 18, 28, 10, 5, 8, 12, 6, 8]
 
 export default function StockCard({ stock, rank }) {
@@ -251,13 +252,14 @@ export default function StockCard({ stock, rank }) {
             )}
           </div>
 
-          {/* Mini breakdown bars */}
+          {/* Mini breakdown bars with tooltips */}
           <div className="flex items-center gap-1">
             {breakdownValues.map((val, i) => (
-              <div key={i} className="flex-1" title={`${breakdownLabels[i]}: ${val}/${breakdownMaxes[i]}`}>
+              <div key={i} className="flex-1 tooltip-wrapper">
+                <span className="tooltip-text">{breakdownFullNames[i]}: {val}/{breakdownMaxes[i]} pts</span>
                 <div className="h-1.5 rounded-full bg-oracle-border overflow-hidden">
                   <div
-                    className={`h-full rounded-full ${breakdownColors[i]}`}
+                    className={`h-full rounded-full ${breakdownColors[i]} transition-all duration-500`}
                     style={{ width: `${Math.min(100, (val / breakdownMaxes[i]) * 100)}%` }}
                   />
                 </div>
@@ -273,15 +275,20 @@ export default function StockCard({ stock, rank }) {
 
         {/* Right side: score + price */}
         <div className="flex flex-col items-end gap-1.5 ml-3">
-          {/* Score circle mini */}
-          <div className={`w-11 h-11 rounded-full border-2 flex items-center justify-center font-bold text-sm ${
-            score >= 70
-              ? 'border-oracle-green text-oracle-green bg-oracle-green/10'
-              : score >= 50
-                ? 'border-oracle-yellow text-oracle-yellow bg-oracle-yellow/10'
-                : 'border-oracle-red text-oracle-red bg-oracle-red/10'
-          }`}>
-            {Math.round(score)}
+          {/* Score circle mini with legend tooltip */}
+          <div className="tooltip-wrapper score-pulse">
+            <span className="tooltip-text">
+              {score >= 70 ? 'Strong Buy' : score >= 50 ? 'Moderate' : 'Weak'} — {Math.round(score)}/100
+            </span>
+            <div className={`w-11 h-11 rounded-full border-2 flex items-center justify-center font-bold text-sm ${
+              score >= 70
+                ? 'border-oracle-green text-oracle-green bg-oracle-green/10'
+                : score >= 50
+                  ? 'border-oracle-yellow text-oracle-yellow bg-oracle-yellow/10'
+                  : 'border-oracle-red text-oracle-red bg-oracle-red/10'
+            }`}>
+              {Math.round(score)}
+            </div>
           </div>
 
           {/* Probability */}

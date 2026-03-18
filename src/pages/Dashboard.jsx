@@ -1,4 +1,5 @@
-import { BarChart3, AlertCircle, TrendingUp, TrendingDown, Minus, ShieldAlert, Skull } from 'lucide-react'
+import { useState } from 'react'
+import { BarChart3, AlertCircle, TrendingUp, TrendingDown, Minus, ShieldAlert, Skull, Search, X } from 'lucide-react'
 import Header from '../components/Header'
 import StockCard from '../components/StockCard'
 import LoadingSkeleton from '../components/LoadingSkeleton'
@@ -23,8 +24,19 @@ const vixColors = {
 
 export default function Dashboard() {
   const { stocks, loading, error, refresh, marketRegime } = usePredictions()
+  const [searchQuery, setSearchQuery] = useState('')
 
   const regime = marketRegime?.regime ? regimeConfig[marketRegime.regime] || regimeConfig.neutral : null
+
+  // Filter stocks by search
+  const filteredStocks = searchQuery.trim()
+    ? stocks.filter(s => {
+        const q = searchQuery.toLowerCase()
+        return s.symbol?.toLowerCase().includes(q) ||
+               (s.companyName || s.name || '').toLowerCase().includes(q) ||
+               (s.sector || '').toLowerCase().includes(q)
+      })
+    : stocks
 
   return (
     <div className="max-w-lg mx-auto">
@@ -54,12 +66,39 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* Search bar */}
+      {!loading && stocks.length > 0 && (
+        <div className="mx-4 mb-2">
+          <div className="relative">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-oracle-muted" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search symbol, name, or sector..."
+              className="w-full pl-8 pr-8 py-2 glass-card text-sm text-oracle-text placeholder-oracle-muted/50 outline-none focus:border-oracle-accent/50 transition-colors"
+              style={{ borderRadius: '0.75rem' }}
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-oracle-muted hover:text-oracle-text"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Section title */}
       <div className="px-4 py-3 flex items-center gap-2">
         <BarChart3 size={16} className="text-oracle-accent" />
         <h2 className="text-sm font-semibold text-oracle-text">Top Picks Today</h2>
         {!loading && stocks.length > 0 && (
-          <span className="text-oracle-muted text-xs ml-auto">{stocks.length} stocks</span>
+          <span className="text-oracle-muted text-xs ml-auto">
+            {searchQuery ? `${filteredStocks.length} of ${stocks.length}` : `${stocks.length} stocks`}
+          </span>
         )}
       </div>
 
@@ -84,11 +123,22 @@ export default function Dashboard() {
       {loading && <LoadingSkeleton count={10} />}
 
       {/* Stock list */}
-      {!loading && !error && stocks.length > 0 && (
+      {!loading && !error && filteredStocks.length > 0 && (
         <div className="space-y-2.5 px-4 pb-4">
-          {stocks.map((stock, index) => (
-            <StockCard key={stock.symbol} stock={stock} rank={index + 1} />
+          {filteredStocks.map((stock, index) => (
+            <div key={stock.symbol} className="card-animate">
+              <StockCard stock={stock} rank={searchQuery ? undefined : index + 1} />
+            </div>
           ))}
+        </div>
+      )}
+
+      {/* No search results */}
+      {!loading && !error && stocks.length > 0 && filteredStocks.length === 0 && searchQuery && (
+        <div className="px-4 py-8 text-center">
+          <Search size={32} className="text-oracle-muted/30 mx-auto mb-2" />
+          <p className="text-oracle-muted text-sm">No stocks match "{searchQuery}"</p>
+          <button onClick={() => setSearchQuery('')} className="mt-2 text-oracle-accent text-xs">Clear search</button>
         </div>
       )}
 

@@ -419,10 +419,12 @@ export default function BuyTomorrowPage() {
 
       {/* Cards */}
       {!loading && (
-        <div className="space-y-2">
+        <div className="space-y-2 tab-content" key={activeTab}>
           {activeList.length > 0 ? (
             activeList.map((stock, i) => (
-              <SetupCard key={stock.symbol || i} stock={stock} />
+              <div key={stock.symbol || i} className="card-animate">
+                <SetupCard stock={stock} />
+              </div>
             ))
           ) : (
             <EmptyState

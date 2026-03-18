@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { ArrowLeft, TrendingUp, TrendingDown, AlertCircle, Newspaper, MessageCircle, Activity, RefreshCw, Calendar, Target, Zap, CircleCheck, AlertTriangle, XCircle } from 'lucide-react'
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
 import ScoreCircle from '../components/ScoreCircle'
 import ScoreBar from '../components/ScoreBar'
 import SourceLinks from '../components/SourceLinks'
@@ -586,6 +586,16 @@ export default function StockDetail() {
                   boxShadow: '0 8px 32px rgba(0,0,0,0.3)',
                 }}
               />
+              {/* Entry/Target/Stop reference lines */}
+              {stock.tradeSetup?.available && stock.tradeSetup.targetPrice && (
+                <ReferenceLine y={stock.tradeSetup.targetPrice} stroke="#34d399" strokeDasharray="4 3" strokeWidth={1} label={{ value: `TP $${stock.tradeSetup.targetPrice}`, position: 'right', fill: '#34d399', fontSize: 9 }} />
+              )}
+              {stock.tradeSetup?.available && stock.tradeSetup.entryPrice && (
+                <ReferenceLine y={stock.tradeSetup.entryPrice} stroke="#60a5fa" strokeDasharray="4 3" strokeWidth={1} label={{ value: `Entry $${stock.tradeSetup.entryPrice}`, position: 'right', fill: '#60a5fa', fontSize: 9 }} />
+              )}
+              {stock.tradeSetup?.available && stock.tradeSetup.stopLoss && (
+                <ReferenceLine y={stock.tradeSetup.stopLoss} stroke="#f87171" strokeDasharray="4 3" strokeWidth={1} label={{ value: `SL $${stock.tradeSetup.stopLoss}`, position: 'right', fill: '#f87171', fontSize: 9 }} />
+              )}
               <Area
                 type="monotone"
                 dataKey="price"
@@ -616,6 +626,15 @@ export default function StockDetail() {
         <ScoreBar label="Technical" score={breakdown.technical ?? 0} maxScore={25} color="cyan" />
         <ScoreBar label="News" score={breakdown.news ?? 0} maxScore={10} color="orange" />
         <ScoreBar label="Liquidity" score={breakdown.liquidity ?? 0} maxScore={5} color="purple" />
+        {(breakdown.squeeze ?? 0) > 0 && (
+          <ScoreBar label="Squeeze" score={breakdown.squeeze} maxScore={12} color="red" />
+        )}
+        {(breakdown.float ?? 0) > 0 && (
+          <ScoreBar label="Float" score={breakdown.float} maxScore={6} color="pink" />
+        )}
+        {(breakdown.breakout ?? 0) > 0 && (
+          <ScoreBar label="Breakout" score={breakdown.breakout} maxScore={8} color="purple" />
+        )}
         {(breakdown.pead ?? 0) !== 0 && (
           <ScoreBar label="PEAD Drift" score={breakdown.pead} maxScore={5} color={breakdown.pead > 0 ? 'green' : 'red'} />
         )}
@@ -624,6 +643,9 @@ export default function StockDetail() {
         )}
         {(breakdown.prePostMarket ?? 0) !== 0 && (
           <ScoreBar label="Pre/Post Mkt" score={breakdown.prePostMarket} maxScore={8} color={breakdown.prePostMarket > 0 ? 'cyan' : 'red'} />
+        )}
+        {(breakdown.dataQualityPenalty ?? 0) < 0 && (
+          <ScoreBar label="Data Quality" score={breakdown.dataQualityPenalty} maxScore={0} color="red" />
         )}
       </div>
 

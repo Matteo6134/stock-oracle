@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { DollarSign, TrendingUp, TrendingDown, Target, Clock, CheckCircle, XCircle, Loader2, RefreshCw, Trash2, Bell, BellOff, AlertTriangle, Sun, Moon, Sunrise, Sunset } from 'lucide-react'
 import { sendLocalNotification, isNotificationEnabled } from '../lib/notifications'
+import { useToast } from '../components/Toast'
 
 const API = import.meta.env.VITE_API_URL || ''
 const STORAGE_KEY = 'paper_trades'
@@ -167,6 +168,7 @@ function checkMarketNotifications(session) {
 
 export default function PaperTradingPage() {
   const navigate = useNavigate()
+  const { success: toastSuccess, error: toastError, warning: toastWarning } = useToast()
   const [trades, setTrades] = useState(loadTrades)
   const [predictions, setPredictions] = useState([])
   const [loading, setLoading] = useState(true)
@@ -364,6 +366,7 @@ export default function PaperTradingPage() {
     const updated = [newTrade, ...trades]
     setTrades(updated)
     saveTrades(updated)
+    toastSuccess(`${stock.symbol} — ${shares} shares @ $${stock.price.toFixed(2)}`)
   }
 
   // Cancel/remove a single trade (open or closed)
@@ -396,15 +399,20 @@ export default function PaperTradingPage() {
     setConfirmCancel(null)
   }
 
+  const [confirmClearAll, setConfirmClearAll] = useState(false)
   const clearClosed = () => {
+    const count = trades.filter(t => t.status !== 'open').length
     const updated = trades.filter(t => t.status === 'open')
     setTrades(updated)
     saveTrades(updated)
+    setConfirmClearAll(false)
+    toastSuccess(`Cleared ${count} closed trade${count !== 1 ? 's' : ''}`)
   }
 
   const manualClose = (id) => {
-    if (!marketSession.canTrade && marketSession.session !== 'POST') return // Can't sell outside hours (allow after-hours sell)
+    if (!marketSession.canTrade && marketSession.session !== 'POST') return
 
+    const trade = trades.find(t => t.id === id)
     const updated = trades.map(t => {
       if (t.id !== id || t.status !== 'open') return t
       return {
@@ -417,6 +425,11 @@ export default function PaperTradingPage() {
     })
     setTrades(updated)
     saveTrades(updated)
+    if (trade) {
+      const pl = ((trade.currentPrice - trade.entryPrice) / trade.entryPrice) * 100
+      if (pl >= 0) toastSuccess(`${trade.symbol} closed +${pl.toFixed(1)}%`)
+      else toastWarning(`${trade.symbol} closed ${pl.toFixed(1)}%`)
+    }
   }
 
   // Stats
@@ -687,7 +700,14 @@ export default function PaperTradingPage() {
         <div>
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-xs text-oracle-muted font-medium">Closed ({closedTrades.length})</h2>
-            <button onClick={clearClosed} className="text-[10px] text-oracle-muted hover:text-oracle-red">Clear all</button>
+            {confirmClearAll ? (
+              <div className="flex items-center gap-1.5">
+                <button onClick={clearClosed} className="text-[10px] px-1.5 py-0.5 rounded bg-oracle-red/20 text-oracle-red border border-oracle-red/30 font-bold">DELETE ALL</button>
+                <button onClick={() => setConfirmClearAll(false)} className="text-[10px] text-oracle-muted">Cancel</button>
+              </div>
+            ) : (
+              <button onClick={() => setConfirmClearAll(true)} className="text-[10px] text-oracle-muted hover:text-oracle-red">Clear all</button>
+            )}
           </div>
           <div className="space-y-1.5">
             {closedTrades.map(t => (

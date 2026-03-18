@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Routes, Route, NavLink, useLocation, matchPath } from 'react-router-dom'
 import { LayoutDashboard, TrendingUp, PieChart, CalendarDays, History as HistoryIcon, DollarSign, Zap, Crosshair, Menu, X } from 'lucide-react'
 import ErrorBoundary from './components/ErrorBoundary'
+import { ToastProvider } from './components/Toast'
 import LandscapeSplit from './components/LandscapeSplit'
 import Dashboard from './pages/Dashboard'
 import StockDetail from './pages/StockDetail'
@@ -100,6 +101,7 @@ export default function App() {
   }, [notifEnabled])
 
   return (
+    <ToastProvider>
     <div className="min-h-screen bg-oracle-bg">
       {/* Landscape split view — appears when phone is rotated */}
       <LandscapeSplit />
@@ -207,5 +209,6 @@ export default function App() {
         </ErrorBoundary>
       </main>
     </div>
+    </ToastProvider>
   )
 }
