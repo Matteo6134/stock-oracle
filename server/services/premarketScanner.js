@@ -228,6 +228,7 @@ export async function scanPremarketMovers(earningsCalendar = []) {
         const entry = {
           symbol,
           companyName: q.shortName || q.longName || symbol,
+          price: Math.round(currentPrice * 100) / 100,
           currentPrice: Math.round(currentPrice * 100) / 100,
           previousClose: Math.round(previousClose * 100) / 100,
           preMarketPrice: preMarketPrice ? Math.round(preMarketPrice * 100) / 100 : null,

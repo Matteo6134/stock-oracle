@@ -69,14 +69,22 @@ function SignalBadge({ signal }) {
   )
 }
 
+const SIGNAL_LABELS = {
+  'gap_up_explosive': 'Explosive Gap',
+  'gap_up_momentum': 'Gap Up Momentum',
+  'gap_down_bounce': 'Bounce Play',
+  'volume_spike': 'Volume Spike',
+  'low_float_runner': 'Low Float Runner',
+}
+
 function PreMarketCard({ stock }) {
   const navigate = useNavigate()
   const {
-    symbol, name, gapPercent = 0, volumeRatio = 0, signal,
-    price, preMarketPrice, signals = []
+    symbol, companyName, gapPct = 0, volumeRatio = 0,
+    currentPrice, preMarketPrice, signals = []
   } = stock
-  const isUp = gapPercent >= 0
-  const allSignals = signals.length > 0 ? signals : signal ? [signal] : []
+  const isUp = gapPct >= 0
+  const allSignals = signals.map(s => SIGNAL_LABELS[s] || s)
 
   return (
     <div
@@ -87,13 +95,13 @@ function PreMarketCard({ stock }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <span className="text-oracle-text font-bold text-sm">{symbol}</span>
-            {name && (
-              <span className="text-oracle-muted text-xs truncate">{name}</span>
+            {companyName && companyName !== symbol && (
+              <span className="text-oracle-muted text-xs truncate">{companyName}</span>
             )}
           </div>
           <div className="flex items-center gap-3 mb-2">
-            {price != null && (
-              <span className="text-oracle-muted text-xs">${Number(price).toFixed(2)}</span>
+            {currentPrice != null && (
+              <span className="text-oracle-muted text-xs">${Number(currentPrice).toFixed(2)}</span>
             )}
             {preMarketPrice != null && (
               <span className="text-oracle-accent text-xs">
@@ -112,7 +120,7 @@ function PreMarketCard({ stock }) {
         <div className="flex flex-col items-end shrink-0">
           <div className={`flex items-center gap-0.5 text-lg font-bold ${isUp ? 'text-oracle-green' : 'text-oracle-red'}`}>
             {isUp ? <ArrowUpRight size={18} /> : <ArrowDownRight size={18} />}
-            {Math.abs(gapPercent).toFixed(1)}%
+            {Math.abs(gapPct).toFixed(1)}%
           </div>
           {volumeRatio > 0 && (
             <div className="flex items-center gap-1 mt-1">
@@ -129,10 +137,12 @@ function PreMarketCard({ stock }) {
 function SqueezeCard({ stock }) {
   const navigate = useNavigate()
   const {
-    symbol, name, shortPercent = 0, shortRatio = 0,
-    floatSize = 0, squeezeScore = 0
+    symbol, shortPercentOfFloat = 0, shortRatio = 0,
+    floatShares = 0, squeezePotential = 0
   } = stock
-  const isHighShort = shortPercent > 30
+  const isHighShort = shortPercentOfFloat > 30
+  // Normalize squeezePotential to 0-100 scale (typical range 0-500+)
+  const squeezeScore = Math.min(100, squeezePotential / 5)
   const scoreWidth = Math.min(squeezeScore, 100)
   const scoreColor = squeezeScore >= 80
     ? 'bg-oracle-red'
@@ -158,27 +168,28 @@ function SqueezeCard({ stock }) {
               </span>
             )}
           </div>
-          {name && <p className="text-oracle-muted text-xs truncate mt-0.5">{name}</p>}
         </div>
         <div className="text-right shrink-0">
-          <div className="text-oracle-text font-bold text-sm">{shortPercent.toFixed(1)}%</div>
+          <div className="text-oracle-text font-bold text-sm">{shortPercentOfFloat.toFixed(1)}%</div>
           <div className="text-oracle-muted text-[10px]">short of float</div>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3 mb-2.5 text-xs">
         <div className="glass-inner rounded-lg p-2">
-          <div className="text-oracle-muted text-[10px] mb-0.5">Short Ratio</div>
-          <div className="text-oracle-text font-semibold">{shortRatio.toFixed(1)} days</div>
+          <div className="text-oracle-muted text-[10px] mb-0.5">Days to Cover</div>
+          <div className="text-oracle-text font-semibold">{(shortRatio || 0).toFixed(1)} days</div>
         </div>
         <div className="glass-inner rounded-lg p-2">
           <div className="text-oracle-muted text-[10px] mb-0.5">Float</div>
           <div className="text-oracle-text font-semibold">
-            {floatSize >= 1e6
-              ? `${(floatSize / 1e6).toFixed(1)}M`
-              : floatSize >= 1e3
-                ? `${(floatSize / 1e3).toFixed(0)}K`
-                : floatSize.toLocaleString()}
+            {floatShares >= 1e9
+              ? `${(floatShares / 1e9).toFixed(1)}B`
+              : floatShares >= 1e6
+                ? `${(floatShares / 1e6).toFixed(1)}M`
+                : floatShares >= 1e3
+                  ? `${(floatShares / 1e3).toFixed(0)}K`
+                  : floatShares > 0 ? floatShares.toLocaleString() : 'N/A'}
           </div>
         </div>
       </div>
@@ -202,10 +213,10 @@ function SqueezeCard({ stock }) {
 function BreakoutCard({ stock }) {
   const navigate = useNavigate()
   const {
-    symbol, name, bbWidth = 0, volumeContraction = 0,
-    priceRangeContraction = 0, daysConsolidation = 0
+    symbol, bbWidth = 0, volumeContraction = 0,
+    rangeContraction = 0, lastClose = 0, squeezeStrength = 0
   } = stock
-  const coilLevel = Math.min(100, Math.max(0, (1 - bbWidth / 0.2) * 100))
+  const coilLevel = Math.min(100, Math.max(0, (1 - bbWidth / 0.15) * 100))
   const coilColor = coilLevel >= 75
     ? 'text-oracle-green'
     : coilLevel >= 50
@@ -221,11 +232,10 @@ function BreakoutCard({ stock }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <span className="text-oracle-text font-bold text-sm">{symbol}</span>
-            {daysConsolidation > 0 && (
-              <span className="text-oracle-muted text-[10px]">{daysConsolidation}d consolidation</span>
+            {lastClose > 0 && (
+              <span className="text-oracle-muted text-[10px]">${lastClose.toFixed(2)}</span>
             )}
           </div>
-          {name && <p className="text-oracle-muted text-xs truncate mt-0.5">{name}</p>}
         </div>
         <div className="flex flex-col items-center shrink-0">
           <div className={`font-bold text-sm ${coilColor}`}>
@@ -243,12 +253,12 @@ function BreakoutCard({ stock }) {
           <div className="text-oracle-text font-semibold">{(bbWidth * 100).toFixed(1)}%</div>
         </div>
         <div className="glass-inner rounded-lg p-2 text-center">
-          <div className="text-oracle-muted text-[10px] mb-0.5">Vol Contr.</div>
-          <div className="text-oracle-text font-semibold">{volumeContraction.toFixed(0)}%</div>
+          <div className="text-oracle-muted text-[10px] mb-0.5">Vol Ratio</div>
+          <div className="text-oracle-text font-semibold">{(volumeContraction * 100).toFixed(0)}%</div>
         </div>
         <div className="glass-inner rounded-lg p-2 text-center">
-          <div className="text-oracle-muted text-[10px] mb-0.5">Range Contr.</div>
-          <div className="text-oracle-text font-semibold">{priceRangeContraction.toFixed(0)}%</div>
+          <div className="text-oracle-muted text-[10px] mb-0.5">Range</div>
+          <div className="text-oracle-text font-semibold">{(rangeContraction * 100).toFixed(0)}%</div>
         </div>
       </div>
 
@@ -271,14 +281,17 @@ function BreakoutCard({ stock }) {
 function RelativeStrengthCard({ stock }) {
   const navigate = useNavigate()
   const {
-    symbol, name, stockChange = 0, spyChange = 0,
-    relativeStrength = 0
+    symbol, companyName, gapPct = 0, relativeStrengthScore = 0
   } = stock
-  const rsColor = relativeStrength >= 70
+  // RS score is typically 0-20 range, normalize to 0-100
+  const rsNormalized = Math.min(100, relativeStrengthScore * 5)
+  const rsColor = rsNormalized >= 70
     ? 'text-oracle-green'
-    : relativeStrength >= 40
+    : rsNormalized >= 40
       ? 'text-oracle-yellow'
       : 'text-oracle-red'
+  const stockChange = gapPct
+  const spyChange = gapPct - relativeStrengthScore // derive SPY from the difference
   const maxBar = Math.max(Math.abs(stockChange), Math.abs(spyChange), 0.01)
 
   return (
@@ -290,9 +303,9 @@ function RelativeStrengthCard({ stock }) {
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <span className="text-oracle-text font-bold text-sm">{symbol}</span>
-            <span className={`text-xs font-bold ${rsColor}`}>RS {relativeStrength.toFixed(0)}</span>
+            <span className={`text-xs font-bold ${rsColor}`}>RS {rsNormalized.toFixed(0)}</span>
           </div>
-          {name && <p className="text-oracle-muted text-xs truncate mt-0.5">{name}</p>}
+          {companyName && companyName !== symbol && <p className="text-oracle-muted text-xs truncate mt-0.5">{companyName}</p>}
         </div>
         <div className="flex items-center gap-1 shrink-0">
           {stockChange >= spyChange ? (
@@ -359,7 +372,7 @@ function RelativeStrengthCard({ stock }) {
 
       <div className="mt-2 flex items-center justify-between">
         <span className="text-oracle-muted text-[10px]">Relative Strength Score</span>
-        <span className={`text-xs font-bold ${rsColor}`}>{relativeStrength.toFixed(0)}/100</span>
+        <span className={`text-xs font-bold ${rsColor}`}>{rsNormalized.toFixed(0)}/100</span>
       </div>
     </div>
   )
@@ -435,14 +448,14 @@ export default function MoversPage() {
     }
   }, [pulling, fetchMovers])
 
-  const premarket = data?.premarket || []
-  const squeeze = data?.squeeze || []
-  const breakouts = data?.breakouts || []
+  const premarket = data?.premarketMovers || []
+  const squeeze = data?.squeezeCandidates || []
+  const breakouts = data?.breakoutSetups || []
   const strength = data?.relativeStrength || []
   const regime = data?.marketRegime || null
   const stats = data?.stats || {}
 
-  const gapsUp = stats.gapsUp || premarket.filter(s => (s.gapPercent || 0) > 0).length
+  const gapsUp = stats.gapUps || premarket.filter(s => (s.gapPct || 0) > 0).length
   const volumeSpikes = stats.volumeSpikes || premarket.filter(s => (s.volumeRatio || 0) > 2).length
   const squeezeCount = stats.squeezeSetups || squeeze.length
 
