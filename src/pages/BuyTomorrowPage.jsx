@@ -438,8 +438,9 @@ export default function BuyTomorrowPage() {
       {!loading && activeList.length > 0 && (
         <div className="mt-4 p-3 glass-inner rounded-xl">
           <p className="text-oracle-muted text-[10px] text-center leading-relaxed">
-            <span className="text-oracle-green font-bold">BUY TODAY</span> = act now during market hours  ·
-            <span className="text-oracle-accent font-bold">WATCH</span> = wait for breakout confirmation  ·
+            <span className="text-oracle-green font-bold">BUY TODAY</span> = act now  ·
+            <span className="text-oracle-accent font-bold">BUY TODAY/TOMORROW</span> = flexible timing  ·
+            <span className="text-oracle-yellow font-bold">WATCH</span> = wait for breakout  ·
             Tap any stock for full analysis
           </p>
         </div>
