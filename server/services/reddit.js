@@ -10,14 +10,32 @@ let cacheTimestamp = 0;
 let loadingPromise = null; // Prevents concurrent fetches (race condition lock)
 const CACHE_TTL = 15 * 60 * 1000; // 15 minutes
 
+// ── Circuit breaker: stop hammering Reddit if API is down ──
+const circuitBreaker = { failures: 0, lastFailure: 0, isOpen: false };
+const CB_THRESHOLD = 3; // consecutive failures before opening
+const CB_RECOVERY_MS = 30 * 60 * 1000; // 30 min auto-recovery
+
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 async function fetchSubreddit(subreddit) {
+  // Circuit breaker check — skip request if circuit is open
+  if (circuitBreaker.isOpen) {
+    if (Date.now() - circuitBreaker.lastFailure > CB_RECOVERY_MS) {
+      console.log('[Reddit] Circuit breaker recovering — retrying requests');
+      circuitBreaker.isOpen = false;
+      circuitBreaker.failures = 0;
+    } else {
+      return [];
+    }
+  }
+
   try {
     const { data } = await axios.get(
       `https://www.reddit.com/r/${subreddit}/hot.json?limit=50`,
       { headers: { 'User-Agent': 'StockOracle/2.0 (educational project)' }, timeout: 10000 }
     );
+    // Success — reset circuit breaker
+    circuitBreaker.failures = 0;
     return (data?.data?.children || []).map(c => ({
       title: c.data.title || '',
       selftext: (c.data.selftext || '').substring(0, 500),
@@ -26,6 +44,12 @@ async function fetchSubreddit(subreddit) {
       subreddit: c.data.subreddit || subreddit
     }));
   } catch (err) {
+    circuitBreaker.failures++;
+    circuitBreaker.lastFailure = Date.now();
+    if (circuitBreaker.failures >= CB_THRESHOLD) {
+      circuitBreaker.isOpen = true;
+      console.error(`[Reddit] Circuit breaker OPEN after ${CB_THRESHOLD} consecutive failures — pausing requests for 30 min`);
+    }
     if (err.response?.status !== 429) {
       console.error(`[Reddit] Error r/${subreddit}:`, err.message);
     }

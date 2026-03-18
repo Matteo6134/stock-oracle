@@ -17,12 +17,45 @@
  * - Social Score (0-5): Minimal — worst predictor
  * - Pre/Post Market Score (-8 to +8): Overnight/pre-market intelligence
  * - Mean Reversion Bonus (0-8): NEW — quality crash-buy opportunities
+ * - Squeeze Bonus (0-12): Short squeeze potential from high short interest
+ * - Float Bonus (0-6): Low float = explosive moves
+ * - Breakout Score (0-8): Bollinger squeeze + volume contraction = imminent breakout
  * - Overextension Penalty (-15 to 0): punish already-pumped stocks
  * - PEAD Bonus (±7): Extended post-earnings drift (was ±5)
  * - VIX Adjustment (-10 to 0): Dampens scores in high-fear environments
  *
- * Total: ~100 points max (soft cap via clamp)
+ * Total: ~126 points max (soft cap via clamp)
  */
+
+// ── Data Validation (P0) — detect missing data sources ──
+function validateInputData(data) {
+  const dataQuality = {
+    socialMissing: false,
+    newsMissing: false,
+    earningsMissing: false
+  };
+
+  // Social data: if both reddit and stocktwits have 0 mentions AND 0 sentiment, flag as missing
+  const r = data.reddit || { mentions: 0, sentiment: 0 };
+  const st = data.stocktwits || { total: 0, sentiment: 0 };
+  if (r.mentions === 0 && r.sentiment === 0 && (st.total || 0) === 0 && st.sentiment === 0) {
+    dataQuality.socialMissing = true;
+  }
+
+  // News data: empty array means no news loaded
+  const news = data.news || [];
+  if (news.length === 0) {
+    dataQuality.newsMissing = true;
+  }
+
+  // Earnings history: no quarter data means earnings info is absent
+  const eh = data.earningsHistory || {};
+  if (!eh.quarterCount || eh.quarterCount === 0) {
+    dataQuality.earningsMissing = true;
+  }
+
+  return dataQuality;
+}
 
 // ── Catalyst Score (0-12, reduced from 20) ──
 function calcCatalystScore(data) {
@@ -74,6 +107,13 @@ function calcEarningsQualityScore(data) {
   else if (eh.avgSurprise >= 3) s += 3;
   else if (eh.avgSurprise > 0) s += 1;
   else if (eh.avgSurprise < -5) s -= 3;
+
+  // EPS vs Revenue combined signal bonus/penalty
+  const epsVsRevenue = eh.epsVsRevenue || 'both_miss';
+  if (epsVsRevenue === 'both_beat') s += 3;
+  else if (epsVsRevenue === 'revenue_only') s += 1;
+  else if (epsVsRevenue === 'both_miss') s -= 2;
+  // 'eps_only' = +0 (neutral)
 
   return Math.max(0, Math.min(25, s));
 }
@@ -393,11 +433,16 @@ function calcPEADBonus(data) {
   return 0;
 }
 
-// ── Liquidity Quality Bonus (0-5) ──
+// ── Liquidity Quality Bonus (-4 to 5) ──
+// v4.1: Added low-volume penalty — illiquid stocks get penalized
 function calcLiquidityBonus(data) {
   const q = data.quote || {};
   const volume = q.regularMarketVolume || 0;
   const marketCap = q.marketCap || 0;
+
+  // Low volume penalty
+  if (volume < 200000) return -4;
+  if (volume < 500000) return -2;
 
   let bonus = 0;
 
@@ -485,8 +530,107 @@ function calcVIXAdjustment(data) {
   return -10;
 }
 
+// ── Short Squeeze Potential (0-12) ──
+// High short interest + high days-to-cover = squeeze candidate
+function calcSqueezeBonus(data) {
+  const q = data.quote || {};
+  const shortPct = data.shortPercentOfFloat || q.shortPercentOfFloat || 0;
+  const shortRatio = data.shortRatio || q.shortRatio || 0;
+
+  let bonus = 0;
+
+  // Short percent of float scoring
+  if (shortPct > 30) bonus += 8;
+  else if (shortPct > 20) bonus += 5;
+  else if (shortPct > 15) bonus += 3;
+
+  // Days to cover (short ratio) scoring
+  if (shortRatio > 8) bonus += 4;
+  else if (shortRatio > 5) bonus += 2;
+
+  return Math.min(12, bonus);
+}
+
+// ── Float Analysis Bonus (0-6) ──
+// Low float stocks move explosively; high volume/float ratio = extreme turnover
+function calcFloatBonus(data) {
+  const q = data.quote || {};
+  const floatShares = data.floatShares || q.floatShares || 0;
+  const volume = q.regularMarketVolume || 0;
+
+  if (!floatShares || floatShares <= 0) return 0;
+
+  let bonus = 0;
+
+  // Float size scoring
+  if (floatShares < 20e6) bonus += 6;
+  else if (floatShares < 50e6) bonus += 4;
+  else if (floatShares < 100e6) bonus += 2;
+
+  // Volume/float turnover ratio bonus
+  if (volume > 0 && floatShares > 0) {
+    const turnoverRatio = volume / floatShares;
+    if (turnoverRatio > 0.5) bonus += 3;
+  }
+
+  return Math.min(6, bonus);
+}
+
+// ── Breakout Detection Score (0-8) ──
+// Tight Bollinger Bands + declining volume = coiled spring about to explode
+function calcBreakoutScore(data) {
+  const h = data.history || [];
+  if (h.length < 20) return 0;
+
+  let score = 0;
+
+  // Calculate rolling BB widths for the last 20 bars
+  const closes = h.slice(-20).map(d => d.close || 0);
+  const mean = closes.reduce((a, b) => a + b, 0) / closes.length;
+  if (mean <= 0) return 0;
+
+  const variance = closes.reduce((sum, c) => sum + Math.pow(c - mean, 2), 0) / closes.length;
+  const stdDev = Math.sqrt(variance);
+  const currentBBWidth = (2 * stdDev) / mean;
+
+  // Calculate BB width for sliding windows to get percentile
+  const bbWidths = [];
+  for (let i = 0; i <= h.length - 20; i++) {
+    const window = h.slice(i, i + 20).map(d => d.close || 0);
+    const wMean = window.reduce((a, b) => a + b, 0) / window.length;
+    if (wMean <= 0) continue;
+    const wVariance = window.reduce((sum, c) => sum + Math.pow(c - wMean, 2), 0) / window.length;
+    const wStdDev = Math.sqrt(wVariance);
+    bbWidths.push((2 * wStdDev) / wMean);
+  }
+
+  if (bbWidths.length > 0) {
+    // Calculate percentile of current BB width vs historical
+    const sorted = [...bbWidths].sort((a, b) => a - b);
+    const rank = sorted.findIndex(w => w >= currentBBWidth);
+    const percentile = rank >= 0 ? rank / sorted.length : 1;
+
+    // Bottom 20% = tight squeeze, breakout imminent
+    if (percentile <= 0.2) score += 5;
+  }
+
+  // Volume contraction: last 5 avg < last 20 avg * 0.7
+  if (h.length >= 20) {
+    const last5Vol = h.slice(-5).reduce((sum, d) => sum + (d.volume || 0), 0) / 5;
+    const last20Vol = h.slice(-20).reduce((sum, d) => sum + (d.volume || 0), 0) / 20;
+    if (last20Vol > 0 && last5Vol < last20Vol * 0.7) {
+      score += 3;
+    }
+  }
+
+  return Math.min(8, score);
+}
+
 export function calculateScore(stockData) {
   try {
+    // Validate input data quality
+    const dataQuality = validateInputData(stockData);
+
     const catalyst = calcCatalystScore(stockData);
     const earningsQuality = calcEarningsQualityScore(stockData);
     const revision = calcRevisionScore(stockData);
@@ -499,9 +643,18 @@ export function calculateScore(stockData) {
     const prePostMarket = calcPrePostMarketScore(stockData);
     const meanReversion = calcMeanReversionBonus(stockData);
     const vixAdj = calcVIXAdjustment(stockData);
+    const squeeze = calcSqueezeBonus(stockData);
+    const float_ = calcFloatBonus(stockData);
+    const breakout = calcBreakoutScore(stockData);
 
-    const baseScore = catalyst + earningsQuality + revision + social + news + technical + liquidity + meanReversion;
-    const totalScore = Math.max(0, Math.min(100, baseScore + pead + overextension + prePostMarket + vixAdj));
+    // Data quality penalty: -3 per missing data source to prevent inflated scores on API failures
+    let dataQualityPenalty = 0;
+    if (dataQuality.socialMissing) dataQualityPenalty -= 3;
+    if (dataQuality.newsMissing) dataQualityPenalty -= 3;
+    if (dataQuality.earningsMissing) dataQualityPenalty -= 3;
+
+    const baseScore = catalyst + earningsQuality + revision + social + news + technical + liquidity + meanReversion + squeeze + float_ + breakout;
+    const totalScore = Math.max(0, Math.min(100, baseScore + pead + overextension + prePostMarket + vixAdj + dataQualityPenalty));
 
     return {
       totalScore,
@@ -517,15 +670,21 @@ export function calculateScore(stockData) {
         liquidity,
         prePostMarket,
         meanReversion,
-        vixAdj
+        vixAdj,
+        squeeze,
+        float: float_,
+        breakout,
+        dataQualityPenalty
       },
+      dataQuality,
       confidence: totalScore >= 70 ? 'HIGH' : totalScore >= 50 ? 'MEDIUM' : 'LOW',
       probability: Math.round(50 + (totalScore / 100) * 45)
     };
   } catch (err) {
     return {
       totalScore: 0,
-      breakdown: { catalyst: 0, earningsQuality: 0, revision: 0, social: 0, news: 0, technical: 0, pead: 0, overextension: 0, liquidity: 0, prePostMarket: 0, meanReversion: 0, vixAdj: 0 },
+      breakdown: { catalyst: 0, earningsQuality: 0, revision: 0, social: 0, news: 0, technical: 0, pead: 0, overextension: 0, liquidity: 0, prePostMarket: 0, meanReversion: 0, vixAdj: 0, squeeze: 0, float: 0, breakout: 0, dataQualityPenalty: 0 },
+      dataQuality: { socialMissing: true, newsMissing: true, earningsMissing: true },
       confidence: 'LOW',
       probability: 50
     };

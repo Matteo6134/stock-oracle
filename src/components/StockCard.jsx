@@ -22,9 +22,9 @@ function getConfidenceBadge(confidence) {
   return { label: 'Low', cls: 'bg-oracle-red/15 text-oracle-red border-oracle-red/30' }
 }
 
-const breakdownColors = ['bg-blue-500', 'bg-emerald-500', 'bg-yellow-500', 'bg-cyan-500', 'bg-orange-500', 'bg-purple-500', 'bg-teal-500']
-const breakdownLabels = ['Cat', 'EPS', 'Rev', 'Tech', 'News', 'Liq', 'MR']
-const breakdownMaxes = [12, 25, 18, 28, 10, 5, 8]
+const breakdownColors = ['bg-blue-500', 'bg-emerald-500', 'bg-yellow-500', 'bg-cyan-500', 'bg-orange-500', 'bg-purple-500', 'bg-teal-500', 'bg-red-500', 'bg-pink-500', 'bg-indigo-500']
+const breakdownLabels = ['Cat', 'EPS', 'Rev', 'Tech', 'News', 'Liq', 'MR', 'SQ', 'FL', 'BO']
+const breakdownMaxes = [12, 25, 18, 28, 10, 5, 8, 12, 6, 8]
 
 export default function StockCard({ stock, rank }) {
   const navigate = useNavigate()
@@ -93,6 +93,9 @@ export default function StockCard({ stock, rank }) {
     breakdown.news ?? 0,
     breakdown.liquidity ?? 0,
     breakdown.meanReversion ?? 0,
+    breakdown.squeeze ?? 0,
+    breakdown.float ?? 0,
+    breakdown.breakout ?? 0,
   ]
 
   const hasEarningsResult = stock.earningsResult?.isReported;

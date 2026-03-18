@@ -20,7 +20,34 @@ const SECTOR_MAP = {
   'BA': 'Aerospace', 'LMT': 'Aerospace', 'RTX': 'Aerospace', 'NOC': 'Aerospace', 'GD': 'Aerospace',
   'TSLA': 'Technology', 'F': 'Industrial', 'GM': 'Industrial',
   'TLRY': 'Cannabis', 'CGC': 'Cannabis', 'ACB': 'Cannabis',
-  'SOFI': 'Finance', 'AFRM': 'Finance', 'HOOD': 'Crypto'
+  'SOFI': 'Finance', 'AFRM': 'Finance', 'HOOD': 'Crypto',
+  // Small/Mid caps
+  'RIVN': 'Industrial', 'LCID': 'Industrial', 'SNAP': 'Technology',
+  'PINS': 'Technology', 'ROKU': 'Technology', 'DKNG': 'Consumer', 'RBLX': 'Technology',
+  'UPST': 'Finance', 'NET': 'Technology', 'CRWD': 'Technology',
+  'SNOW': 'Technology', 'DDOG': 'Technology', 'ZS': 'Technology', 'MDB': 'Technology',
+  'HIMS': 'Healthcare', 'CELH': 'Consumer', 'SMCI': 'Technology', 'ARM': 'Technology',
+  'IONQ': 'Technology', 'RGTI': 'Technology', 'QUBT': 'Technology',
+  // Biotech
+  'BNTX': 'Healthcare', 'NVAX': 'Healthcare', 'CRSP': 'Healthcare', 'EDIT': 'Healthcare',
+  'NTLA': 'Healthcare', 'BEAM': 'Healthcare', 'SRPT': 'Healthcare', 'ALNY': 'Healthcare',
+  'REGN': 'Healthcare', 'EXEL': 'Healthcare', 'INCY': 'Healthcare', 'TGTX': 'Healthcare',
+  // China/International
+  'BABA': 'Technology', 'PDD': 'Consumer', 'JD': 'Consumer', 'BIDU': 'Technology',
+  'NIO': 'Industrial', 'XPEV': 'Industrial', 'LI': 'Industrial', 'SE': 'Technology',
+  'MELI': 'Consumer', 'NU': 'Finance', 'GRAB': 'Technology', 'CPNG': 'Consumer',
+  // EV/Clean Energy
+  'PLUG': 'Energy', 'FCEL': 'Energy', 'CHPT': 'Energy', 'QS': 'Energy',
+  'LAZR': 'Technology', 'JOBY': 'Aerospace', 'RKLB': 'Aerospace', 'LUNR': 'Aerospace',
+  // Meme/Volatile
+  'GME': 'Consumer', 'AMC': 'Consumer', 'BB': 'Technology',
+  // Recent IPOs
+  'BIRK': 'Consumer', 'CART': 'Technology', 'CAVA': 'Consumer', 'TOST': 'Technology',
+  'DUOL': 'Technology', 'VRT': 'Technology', 'ONON': 'Consumer',
+  // More Tech
+  'UBER': 'Technology', 'ABNB': 'Consumer', 'SQ': 'Finance', 'SHOP': 'Technology',
+  'TTD': 'Technology', 'PANW': 'Technology', 'FTNT': 'Technology', 'OKTA': 'Technology',
+  'TWLO': 'Technology'
 };
 
 const SECTOR_KEYWORDS = {
@@ -48,14 +75,14 @@ export function classifySector(symbol, companyName) {
 }
 
 const SECTOR_REPS = {
-  'Technology': ['AAPL','MSFT','GOOGL','META','CRM','ADBE'],
-  'AI/Robotics': ['NVDA','AMD','PLTR'],
-  'Healthcare': ['JNJ','UNH','PFE','LLY','ABBV'],
-  'Finance': ['JPM','BAC','GS','V','MA'],
-  'Energy': ['XOM','CVX','COP','SLB'],
-  'Consumer': ['WMT','COST','NKE','MCD','DIS'],
+  'Technology': ['AAPL','MSFT','GOOGL','META','CRM','ADBE','NET','CRWD','SNOW','SHOP','ARM','SMCI'],
+  'AI/Robotics': ['NVDA','AMD','PLTR','IONQ','RGTI','ARM','SMCI'],
+  'Healthcare': ['JNJ','UNH','PFE','LLY','ABBV','MRNA','REGN','CRSP'],
+  'Finance': ['JPM','BAC','GS','V','MA','SOFI','AFRM','SQ','NU'],
+  'Energy': ['XOM','CVX','COP','SLB','PLUG','ENPH','CHPT'],
+  'Consumer': ['WMT','COST','NKE','MCD','DIS','DKNG','CAVA','CELH'],
   'Industrial': ['CAT','HON','GE','UPS'],
-  'Aerospace': ['BA','LMT','RTX','NOC'],
+  'Aerospace': ['BA','LMT','RTX','NOC','RKLB','JOBY','LUNR'],
   'Cannabis': ['TLRY','CGC','ACB'],
   'Crypto': ['COIN','MSTR','MARA','RIOT']
 };

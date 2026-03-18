@@ -153,6 +153,29 @@ export async function getEarningsHistory(symbol) {
       }
     }
 
+    // --- Revenue Growth (from financialsChart quarterly data) ---
+    const quarterlyFinancials = summary?.earnings?.financialsChart?.quarterly || [];
+    let revenueGrowth = null;
+    let epsBeat = result.beatStreak > 0; // most recent quarter beat
+
+    if (quarterlyFinancials.length >= 2) {
+      const mostRecent = quarterlyFinancials[quarterlyFinancials.length - 1];
+      const previous = quarterlyFinancials[quarterlyFinancials.length - 2];
+      const recentRev = mostRecent?.revenue?.raw ?? mostRecent?.revenue;
+      const prevRev = previous?.revenue?.raw ?? previous?.revenue;
+      if (recentRev != null && prevRev != null && prevRev > 0) {
+        revenueGrowth = Math.round(((recentRev - prevRev) / prevRev) * 10000) / 100; // percentage
+      }
+    }
+    result.revenueGrowth = revenueGrowth;
+
+    // --- EPS vs Revenue combined signal ---
+    const revenueGrew = revenueGrowth !== null && revenueGrowth > 0;
+    if (epsBeat && revenueGrew) result.epsVsRevenue = 'both_beat';
+    else if (epsBeat && !revenueGrew) result.epsVsRevenue = 'eps_only';
+    else if (!epsBeat && revenueGrew) result.epsVsRevenue = 'revenue_only';
+    else result.epsVsRevenue = 'both_miss';
+
     // --- Analyst Revision Momentum ---
     // earningsTrend has current quarter and next quarter estimates with revisions
     const trend = summary?.earningsTrend?.trend || [];
@@ -201,7 +224,8 @@ export async function getEarningsHistory(symbol) {
   } catch (err) {
     return {
       beatStreak: 0, avgSurprise: 0, sue: 0, revisionMomentum: 0,
-      quarterCount: 0, recentSurprises: []
+      quarterCount: 0, recentSurprises: [],
+      revenueGrowth: null, epsVsRevenue: 'both_miss'
     };
   }
 }

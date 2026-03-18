@@ -8,25 +8,44 @@ import { calculateScore } from '../services/scorer.js';
 import { checkAvailability } from '../services/brokerAvailability.js';
 import { classifySector, getSectorTrends, SECTOR_REPS } from '../services/sectorAnalysis.js';
 import { saveDailyPicks, getHistoryWithPerformance } from '../services/history.js';
+import { scanPremarketMovers, getShortSqueezeSetups, getBreakoutSetups } from '../services/premarketScanner.js';
 
 const router = express.Router();
 
 const cache = new Map();
 const CACHE_TTL = 5 * 60 * 1000; // 5 min for scored data (was 30 min)
 const PRICE_CACHE_TTL = 60 * 1000; // 1 min for live prices
+const EARNINGS_HIST_CACHE_TTL = 12 * 60 * 60 * 1000; // 12 hours for earnings history (changes quarterly)
+const NEWS_CACHE_TTL = 2 * 60 * 60 * 1000; // 2 hours for news
+const FUNDAMENTALS_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours for fundamentals/catalysts
 
 function getCached(key, ttl) {
   const entry = cache.get(key);
   if (!entry) return null;
-  if (Date.now() - entry.timestamp > (ttl || CACHE_TTL)) {
+  const effectiveTtl = ttl || entry.ttl || CACHE_TTL;
+  if (Date.now() - entry.timestamp > effectiveTtl) {
     cache.delete(key);
     return null;
   }
   return entry.data;
 }
 
-function setCache(key, data) {
-  cache.set(key, { data, timestamp: Date.now() });
+function setCache(key, data, ttl) {
+  cache.set(key, { data, timestamp: Date.now(), ttl: ttl || CACHE_TTL });
+}
+
+// ── Sector Momentum Context ──
+function getSectorContext(sector, allScored) {
+  const sectorStocks = allScored.filter(s => s.sector === sector);
+  if (sectorStocks.length < 2) return null;
+  const avgChange = sectorStocks.reduce((sum, s) => sum + (s.change || 0), 0) / sectorStocks.length;
+  const allNegative = sectorStocks.every(s => (s.change || 0) < -1);
+  return {
+    avgChange: Math.round(avgChange * 100) / 100,
+    stockCount: sectorStocks.length,
+    sectorWeak: avgChange < -2 || allNegative,
+    sectorStrong: avgChange > 2
+  };
 }
 
 // ── Entry Signal Logic (Dynamic ATR-based) ──
@@ -108,7 +127,9 @@ function getEntrySignal(change, hasEarningsToday, history, currentPrice, quote) 
   // Gap fade detection: big gap up (>5%) — watch for pullback entry
   if (totalMovePct > 5 && currentPrice > 0) {
     const gapAmount = currentPrice * (totalMovePct / 100);
-    const pullbackEntry = currentPrice - (gapAmount * 0.3);
+    // Use ATR-based pullback target if ATR was calculated (not default 4), otherwise fall back to 30% of gap
+    const atrDollars = currentPrice * (atrPct / 100);
+    const pullbackEntry = atrPct !== 4 ? currentPrice - (atrDollars * 0.5) : currentPrice - (gapAmount * 0.3);
     return { signal: 'gap_fade', label: 'Gap Fade', reason: `Stock gapped up ${totalMovePct.toFixed(1)}%${preMarketNote} — watch for pullback entry at $${pullbackEntry.toFixed(2)}` };
   }
 
@@ -136,7 +157,11 @@ function getEntrySignal(change, hasEarningsToday, history, currentPrice, quote) 
   if (hasEarningsToday) {
     return { signal: 'enter', label: 'Enter Now', reason: `Only ${effectiveChange >= 0 ? '+' : ''}${effectiveChange.toFixed(1)}% total${preMarketNote} — position before earnings report` };
   }
-  return { signal: 'enter', label: 'Enter Now', reason: `Stock is ${effectiveChange >= 0 ? 'up ' : ''}${effectiveChange >= 0 ? '+' : ''}${effectiveChange.toFixed(1)}% total${preMarketNote} — good entry point` };
+  // Only signal "enter" if there's moderate positive momentum (0-4%), otherwise "watch"
+  if (effectiveChange > 0 && effectiveChange <= 4) {
+    return { signal: 'enter', label: 'Enter Now', reason: `Stock is up +${effectiveChange.toFixed(1)}% total${preMarketNote} — momentum suggests good entry point` };
+  }
+  return { signal: 'watch', label: 'Watch', reason: 'No strong catalyst yet — monitor for entry signal' };
 }
 
 // ── Trade Setup Calculator v2 (Multi-Validated Targets) ──
@@ -575,6 +600,9 @@ async function scoreSymbol(symbol, earningsCalendar, vix = 0) {
     earningsHistory: earningsHistData,
     brokerAvailability: checkAvailability(symbol),
     sector: classifySector(symbol, quoteData?.shortName || ''),
+    shortPercentOfFloat: quoteData?.shortPercentOfFloat || null,
+    shortRatio: quoteData?.shortRatio || null,
+    floatShares: quoteData?.floatShares || null,
     vix
   };
 
@@ -655,6 +683,10 @@ async function scoreSymbol(symbol, earningsCalendar, vix = 0) {
     },
     peadDrift,
     peadDays,
+    // Short interest & float data
+    shortInterest: quoteData?.shortPercentOfFloat ? Math.round(quoteData.shortPercentOfFloat * 10000) / 100 : null,
+    shortRatio: quoteData?.shortRatio || null,
+    floatShares: quoteData?.floatShares || null,
     // Keep raw data for detail routes
     _social: { reddit: stockData.reddit, stocktwits: stockData.stocktwits },
     _news: stockData.news,
@@ -884,6 +916,9 @@ async function scoreSymbols(symbols, earningsCalendar, opts = { light: false, vi
           hasEarningsTomorrow: !!earningsCalendar.find(e => (e.symbol || e.ticker) === symbol && e.isTomorrow),
           catalysts,
           earningsHistory: earningsHistData,
+          shortPercentOfFloat: quoteData?.shortPercentOfFloat || null,
+          shortRatio: quoteData?.shortRatio || null,
+          floatShares: quoteData?.floatShares || null,
           vix: opts.vix || 0
         };
 
@@ -960,6 +995,10 @@ async function scoreSymbols(symbols, earningsCalendar, opts = { light: false, vi
           },
           peadDrift,
           peadDays,
+          // Short interest & float data
+          shortInterest: quoteData?.shortPercentOfFloat ? Math.round(quoteData.shortPercentOfFloat * 10000) / 100 : null,
+          shortRatio: quoteData?.shortRatio || null,
+          floatShares: quoteData?.floatShares || null,
           // Keep raw data for detail routes
           _quote: quoteData,
           _social: { reddit: stockData.reddit, stocktwits: stockData.stocktwits },
@@ -1016,9 +1055,35 @@ router.get('/predictions', async (req, res, next) => {
     majorStocks.forEach(s => symbolSet.add(s));
     // Add trending last (these are often already pumped)
     trendingSymbols.slice(0, 8).forEach(s => symbolSet.add(s));
-    const symbols = Array.from(symbolSet).slice(0, 35);
+    // Add pre-market movers (the stocks most likely to be today's big winners)
+    try {
+      const movers = await scanPremarketMovers(earningsCalendar);
+      const topMovers = movers
+        .filter(m => m.gapPct > 2 && m.volumeRatio > 1.5 && m.price > 2)
+        .slice(0, 10);
+      topMovers.forEach(m => symbolSet.add(m.symbol));
+      if (topMovers.length > 0) {
+        console.log(`[Predictions] Added ${topMovers.length} pre-market movers: ${topMovers.map(m => `${m.symbol}(+${m.gapPct.toFixed(1)}%)`).join(', ')}`);
+      }
+    } catch (err) {
+      console.warn('[Predictions] Pre-market scanner failed, continuing without:', err.message);
+    }
+    const symbols = Array.from(symbolSet).slice(0, 50);
 
     const scored = await scoreSymbols(symbols, earningsCalendar, { vix: marketRegime.vix || 0 });
+
+    // Apply sector momentum context to each stock's score
+    for (const stock of scored) {
+      const ctx = getSectorContext(stock.sector, scored);
+      if (ctx) {
+        stock.sectorContext = ctx;
+        if (ctx.sectorWeak) {
+          stock.score -= 5; // Whole sector is broken — penalize
+        } else if (ctx.sectorStrong) {
+          stock.score += 3; // Sector tailwind — boost
+        }
+      }
+    }
 
     // Dynamic position sizing calculator
     function calcPositionSizing(stock, regime) {
@@ -1451,6 +1516,87 @@ router.get('/history', async (req, res, next) => {
     const history = await getHistoryWithPerformance();
     setCache('history_perf', history);
     res.json(history);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ══════════════════════════════════════════
+// /api/movers — Pre-Market Movers & Big Move Candidates
+// Scans 200+ stocks for unusual activity BEFORE the move happens
+// ══════════════════════════════════════════
+router.get('/movers', async (req, res, next) => {
+  try {
+    const cached = getCached('movers', 3 * 60 * 1000); // 3 min cache
+    if (cached) return res.json(cached);
+
+    console.log('[Movers] Scanning 200+ stocks for pre-market activity...');
+
+    const [earningsCalendar, marketRegime] = await Promise.all([
+      yahooFinance.getEarningsCalendar(),
+      getMarketRegime()
+    ]);
+
+    // 1. Pre-market gap & volume scan
+    const premarketMovers = await scanPremarketMovers(earningsCalendar);
+
+    // 2. Short squeeze candidates (from the movers + wider universe)
+    const squeezeSymbols = premarketMovers
+      .filter(m => m.gapPct > 2 || m.volumeRatio > 3)
+      .map(m => m.symbol)
+      .slice(0, 20);
+    const squeezeCandidates = await getShortSqueezeSetups(squeezeSymbols);
+
+    // 3. Breakout setups (tight consolidation about to explode)
+    // Use major stocks + top movers for breakout detection
+    const breakoutSymbols = [
+      ...premarketMovers.filter(m => Math.abs(m.gapPct) < 3).map(m => m.symbol).slice(0, 15),
+      'AAPL', 'MSFT', 'NVDA', 'TSLA', 'AMD', 'META', 'AMZN', 'GOOGL',
+      'PLTR', 'SOFI', 'RIVN', 'COIN', 'SHOP', 'NET', 'CRWD', 'SNOW'
+    ];
+    const breakouts = await getBreakoutSetups([...new Set(breakoutSymbols)]);
+
+    // 4. Relative strength: find stocks from movers that are UP while market (SPY) is down
+    const spyChange = marketRegime.fiveDayReturn || 0;
+    const relativeStrength = premarketMovers
+      .filter(m => m.gapPct > 1 && spyChange < 0) // stock is up while market is down
+      .map(m => ({
+        ...m,
+        relativeStrengthScore: Math.round((m.gapPct - spyChange) * 10) / 10,
+        signal: 'relative_strength'
+      }))
+      .sort((a, b) => b.relativeStrengthScore - a.relativeStrengthScore)
+      .slice(0, 10);
+
+    const result = {
+      date: new Date().toISOString().split('T')[0],
+      generatedAt: new Date().toISOString(),
+      marketRegime: {
+        regime: marketRegime.regime,
+        spyTrend: marketRegime.spyTrend,
+        vix: marketRegime.vix,
+        vixLevel: marketRegime.vixLevel,
+        fiveDayReturn: marketRegime.fiveDayReturn
+      },
+      // Categorized results
+      premarketMovers: premarketMovers.slice(0, 20),
+      squeezeCandidates: squeezeCandidates.slice(0, 10),
+      breakoutSetups: breakouts.slice(0, 10),
+      relativeStrength,
+      // Summary stats
+      stats: {
+        totalScanned: premarketMovers.length + breakouts.length,
+        gapUps: premarketMovers.filter(m => m.gapPct > 3).length,
+        gapDowns: premarketMovers.filter(m => m.gapPct < -3).length,
+        volumeSpikes: premarketMovers.filter(m => m.volumeRatio > 3).length,
+        squeezeSetups: squeezeCandidates.length,
+        breakoutSetups: breakouts.length
+      }
+    };
+
+    console.log(`[Movers] Done: ${premarketMovers.length} pre-market movers | ${squeezeCandidates.length} squeeze setups | ${breakouts.length} breakouts`);
+    setCache('movers', result, 3 * 60 * 1000);
+    res.json(result);
   } catch (err) {
     next(err);
   }

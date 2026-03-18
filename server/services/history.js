@@ -297,6 +297,30 @@ export async function getHistoryWithPerformance() {
       };
     }
 
+    // --- Hit Rate & Profitability Tracking ---
+    // hitRate: % of trades where P/L was in predicted direction (positive for buys), ignoring magnitude
+    // This avoids "flat" absorbing barely-moved stocks and inflating accuracy
+    const allSettledForStats = pastDays.flatMap(d =>
+      d.categories.flatMap(c => c.picks.filter(p => p.status === 'settled'))
+    );
+
+    const wins = allSettledForStats.filter(p => p.plPercent > 0);
+    const losses = allSettledForStats.filter(p => p.plPercent < 0);
+    const hitRate = allSettledForStats.length > 0
+      ? Math.round((wins.length / allSettledForStats.length) * 100)
+      : null;
+    const avgWinSize = wins.length > 0
+      ? Math.round(wins.reduce((sum, p) => sum + p.plPercent, 0) / wins.length * 100) / 100
+      : null;
+    const avgLossSize = losses.length > 0
+      ? Math.round(losses.reduce((sum, p) => sum + p.plPercent, 0) / losses.length * 100) / 100
+      : null;
+    const totalWinDollars = wins.reduce((sum, p) => sum + p.plPercent, 0);
+    const totalLossDollars = Math.abs(losses.reduce((sum, p) => sum + p.plPercent, 0));
+    const profitFactor = totalLossDollars > 0
+      ? Math.round((totalWinDollars / totalLossDollars) * 100) / 100
+      : wins.length > 0 ? Infinity : null;
+
     return {
       days,
       overall: {
@@ -305,6 +329,10 @@ export async function getHistoryWithPerformance() {
         totalCorrect,
         winRate: overallWinRate,
         avgPl: overallAvgPl,
+        hitRate,
+        avgWinSize,
+        avgLossSize,
+        profitFactor,
         factorAccuracy,
         byConfidence
       }

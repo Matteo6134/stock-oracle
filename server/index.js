@@ -7,7 +7,9 @@ const app = express();
 const PORT = process.env.PORT || 4000;
 
 app.use(cors({
-  origin: true,
+  origin: process.env.ALLOWED_ORIGINS
+    ? process.env.ALLOWED_ORIGINS.split(',')
+    : ['http://localhost:5173', 'http://localhost:4173', 'http://localhost:3000'],
   methods: ['GET', 'POST'],
   credentials: true
 }));
