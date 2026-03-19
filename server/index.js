@@ -8,6 +8,8 @@ import { findTomorrowMovers } from './services/tomorrowMovers.js';
 import { analyzeGem } from './services/tradingDesk.js';
 import { saveGemSnapshot } from './services/gemHistory.js';
 import * as yahooFinance from './services/yahooFinance.js';
+import { scanPennyStocks } from './services/pennyScanner.js';
+import { processSignals, checkExitSignals } from './services/autoTrader.js';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -116,14 +118,18 @@ if (!process.env.VERCEL) {
     if (day < 1 || day > 5 || hour < 8 || hour > 18) return;
 
     try {
-      console.log('[Cron] Running gem scan...');
+      console.log('[Cron] Running gem + penny scan...');
+      const allAnalyzed = [];
+
+      // Scan gems
       const result = await findTomorrowMovers();
       if (result.gems?.length > 0) {
         const gemsWithVerdicts = result.gems.map(gem => {
           const { verdicts, consensus, buyCount, avgConviction } = analyzeGem(gem);
-          return { ...gem, verdicts, consensus, buyCount, avgConviction };
+          return { ...gem, verdicts, consensus, buyCount, avgConviction, source: 'gem' };
         });
         saveGemSnapshot(gemsWithVerdicts).catch(() => {});
+        allAnalyzed.push(...gemsWithVerdicts);
         broadcastSSE({
           type: 'gems_update',
           gemsCount: gemsWithVerdicts.length,
@@ -132,10 +138,57 @@ if (!process.env.VERCEL) {
           })),
           timestamp: new Date().toISOString(),
         });
-        console.log(`[Cron] Gem scan complete: ${gemsWithVerdicts.length} gems found`);
+        console.log(`[Cron] Gem scan: ${gemsWithVerdicts.length} gems found`);
+      }
+
+      // Scan penny stocks and run agents on them too
+      try {
+        const pennyResult = await scanPennyStocks(5);
+        if (pennyResult.stocks?.length > 0) {
+          const penniesWithVerdicts = pennyResult.stocks.map(stock => {
+            const { verdicts, consensus, buyCount, avgConviction } = analyzeGem(stock);
+            return { ...stock, verdicts, consensus, buyCount, avgConviction, source: 'penny' };
+          });
+          // Add penny stocks that aren't already in gems (avoid duplicates)
+          const gemSymbols = new Set(allAnalyzed.map(g => g.symbol));
+          const uniquePennies = penniesWithVerdicts.filter(p => !gemSymbols.has(p.symbol));
+          allAnalyzed.push(...uniquePennies);
+          console.log(`[Cron] Penny scan: ${uniquePennies.length} unique penny setups`);
+        }
+      } catch (err) {
+        console.error('[Cron] Penny scan error:', err.message);
+      }
+
+      // Auto-trader: execute trades for strong consensus picks
+      if (allAnalyzed.length > 0) {
+        const tradeResult = await processSignals(allAnalyzed);
+        if (tradeResult.bought?.length > 0) {
+          broadcastSSE({
+            type: 'auto_trade',
+            trades: tradeResult.bought,
+            timestamp: new Date().toISOString(),
+          });
+        }
       }
     } catch (err) {
       console.error('[Cron] Gem scan error:', err.message);
+    }
+  });
+
+  // ── Auto-trader exit check every 2 minutes during market hours ──
+  cron.schedule('*/2 * * * *', async () => {
+    const now = new Date();
+    const et = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+    const hour = et.getHours();
+    const min = et.getMinutes();
+    const day = et.getDay();
+    const totalMin = hour * 60 + min;
+    if (day < 1 || day > 5 || totalMin < 570 || totalMin >= 960) return;
+
+    try {
+      await checkExitSignals();
+    } catch (err) {
+      console.error('[Cron] Exit signal check error:', err.message);
     }
   });
 

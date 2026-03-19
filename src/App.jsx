@@ -11,7 +11,6 @@ import SectorDetail from './pages/SectorDetail'
 import TrendingPage from './pages/TrendingPage'
 import TomorrowPage from './pages/TomorrowPage'
 import BacktesterPage from './pages/BacktesterPage'
-import PaperTradingPage from './pages/PaperTradingPage'
 import AlpacaTradingPage from './pages/AlpacaTradingPage'
 import MoversPage from './pages/MoversPage'
 import BuyTomorrowPage from './pages/BuyTomorrowPage'
@@ -34,7 +33,6 @@ const navItems = [
   { to: '/trending', icon: TrendingUp, label: 'Trending' },
   { to: '/trading-desk', icon: Users, label: 'Trading Desk' },
   { to: '/trade', icon: DollarSign, label: 'Trade' },
-  { to: '/paper', icon: DollarSign, label: 'Paper Trade (Old)' },
   { to: '/history', icon: HistoryIcon, label: 'History' },
   { to: '/sectors', icon: PieChart, label: 'Sectors' },
 ]
@@ -251,7 +249,6 @@ export default function App() {
             <Route path="/sectors/:sectorName" element={<SectorDetail />} />
             <Route path="/trending" element={<TrendingPage />} />
             <Route path="/trade" element={<AlpacaTradingPage />} />
-            <Route path="/paper" element={<PaperTradingPage />} />
             <Route path="/trading-desk" element={<GemBacktestPage />} />
             <Route path="/history" element={<BacktesterPage />} />
           </Routes>

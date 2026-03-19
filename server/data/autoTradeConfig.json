@@ -1,0 +1,18 @@
+{
+  "enabled": true,
+  "maxBudget": 1000,
+  "strongBuyAmount": 200,
+  "buyAmount": 100,
+  "maxPositions": 5,
+  "maxPerStock": 200,
+  "defaultStopPct": 5,
+  "takeProfitPct": 10,
+  "trailingStopPct": 3,
+  "scanPennies": true,
+  "scanGems": true,
+  "minGemScore": 60,
+  "minConviction": 4,
+  "requireOrderFlow": true,
+  "onlyStrongBuy": true,
+  "maxStockPrice": 5
+}

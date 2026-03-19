@@ -1,0 +1,63 @@
+[
+  {
+    "id": "fa4fc652-f047-4cda-80c4-985735e475c9",
+    "symbol": "DNA",
+    "side": "buy",
+    "amount": 250,
+    "price": 6.84,
+    "consensus": "Buy",
+    "buyCount": 2,
+    "avgConviction": 4,
+    "agents": [
+      "Squeeze Sarah",
+      "Contrarian Carlos"
+    ],
+    "signals": [
+      "short_squeeze_loading",
+      "bb_squeeze",
+      "oversold_bounce",
+      "bullish_options"
+    ],
+    "gemScore": 68,
+    "source": "gem",
+    "orderId": "fd829df2-89d0-4e7c-ae5a-1c73136a70a1",
+    "status": "pending_new",
+    "stopPct": 7.5,
+    "targetPct": 35,
+    "exitPrice": null,
+    "exitReason": null,
+    "pnl": null,
+    "timestamp": "2026-03-19T19:40:17.241Z"
+  },
+  {
+    "id": "8d0c5cad-e287-4b74-a87b-1143e0657f04",
+    "symbol": "FCEL",
+    "side": "buy",
+    "amount": 250,
+    "price": 6.77,
+    "consensus": "Buy",
+    "buyCount": 2,
+    "avgConviction": 3,
+    "agents": [
+      "Squeeze Sarah",
+      "Contrarian Carlos"
+    ],
+    "signals": [
+      "momentum_acceleration",
+      "bb_squeeze",
+      "sector_lag",
+      "bullish_options",
+      "institutions_accumulating"
+    ],
+    "gemScore": 83,
+    "source": "gem",
+    "orderId": "90bd5397-955e-42e7-8f31-b7efd30c07ef",
+    "status": "pending_new",
+    "stopPct": 7.5,
+    "targetPct": 20,
+    "exitPrice": null,
+    "exitReason": null,
+    "pnl": null,
+    "timestamp": "2026-03-19T19:40:17.052Z"
+  }
+]

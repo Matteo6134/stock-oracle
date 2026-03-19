@@ -16,6 +16,7 @@ import { searchStocks } from '../services/yahooFinance.js';
 import { getOrderFlow } from '../services/orderFlow.js';
 import { scanPennyStocks } from '../services/pennyScanner.js';
 import * as alpaca from '../services/alpaca.js';
+import { getAutoTradeConfig, updateAutoTradeConfig, getAutoTradeLog } from '../services/autoTrader.js';
 
 const router = express.Router();
 
@@ -1873,6 +1874,30 @@ router.get('/alpaca/history', async (req, res, next) => {
     console.error('[Alpaca] History error:', err.response?.data?.message || err.message);
     res.status(err.response?.status || 500).json({ error: err.response?.data?.message || err.message });
   }
+});
+
+// ══════════════════════════════════════════
+// Auto-Trading (Agent-driven)
+// ══════════════════════════════════════════
+
+router.get('/auto-trade/config', (req, res) => {
+  res.json(getAutoTradeConfig());
+});
+
+router.post('/auto-trade/config', (req, res) => {
+  const config = updateAutoTradeConfig(req.body);
+  res.json(config);
+});
+
+router.post('/auto-trade/toggle', (req, res) => {
+  const current = getAutoTradeConfig();
+  const config = updateAutoTradeConfig({ enabled: !current.enabled });
+  console.log(`[AutoTrader] ${config.enabled ? 'ENABLED' : 'DISABLED'} by user`);
+  res.json(config);
+});
+
+router.get('/auto-trade/log', (req, res) => {
+  res.json(getAutoTradeLog());
 });
 
 export default router;

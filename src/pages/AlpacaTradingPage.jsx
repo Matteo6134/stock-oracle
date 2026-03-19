@@ -155,7 +155,9 @@ export default function AlpacaTradingPage() {
   const [history, setHistory] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [tab, setTab] = useState('positions') // positions | orders | history
+  const [tab, setTab] = useState('positions') // positions | orders | history | agents
+  const [autoConfig, setAutoConfig] = useState(null)
+  const [agentLog, setAgentLog] = useState([])
 
   // Trade form
   const [tradeSymbol, setTradeSymbol] = useState(searchParams.get('symbol') || '')
@@ -186,6 +188,14 @@ export default function AlpacaTradingPage() {
       setAccount(await accRes.json())
       setPositions(posRes.ok ? await posRes.json() : [])
       setOrders(ordRes.ok ? await ordRes.json() : [])
+
+      // Fetch auto-trade config + log
+      const [cfgRes, logRes] = await Promise.all([
+        fetch(`${API}/api/auto-trade/config`).catch(() => null),
+        fetch(`${API}/api/auto-trade/log`).catch(() => null),
+      ])
+      if (cfgRes?.ok) setAutoConfig(await cfgRes.json())
+      if (logRes?.ok) setAgentLog(await logRes.json())
     } catch (err) {
       setError(err.message)
     } finally {
@@ -249,6 +259,27 @@ export default function AlpacaTradingPage() {
     } finally {
       setSubmitting(false)
     }
+  }
+
+  const handleToggleAutoTrade = async () => {
+    try {
+      const res = await fetch(`${API}/api/auto-trade/toggle`, { method: 'POST' })
+      if (res.ok) {
+        const config = await res.json()
+        setAutoConfig(config)
+      }
+    } catch { /* ignore */ }
+  }
+
+  const handleUpdateConfig = async (updates) => {
+    try {
+      const res = await fetch(`${API}/api/auto-trade/config`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      })
+      if (res.ok) setAutoConfig(await res.json())
+    } catch { /* ignore */ }
   }
 
   const handleCancelOrder = async (orderId) => {
@@ -415,6 +446,7 @@ export default function AlpacaTradingPage() {
         {[
           { key: 'positions', label: `Positions (${positions.length})` },
           { key: 'orders', label: `Orders (${openOrders.length})` },
+          { key: 'agents', label: 'Agents' },
           { key: 'history', label: 'Equity' },
         ].map(t => (
           <button
@@ -469,6 +501,168 @@ export default function AlpacaTradingPage() {
               <div className="space-y-1.5">
                 {recentOrders.map(o => (
                   <OrderCard key={o.id} order={o} onCancel={handleCancelOrder} />
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Agent Auto-Trading */}
+      {tab === 'agents' && autoConfig && (
+        <div className="space-y-3">
+          {/* Toggle */}
+          <div className="glass-card p-3">
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <p className="text-oracle-text text-sm font-bold">Agent Auto-Trading</p>
+                <p className="text-oracle-muted text-[10px]">Agents scan gems + pennies every 5 min and auto-execute trades</p>
+              </div>
+              <button
+                onClick={handleToggleAutoTrade}
+                className={`px-4 py-1.5 rounded-full text-[10px] font-bold transition-all border ${
+                  autoConfig.enabled
+                    ? 'bg-oracle-green/25 text-oracle-green border-oracle-green/50'
+                    : 'bg-white/5 text-oracle-muted border-oracle-border'
+                }`}
+              >
+                {autoConfig.enabled ? 'ON' : 'OFF'}
+              </button>
+            </div>
+
+            {autoConfig.enabled && (
+              <div className="mt-3 pt-3 border-t border-oracle-border space-y-3">
+                {/* Budget */}
+                <div className="p-2 bg-oracle-accent/5 rounded border border-oracle-accent/20">
+                  <p className="text-oracle-accent text-[9px] font-bold mb-1">BUDGET</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <label className="text-oracle-muted text-[8px] block mb-0.5">Max Budget $</label>
+                      <input type="number" value={autoConfig.maxBudget || 1000}
+                        onChange={e => handleUpdateConfig({ maxBudget: parseInt(e.target.value) || 1000 })}
+                        className="w-full bg-white/5 border border-oracle-border rounded px-2 py-1 text-oracle-text text-[11px]" />
+                    </div>
+                    <div>
+                      <label className="text-oracle-muted text-[8px] block mb-0.5">Strong Buy $</label>
+                      <input type="number" value={autoConfig.strongBuyAmount}
+                        onChange={e => handleUpdateConfig({ strongBuyAmount: parseInt(e.target.value) || 200 })}
+                        className="w-full bg-white/5 border border-oracle-border rounded px-2 py-1 text-oracle-text text-[11px]" />
+                    </div>
+                    <div>
+                      <label className="text-oracle-muted text-[8px] block mb-0.5">Max Pos.</label>
+                      <input type="number" value={autoConfig.maxPositions}
+                        onChange={e => handleUpdateConfig({ maxPositions: parseInt(e.target.value) || 5 })}
+                        className="w-full bg-white/5 border border-oracle-border rounded px-2 py-1 text-oracle-text text-[11px]" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Risk Management */}
+                <div className="p-2 bg-oracle-red/5 rounded border border-oracle-red/20">
+                  <p className="text-oracle-red text-[9px] font-bold mb-1">RISK MANAGEMENT</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <label className="text-oracle-muted text-[8px] block mb-0.5">Stop Loss %</label>
+                      <input type="number" value={autoConfig.defaultStopPct}
+                        onChange={e => handleUpdateConfig({ defaultStopPct: parseInt(e.target.value) || 5 })}
+                        className="w-full bg-white/5 border border-oracle-border rounded px-2 py-1 text-oracle-text text-[11px]" />
+                    </div>
+                    <div>
+                      <label className="text-oracle-muted text-[8px] block mb-0.5">Take Profit %</label>
+                      <input type="number" value={autoConfig.takeProfitPct}
+                        onChange={e => handleUpdateConfig({ takeProfitPct: parseInt(e.target.value) || 10 })}
+                        className="w-full bg-white/5 border border-oracle-border rounded px-2 py-1 text-oracle-text text-[11px]" />
+                    </div>
+                    <div>
+                      <label className="text-oracle-muted text-[8px] block mb-0.5">Trail Stop %</label>
+                      <input type="number" value={autoConfig.trailingStopPct || 3}
+                        onChange={e => handleUpdateConfig({ trailingStopPct: parseInt(e.target.value) || 3 })}
+                        className="w-full bg-white/5 border border-oracle-border rounded px-2 py-1 text-oracle-text text-[11px]" />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Quality Filters */}
+                <div className="p-2 bg-oracle-green/5 rounded border border-oracle-green/20">
+                  <p className="text-oracle-green text-[9px] font-bold mb-1">QUALITY FILTERS</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-oracle-muted text-[8px] block mb-0.5">Min Gem Score</label>
+                      <input type="number" value={autoConfig.minGemScore}
+                        onChange={e => handleUpdateConfig({ minGemScore: parseInt(e.target.value) || 60 })}
+                        className="w-full bg-white/5 border border-oracle-border rounded px-2 py-1 text-oracle-text text-[11px]" />
+                    </div>
+                    <div>
+                      <label className="text-oracle-muted text-[8px] block mb-0.5">Min Conviction</label>
+                      <input type="number" value={autoConfig.minConviction}
+                        onChange={e => handleUpdateConfig({ minConviction: parseInt(e.target.value) || 4 })}
+                        className="w-full bg-white/5 border border-oracle-border rounded px-2 py-1 text-oracle-text text-[11px]" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    <div>
+                      <label className="text-oracle-muted text-[8px] block mb-0.5">Max Stock Price $</label>
+                      <input type="number" value={autoConfig.maxStockPrice || 5}
+                        onChange={e => handleUpdateConfig({ maxStockPrice: parseFloat(e.target.value) || 5 })}
+                        className="w-full bg-white/5 border border-oracle-border rounded px-2 py-1 text-oracle-text text-[11px]" />
+                    </div>
+                  </div>
+                  <div className="flex gap-3 mt-2">
+                    <label className="flex items-center gap-1 text-[9px] text-oracle-muted cursor-pointer">
+                      <input type="checkbox" checked={autoConfig.onlyStrongBuy !== false}
+                        onChange={e => handleUpdateConfig({ onlyStrongBuy: e.target.checked })}
+                        className="rounded" />
+                      Strong Buy only
+                    </label>
+                    <label className="flex items-center gap-1 text-[9px] text-oracle-muted cursor-pointer">
+                      <input type="checkbox" checked={autoConfig.requireOrderFlow !== false}
+                        onChange={e => handleUpdateConfig({ requireOrderFlow: e.target.checked })}
+                        className="rounded" />
+                      Require order flow
+                    </label>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Agent Trade Log */}
+          <div className="glass-card p-3">
+            <p className="text-oracle-muted text-[10px] font-semibold mb-2">AGENT TRADE LOG</p>
+            {agentLog.length === 0 ? (
+              <div className="py-6 text-center">
+                <Clock size={24} className="text-oracle-muted/30 mx-auto mb-1" />
+                <p className="text-oracle-muted text-xs">No agent trades yet</p>
+                <p className="text-oracle-muted text-[10px] mt-1">{autoConfig.enabled ? 'Agents will trade on next scan cycle (every 5 min)' : 'Toggle auto-trading ON to start'}</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {agentLog.slice(0, 20).map(trade => (
+                  <div key={trade.id} className="p-2 bg-white/[0.02] rounded border border-oracle-border">
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-oracle-text font-bold text-xs">{trade.symbol}</span>
+                        <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded ${trade.side === 'buy' ? 'bg-oracle-green/15 text-oracle-green' : 'bg-oracle-red/15 text-oracle-red'}`}>
+                          {trade.side.toUpperCase()}
+                        </span>
+                        <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded ${
+                          trade.consensus === 'Strong Buy' ? 'bg-oracle-green/15 text-oracle-green' : 'bg-oracle-accent/15 text-oracle-accent'
+                        }`}>
+                          {trade.consensus}
+                        </span>
+                      </div>
+                      <span className="text-oracle-muted text-[9px]">{formatMoney(trade.amount)}</span>
+                    </div>
+                    <div className="text-[9px] text-oracle-muted">
+                      {trade.agents?.join(', ')} · Score {trade.gemScore} · {trade.source}
+                    </div>
+                    {trade.pnl != null && (
+                      <div className={`text-[9px] font-semibold mt-1 ${trade.pnl >= 0 ? 'text-oracle-green' : 'text-oracle-red'}`}>
+                        {trade.exitReason} → {formatMoney(trade.pnl)}
+                      </div>
+                    )}
+                    <div className="text-[8px] text-oracle-muted/60 mt-0.5">{new Date(trade.timestamp).toLocaleString()}</div>
+                  </div>
                 ))}
               </div>
             )}
