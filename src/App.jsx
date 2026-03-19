@@ -20,6 +20,7 @@ import packageJson from '../package.json'
 import { isNotificationSupported, isNotificationEnabled, requestNotificationPermission, disableNotifications } from './lib/notifications'
 import { checkSmartAlerts } from './lib/tradeAlerts'
 import { checkWishlistAlerts } from './lib/wishlistAlerts'
+import { useSSE } from './hooks/useSSE'
 
 const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Home' },
@@ -42,6 +43,7 @@ export default function App() {
   const isDetailPage = detailPatterns.some(p => matchPath(p, location.pathname))
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [notifEnabled, setNotifEnabled] = useState(isNotificationEnabled())
+  const { connected: sseConnected, gemsAlert, moversAlert } = useSSE()
 
   // Close sidebar on route change
   useEffect(() => {
@@ -220,7 +222,13 @@ export default function App() {
             </button>
           )}
           <div className="text-oracle-muted text-[10px] uppercase font-bold">AI-Powered Predictions</div>
-          <div className="text-oracle-muted/50 text-[9px]">v{packageJson.version}</div>
+          <div className="flex items-center gap-2">
+            <div className="text-oracle-muted/50 text-[9px]">v{packageJson.version}</div>
+            <div className={`flex items-center gap-1 text-[9px] ${sseConnected ? 'text-oracle-green' : 'text-oracle-muted/40'}`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${sseConnected ? 'bg-oracle-green animate-pulse' : 'bg-oracle-muted/30'}`} />
+              {sseConnected ? 'LIVE' : 'OFFLINE'}
+            </div>
+          </div>
         </div>
       </nav>
 
