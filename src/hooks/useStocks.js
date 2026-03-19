@@ -17,7 +17,7 @@ function mergePrices(stocks, prices) {
   })
 }
 
-// ── Hook: Live price refresh every 60s ──
+// ── Hook: Live price refresh every 15s ──
 function useLivePrices(stocks, enabled = true) {
   const [liveStocks, setLiveStocks] = useState(stocks)
   const [lastUpdated, setLastUpdated] = useState(null)
@@ -51,7 +51,7 @@ function useLivePrices(stocks, enabled = true) {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         refresh(); // Refresh immediately when coming back to tab
-        intervalId = setInterval(refresh, 60000);
+        intervalId = setInterval(refresh, 15000);
       } else {
         if (intervalId) clearInterval(intervalId);
       }
@@ -135,9 +135,19 @@ export function useTomorrow() {
   return { stocks: liveStocks, tomorrowDate, loading, error, refresh: fetchTomorrow, lastUpdated }
 }
 
+// ── Client-side cache for instant stock detail revisits ──
+const stockCache = new Map()
+const STOCK_CACHE_TTL = 3 * 60 * 1000 // 3 min client cache
+
 export function useStockDetail(symbol) {
-  const [stock, setStock] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [stock, setStock] = useState(() => {
+    const c = symbol ? stockCache.get(symbol) : null
+    return (c && Date.now() - c.ts < STOCK_CACHE_TTL) ? c.data : null
+  })
+  const [loading, setLoading] = useState(() => {
+    const c = symbol ? stockCache.get(symbol) : null
+    return !(c && Date.now() - c.ts < STOCK_CACHE_TTL)
+  })
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState(null)
   const [lastUpdated, setLastUpdated] = useState(null)
@@ -156,6 +166,7 @@ export function useStockDetail(symbol) {
       const data = await res.json()
       setStock(data)
       setLastUpdated(new Date())
+      stockCache.set(symbol, { data, ts: Date.now() })
     } catch (err) {
       setError(err.message || 'Failed to fetch stock details')
     } finally {
@@ -165,13 +176,21 @@ export function useStockDetail(symbol) {
   }, [symbol])
 
   useEffect(() => {
-    fetchStock(false)
-    // Auto-refresh every 30 seconds (silent update)
+    const c = symbol ? stockCache.get(symbol) : null
+    const hasFresh = c && Date.now() - c.ts < STOCK_CACHE_TTL
+    // If cached, show instantly and refresh silently in background
+    if (hasFresh) {
+      setStock(c.data)
+      setLoading(false)
+      fetchStock(true)
+    } else {
+      fetchStock(false)
+    }
     const interval = setInterval(() => {
       if (document.visibilityState === 'visible') fetchStock(true)
     }, 30000)
     return () => clearInterval(interval)
-  }, [fetchStock])
+  }, [fetchStock, symbol])
 
   return { stock, loading, refreshing, error, refresh: () => fetchStock(true), lastUpdated }
 }

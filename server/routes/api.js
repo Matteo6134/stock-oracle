@@ -1283,6 +1283,30 @@ router.get('/tomorrow', async (req, res, next) => {
 });
 
 // ══════════════════════════════════════════
+// /api/quote/:symbol — Fast price-only quote (< 500ms)
+// ══════════════════════════════════════════
+router.get('/quote/:symbol', async (req, res, next) => {
+  try {
+    const symbol = req.params.symbol.toUpperCase();
+    const quotes = await yahooFinance.getQuoteBatch([symbol]);
+    const q = quotes[0];
+    if (!q) return res.status(404).json({ error: 'Symbol not found' });
+    res.json({
+      symbol: q.symbol,
+      price: q.regularMarketPrice,
+      change: q.regularMarketChangePercent,
+      volume: q.regularMarketVolume,
+      marketCap: q.marketCap,
+      name: q.shortName || q.longName || symbol,
+      preMarketPrice: q.preMarketPrice,
+      preMarketChange: q.preMarketChangePercent,
+      fiftyTwoWeekHigh: q.fiftyTwoWeekHigh,
+      fiftyTwoWeekLow: q.fiftyTwoWeekLow,
+    });
+  } catch (err) { next(err); }
+});
+
+// ══════════════════════════════════════════
 // /api/stock/:symbol — Detailed stock view
 // ══════════════════════════════════════════
 router.get('/stock/:symbol', async (req, res, next) => {
