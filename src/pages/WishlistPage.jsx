@@ -115,8 +115,26 @@ function WishlistCard({ stock, onRemove }) {
       )}
       {stock.squeezeSetup && !stock.tomorrowSetup && (
         <div className="glass-inner rounded-lg p-2 mb-2">
+          <div className="flex items-center gap-1.5 mb-1">
+            <span className="text-oracle-red text-[10px] font-bold">Squeeze Loading</span>
+          </div>
           <p className="text-[10px] text-oracle-muted leading-relaxed">
-            Short interest {(stock.squeezeSetup.shortPercentOfFloat ?? 0).toFixed(1)}% · {(stock.squeezeSetup.shortRatio ?? stock.squeezeSetup.daysToCover ?? 0).toFixed(1)}d to cover
+            {(stock.squeezeSetup.shortPercentOfFloat ?? 0) > 0
+              ? `${(stock.squeezeSetup.shortPercentOfFloat).toFixed(1)}% of shares are sold short`
+              : 'Short interest data pending'}
+            {' · '}
+            {(stock.squeezeSetup.shortRatio ?? stock.squeezeSetup.daysToCover ?? 0) > 0
+              ? `${(stock.squeezeSetup.shortRatio ?? stock.squeezeSetup.daysToCover).toFixed(1)} days to cover`
+              : ''}
+          </p>
+          <p className="text-[9px] text-oracle-yellow/70 mt-1 leading-relaxed">
+            {(stock.squeezeSetup.shortPercentOfFloat ?? 0) >= 30
+              ? 'Extreme SI — if this stock moves up, shorts will be forced to buy (covering), creating an explosive chain reaction.'
+              : (stock.squeezeSetup.shortPercentOfFloat ?? 0) >= 20
+                ? 'High SI — many traders are betting against this stock. A positive catalyst could trigger a short squeeze.'
+                : (stock.squeezeSetup.shortPercentOfFloat ?? 0) >= 10
+                  ? 'Elevated SI — shorts are building. Watch for volume spikes as a squeeze trigger.'
+                  : 'SI data from Yahoo Finance — updated weekly. Days-to-cover shows how long shorts need to exit.'}
           </p>
         </div>
       )}

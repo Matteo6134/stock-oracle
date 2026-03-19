@@ -20,7 +20,7 @@ const cache = new Map();
 const CACHE_TTL = 5 * 60 * 1000; // 5 min for scored data (was 30 min)
 const PRICE_CACHE_TTL = 60 * 1000; // 1 min for live prices
 const EARNINGS_HIST_CACHE_TTL = 12 * 60 * 60 * 1000; // 12 hours for earnings history (changes quarterly)
-const NEWS_CACHE_TTL = 2 * 60 * 60 * 1000; // 2 hours for news
+const NEWS_CACHE_TTL = 15 * 60 * 1000; // 15 minutes for news — keep it fresh
 const FUNDAMENTALS_CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours for fundamentals/catalysts
 
 function getCached(key, ttl) {
@@ -1322,17 +1322,7 @@ router.get('/stock/:symbol', async (req, res, next) => {
   }
 });
 
-// ══════════════════════════════════════════════════════
-// /api/history — Historical performance of predictions
-// ══════════════════════════════════════════════════════
-router.get('/history', async (req, res, next) => {
-  try {
-    const history = await getHistoryWithPerformance();
-    res.json(history);
-  } catch (err) {
-    next(err);
-  }
-});
+// (Duplicate /history route removed — cached version at line ~1519 handles this)
 
 // ══════════════════════════════════════════
 // /api/sectors — Sector heatmap overview

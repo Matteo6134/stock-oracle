@@ -54,7 +54,13 @@ function NewsCard({ article }) {
         )}
         {article.publishedAt && (
           <span className="text-oracle-muted text-xs">
-            {new Date(article.publishedAt).toLocaleDateString()}
+            {(() => {
+              const d = new Date(article.publishedAt)
+              const diff = Date.now() - d.getTime()
+              if (diff < 3600000) return `${Math.round(diff / 60000)}m ago`
+              if (diff < 86400000) return `${Math.round(diff / 3600000)}h ago`
+              return `${Math.round(diff / 86400000)}d ago`
+            })()}
           </span>
         )}
       </div>
