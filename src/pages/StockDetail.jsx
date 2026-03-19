@@ -1,5 +1,5 @@
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, TrendingUp, TrendingDown, AlertCircle, Newspaper, MessageCircle, Activity, RefreshCw, Calendar, Target, Zap, CircleCheck, AlertTriangle, XCircle } from 'lucide-react'
+import { ArrowLeft, TrendingUp, TrendingDown, AlertCircle, Newspaper, MessageCircle, Activity, RefreshCw, Calendar, Target, Zap, CircleCheck, AlertTriangle, XCircle, Clock } from 'lucide-react'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
 import ScoreCircle from '../components/ScoreCircle'
 import ScoreBar from '../components/ScoreBar'
@@ -39,7 +39,7 @@ function TimeAgo({ date }) {
 export default function StockDetail() {
   const { symbol } = useParams()
   const navigate = useNavigate()
-  const { stock, loading, error, refresh } = useStockDetail(symbol)
+  const { stock, loading, refreshing, error, refresh, lastUpdated } = useStockDetail(symbol)
 
   if (loading) {
     return (
@@ -141,14 +141,30 @@ export default function StockDetail() {
 
   return (
     <div className="max-w-lg mx-auto px-4 pt-2 pb-6">
-      {/* Back button */}
-      <div className="flex items-center gap-2 mb-2">
+      {/* Back button + refresh */}
+      <div className="flex items-center justify-between mb-2">
         <button
           onClick={() => navigate(-1)}
           className="flex items-center gap-1 text-oracle-muted text-sm hover:text-oracle-text transition-colors"
         >
           <ArrowLeft size={16} /> Back
         </button>
+        <div className="flex items-center gap-2">
+          {lastUpdated && (
+            <span className="text-oracle-muted/50 text-[9px] flex items-center gap-1">
+              <Clock size={8} />
+              {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </span>
+          )}
+          <button
+            onClick={refresh}
+            disabled={refreshing}
+            className="p-2 glass-card text-oracle-muted hover:text-oracle-accent hover:border-oracle-accent/50 transition-all active:scale-95 disabled:opacity-50"
+            aria-label="Refresh"
+          >
+            <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
+          </button>
+        </div>
       </div>
 
       {/* Stock Navigation Bar — switch between picks */}

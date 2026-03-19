@@ -10,6 +10,7 @@ import { classifySector, getSectorTrends, SECTOR_REPS } from '../services/sector
 import { saveDailyPicks, getHistoryWithPerformance } from '../services/history.js';
 import { scanPremarketMovers, getShortSqueezeSetups, getBreakoutSetups } from '../services/premarketScanner.js';
 import { findTomorrowMovers } from '../services/tomorrowMovers.js';
+import { searchStocks } from '../services/yahooFinance.js';
 
 const router = express.Router();
 
@@ -1598,6 +1599,101 @@ router.get('/movers', async (req, res, next) => {
     console.log(`[Movers] Done: ${premarketMovers.length} pre-market movers | ${squeezeCandidates.length} squeeze setups | ${breakouts.length} breakouts`);
     setCache('movers', result, 3 * 60 * 1000);
     res.json(result);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ── Stock Search ──────────────────────────────────────
+router.get('/search', async (req, res, next) => {
+  const { q } = req.query;
+  if (!q || q.trim().length < 1) return res.json({ results: [] });
+  try {
+    const cacheKey = `search_${q.toLowerCase().trim()}`;
+    const cached = getCached(cacheKey, 5 * 60 * 1000);
+    if (cached) return res.json(cached);
+    const results = await searchStocks(q.trim());
+    const response = { results };
+    setCache(cacheKey, response, 5 * 60 * 1000);
+    res.json(response);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ── Wishlist Analyze ───────────────────────────────────
+// Analyze user's custom watchlist stocks: live prices + alerts
+router.post('/wishlist-analyze', async (req, res, next) => {
+  const { symbols } = req.body || {};
+  if (!symbols || !Array.isArray(symbols) || symbols.length === 0) {
+    return res.json({ stocks: [] });
+  }
+  try {
+    const clean = [...new Set(symbols.slice(0, 30).map(s => String(s).toUpperCase().trim()))];
+    const cacheKey = `wishlist_${clean.sort().join(',')}`;
+    const cached = getCached(cacheKey, 2 * 60 * 1000);
+    if (cached) return res.json(cached);
+
+    // Fetch quotes + tomorrow movers + squeeze data in parallel
+    const [quotes, tomorrowData, squeezeData] = await Promise.allSettled([
+      yahooFinance.getQuoteBatch(clean),
+      findTomorrowMovers(),
+      getShortSqueezeSetups(clean),
+    ]);
+
+    const quotesMap = quotes.status === 'fulfilled' ? quotes.value : {};
+    const tomorrow = tomorrowData.status === 'fulfilled' ? tomorrowData.value : null;
+    const squeeze = squeezeData.status === 'fulfilled' ? squeezeData.value : [];
+
+    // Build sets for fast lookup
+    const allTomorrowStocks = [
+      ...(tomorrow?.topPicks || []),
+      ...(tomorrow?.accumulation || []),
+      ...(tomorrow?.coiledSprings || []),
+      ...(tomorrow?.earlyRunners || []),
+      ...(tomorrow?.bounces || []),
+    ];
+    const buyTodaySet = new Set(
+      allTomorrowStocks
+        .filter(s => s.timing === 'buy_today' || s.timing === 'buy_today_or_tomorrow')
+        .map(s => s.symbol)
+    );
+    const watchSet = new Set(allTomorrowStocks.map(s => s.symbol));
+    const squeezeSet = new Set(squeeze.map(s => s.symbol));
+
+    const stocks = clean.map(sym => {
+      const q = quotesMap[sym] || {};
+      const tomorrowEntry = allTomorrowStocks.find(s => s.symbol === sym) || null;
+      const squeezeEntry = squeeze.find(s => s.symbol === sym) || null;
+
+      const alerts = [];
+      if (buyTodaySet.has(sym)) {
+        alerts.push({ type: 'buy_today', label: 'BUY TODAY', color: 'green' });
+      } else if (watchSet.has(sym)) {
+        alerts.push({ type: 'watch', label: 'WATCH SETUP', color: 'accent' });
+      }
+      if (squeezeSet.has(sym)) {
+        alerts.push({ type: 'squeeze', label: 'SQUEEZE LOADING', color: 'orange' });
+      }
+
+      return {
+        symbol: sym,
+        companyName: q.longName || q.shortName || sym,
+        price: q.regularMarketPrice || 0,
+        change: q.regularMarketChange || 0,
+        changePct: q.regularMarketChangePercent != null ? +q.regularMarketChangePercent.toFixed(2) : 0,
+        volume: q.regularMarketVolume || 0,
+        marketCap: q.marketCap || 0,
+        alerts,
+        tomorrowSetup: tomorrowEntry,
+        squeezeSetup: squeezeEntry,
+        hasAlert: alerts.length > 0,
+      };
+    });
+
+    const response = { stocks, analyzedAt: new Date().toISOString() };
+    setCache(cacheKey, response, 2 * 60 * 1000);
+    res.json(response);
   } catch (err) {
     next(err);
   }

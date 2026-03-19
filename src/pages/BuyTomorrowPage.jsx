@@ -436,15 +436,22 @@ export default function BuyTomorrowPage() {
         </div>
       )}
 
-      {/* Footer tip */}
+      {/* Footer legend */}
       {!loading && activeList.length > 0 && (
-        <div className="mt-4 p-3 glass-inner rounded-xl">
-          <p className="text-oracle-muted text-[10px] text-center leading-relaxed">
-            <span className="text-oracle-green font-bold">BUY TODAY</span> = act now  ·
-            <span className="text-oracle-accent font-bold">BUY TODAY/TOMORROW</span> = flexible timing  ·
-            <span className="text-oracle-yellow font-bold">WATCH</span> = wait for breakout  ·
-            Tap any stock for full analysis
-          </p>
+        <div className="mt-4 p-3 glass-inner rounded-xl space-y-1.5">
+          <div className="flex items-center gap-2">
+            <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-oracle-green/20 text-oracle-green border border-oracle-green/40">BUY TODAY</span>
+            <span className="text-oracle-muted text-[10px]">act now during market hours</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-oracle-accent/20 text-oracle-accent border border-oracle-accent/40">BUY TODAY/TOMORROW</span>
+            <span className="text-oracle-muted text-[10px]">flexible timing, both days work</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-oracle-yellow/20 text-oracle-yellow border border-oracle-yellow/40">WATCH FOR BREAKOUT</span>
+            <span className="text-oracle-muted text-[10px]">wait for breakout confirmation first</span>
+          </div>
+          <p className="text-oracle-muted/50 text-[9px] text-center pt-0.5">Tap any stock for full analysis</p>
         </div>
       )}
     </div>

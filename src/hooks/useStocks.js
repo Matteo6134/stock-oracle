@@ -138,29 +138,42 @@ export function useTomorrow() {
 export function useStockDetail(symbol) {
   const [stock, setStock] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState(null)
+  const [lastUpdated, setLastUpdated] = useState(null)
 
-  const fetchStock = useCallback(async () => {
+  const fetchStock = useCallback(async (silent = false) => {
     if (!symbol) return
-    setLoading(true)
+    if (silent) {
+      setRefreshing(true)
+    } else {
+      setLoading(true)
+    }
     setError(null)
     try {
       const res = await fetch(`/api/stock/${symbol}`)
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data = await res.json()
       setStock(data)
+      setLastUpdated(new Date())
     } catch (err) {
       setError(err.message || 'Failed to fetch stock details')
     } finally {
       setLoading(false)
+      setRefreshing(false)
     }
   }, [symbol])
 
   useEffect(() => {
-    fetchStock()
+    fetchStock(false)
+    // Auto-refresh every 30 seconds (silent update)
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') fetchStock(true)
+    }, 30000)
+    return () => clearInterval(interval)
   }, [fetchStock])
 
-  return { stock, loading, error, refresh: fetchStock }
+  return { stock, loading, refreshing, error, refresh: () => fetchStock(true), lastUpdated }
 }
 
 export function useSectors() {

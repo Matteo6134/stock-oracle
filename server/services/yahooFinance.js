@@ -416,3 +416,25 @@ export async function getDailyGainers() {
     return [];
   }
 }
+
+export async function searchStocks(query) {
+  try {
+    const results = await yf.search(query, {
+      quotesCount: 8,
+      newsCount: 0,
+      enableFuzzyQuery: false,
+      enableCb: false,
+    });
+    return (results.quotes || [])
+      .filter(q => q.quoteType === 'EQUITY' && q.symbol && !q.symbol.includes('.'))
+      .slice(0, 8)
+      .map(q => ({
+        symbol: q.symbol,
+        name: q.shortname || q.longname || q.symbol,
+        exchange: q.exchDisp || q.exchange || '',
+      }));
+  } catch (err) {
+    console.error('[YahooFinance] Search error:', err.message);
+    return [];
+  }
+}

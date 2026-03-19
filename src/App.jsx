@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Routes, Route, NavLink, useLocation, matchPath } from 'react-router-dom'
-import { LayoutDashboard, TrendingUp, PieChart, CalendarDays, History as HistoryIcon, DollarSign, Zap, Crosshair, Menu, X } from 'lucide-react'
+import { LayoutDashboard, TrendingUp, PieChart, CalendarDays, History as HistoryIcon, DollarSign, Zap, Crosshair, Menu, X, Bookmark } from 'lucide-react'
 import ErrorBoundary from './components/ErrorBoundary'
 import { ToastProvider } from './components/Toast'
 import LandscapeSplit from './components/LandscapeSplit'
@@ -14,13 +14,16 @@ import BacktesterPage from './pages/BacktesterPage'
 import PaperTradingPage from './pages/PaperTradingPage'
 import MoversPage from './pages/MoversPage'
 import BuyTomorrowPage from './pages/BuyTomorrowPage'
+import WishlistPage from './pages/WishlistPage'
 import packageJson from '../package.json'
 import { isNotificationSupported, isNotificationEnabled, requestNotificationPermission, disableNotifications } from './lib/notifications'
 import { checkSmartAlerts } from './lib/tradeAlerts'
+import { checkWishlistAlerts } from './lib/wishlistAlerts'
 
 const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Home' },
   { to: '/buy-tomorrow', icon: Crosshair, label: 'Buy Tomorrow' },
+  { to: '/wishlist', icon: Bookmark, label: 'My Watchlist' },
   { to: '/movers', icon: Zap, label: 'Movers' },
   { to: '/tomorrow', icon: CalendarDays, label: 'Tomorrow' },
   { to: '/trending', icon: TrendingUp, label: 'Trending' },
@@ -88,6 +91,34 @@ export default function App() {
     runAlertCheck()
     const interval = setInterval(runAlertCheck, 5 * 60 * 1000)
     return () => clearInterval(interval)
+  }, [notifEnabled])
+
+  // ── Wishlist Alert Monitor ──
+  // Checks wishlist stocks every 10 minutes for buy setups / squeezes
+  useEffect(() => {
+    if (!notifEnabled) return
+
+    const runWishlistCheck = async () => {
+      try {
+        const day = new Date().getDay()
+        if (day === 0 || day === 6) return // weekdays only
+        await checkWishlistAlerts()
+      } catch {
+        // Silent
+      }
+    }
+
+    let intervalId = null
+    // Delay first check by 30s to avoid hammering on load
+    const delay = setTimeout(() => {
+      runWishlistCheck()
+      intervalId = setInterval(runWishlistCheck, 10 * 60 * 1000)
+    }, 30000)
+
+    return () => {
+      clearTimeout(delay)
+      if (intervalId) clearInterval(intervalId)
+    }
   }, [notifEnabled])
 
   const toggleNotifications = useCallback(async () => {
@@ -197,6 +228,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/buy-tomorrow" element={<BuyTomorrowPage />} />
+            <Route path="/wishlist" element={<WishlistPage />} />
             <Route path="/movers" element={<MoversPage />} />
             <Route path="/stock/:symbol" element={<StockDetail />} />
             <Route path="/tomorrow" element={<TomorrowPage />} />
