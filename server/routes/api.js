@@ -10,6 +10,8 @@ import { classifySector, getSectorTrends, SECTOR_REPS } from '../services/sector
 import { saveDailyPicks, getHistoryWithPerformance } from '../services/history.js';
 import { scanPremarketMovers, getShortSqueezeSetups, getBreakoutSetups } from '../services/premarketScanner.js';
 import { findTomorrowMovers } from '../services/tomorrowMovers.js';
+import { analyzeGem, getAgentProfiles } from '../services/tradingDesk.js';
+import { saveGemSnapshot, getGemBacktestData } from '../services/gemHistory.js';
 import { searchStocks } from '../services/yahooFinance.js';
 
 const router = express.Router();
@@ -1713,12 +1715,39 @@ router.get('/tomorrow-movers', async (req, res, next) => {
 
     console.log('[TomorrowMovers] Scanning for setups...');
     const result = await findTomorrowMovers();
+
+    // Run AI Trading Desk on each gem
+    if (result.gems?.length > 0) {
+      result.gems = result.gems.map(gem => {
+        const { verdicts, consensus, buyCount, avgConviction } = analyzeGem(gem);
+        return { ...gem, verdicts, consensus, buyCount, avgConviction };
+      });
+      // Save snapshot (fire-and-forget)
+      saveGemSnapshot(result.gems).catch(err => console.error('[GemHistory] Save error:', err.message));
+    }
+
     setCache('tomorrow-movers', result, 10 * 60 * 1000);
     console.log(`[TomorrowMovers] Found ${result.stats.setupsFound} setups (${result.stats.highConviction} high conviction)`);
     res.json(result);
   } catch (err) {
     next(err);
   }
+});
+
+// ── Gem Backtest — AI Trading Desk Results ──
+router.get('/gem-backtest', async (req, res, next) => {
+  try {
+    const cached = getCached('gem_backtest', 5 * 60 * 1000);
+    if (cached) return res.json(cached);
+    const data = await getGemBacktestData();
+    setCache('gem_backtest', data, 5 * 60 * 1000);
+    res.json(data);
+  } catch (err) { next(err); }
+});
+
+// ── Agent Profiles ──
+router.get('/agent-profiles', (req, res) => {
+  res.json(getAgentProfiles());
 });
 
 export default router;

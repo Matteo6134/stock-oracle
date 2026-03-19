@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Routes, Route, NavLink, useLocation, matchPath } from 'react-router-dom'
-import { LayoutDashboard, TrendingUp, PieChart, CalendarDays, History as HistoryIcon, DollarSign, Zap, Crosshair, Menu, X, Bookmark, Diamond } from 'lucide-react'
+import { LayoutDashboard, TrendingUp, PieChart, CalendarDays, History as HistoryIcon, DollarSign, Zap, Crosshair, Menu, X, Bookmark, Diamond, Users } from 'lucide-react'
 import ErrorBoundary from './components/ErrorBoundary'
 import { ToastProvider } from './components/Toast'
 import LandscapeSplit from './components/LandscapeSplit'
@@ -15,6 +15,7 @@ import PaperTradingPage from './pages/PaperTradingPage'
 import MoversPage from './pages/MoversPage'
 import BuyTomorrowPage from './pages/BuyTomorrowPage'
 import WishlistPage from './pages/WishlistPage'
+import GemBacktestPage from './pages/GemBacktestPage'
 import packageJson from '../package.json'
 import { isNotificationSupported, isNotificationEnabled, requestNotificationPermission, disableNotifications } from './lib/notifications'
 import { checkSmartAlerts } from './lib/tradeAlerts'
@@ -27,6 +28,7 @@ const navItems = [
   { to: '/wishlist', icon: Bookmark, label: 'My Watchlist' },
   { to: '/movers', icon: Zap, label: 'Movers' },
   { to: '/trending', icon: TrendingUp, label: 'Trending' },
+  { to: '/trading-desk', icon: Users, label: 'Trading Desk' },
   { to: '/paper', icon: DollarSign, label: 'Paper Trade' },
   { to: '/history', icon: HistoryIcon, label: 'History' },
   { to: '/sectors', icon: PieChart, label: 'Sectors' },
@@ -236,6 +238,7 @@ export default function App() {
             <Route path="/sectors/:sectorName" element={<SectorDetail />} />
             <Route path="/trending" element={<TrendingPage />} />
             <Route path="/paper" element={<PaperTradingPage />} />
+            <Route path="/trading-desk" element={<GemBacktestPage />} />
             <Route path="/history" element={<BacktesterPage />} />
           </Routes>
         </ErrorBoundary>
