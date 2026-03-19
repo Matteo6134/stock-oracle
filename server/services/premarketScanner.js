@@ -220,10 +220,12 @@ export async function scanPremarketMovers(earningsCalendar = []) {
         // assume it COULD have positive history (caller can refine)
         const hasPositiveEarningsHistory = earningsSymbolSet.has(symbol);
 
-        // Only include if there is a meaningful signal
+        // Only include if there is a meaningful signal — 5%+ gap or extreme volume
         const absGap = Math.abs(gapPct);
-        const hasSignal = absGap > 2 || volumeRatio > 2;
+        const hasSignal = absGap >= 5 || (volumeRatio > 3 && absGap > 2);
         if (!hasSignal) continue;
+        // Min price $5 to skip penny stocks
+        if (currentPrice < 5) continue;
 
         const entry = {
           symbol,

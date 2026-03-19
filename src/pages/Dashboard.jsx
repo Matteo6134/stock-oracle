@@ -28,15 +28,19 @@ export default function Dashboard() {
 
   const regime = marketRegime?.regime ? regimeConfig[marketRegime.regime] || regimeConfig.neutral : null
 
-  // Filter stocks by search
+  // Filter stocks: only show 10%+ potential gain, then by search
+  const gainFiltered = stocks.filter(s => {
+    const gain = s.tradeSetup?.potentialGain
+    return gain == null || gain >= 10 // keep if no data or 10%+
+  })
   const filteredStocks = searchQuery.trim()
-    ? stocks.filter(s => {
+    ? gainFiltered.filter(s => {
         const q = searchQuery.toLowerCase()
         return s.symbol?.toLowerCase().includes(q) ||
                (s.companyName || s.name || '').toLowerCase().includes(q) ||
                (s.sector || '').toLowerCase().includes(q)
       })
-    : stocks
+    : gainFiltered
 
   return (
     <div className="max-w-lg mx-auto">
@@ -67,7 +71,7 @@ export default function Dashboard() {
       )}
 
       {/* Search bar */}
-      {!loading && stocks.length > 0 && (
+      {!loading && filteredStocks.length > 0 && (
         <div className="mx-4 mb-2">
           <div className="relative">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-oracle-muted" />
@@ -95,9 +99,9 @@ export default function Dashboard() {
       <div className="px-4 py-3 flex items-center gap-2">
         <BarChart3 size={16} className="text-oracle-accent" />
         <h2 className="text-sm font-semibold text-oracle-text">Top Picks Today</h2>
-        {!loading && stocks.length > 0 && (
+        {!loading && filteredStocks.length > 0 && (
           <span className="text-oracle-muted text-xs ml-auto">
-            {searchQuery ? `${filteredStocks.length} of ${stocks.length}` : `${stocks.length} stocks`}
+            {searchQuery ? `${filteredStocks.length} of ${gainFiltered.length}` : `${filteredStocks.length} stocks`}
           </span>
         )}
       </div>
@@ -134,11 +138,20 @@ export default function Dashboard() {
       )}
 
       {/* No search results */}
-      {!loading && !error && stocks.length > 0 && filteredStocks.length === 0 && searchQuery && (
+      {!loading && !error && gainFiltered.length > 0 && filteredStocks.length === 0 && searchQuery && (
         <div className="px-4 py-8 text-center">
           <Search size={32} className="text-oracle-muted/30 mx-auto mb-2" />
           <p className="text-oracle-muted text-sm">No stocks match "{searchQuery}"</p>
           <button onClick={() => setSearchQuery('')} className="mt-2 text-oracle-accent text-xs">Clear search</button>
+        </div>
+      )}
+
+      {/* No explosive stocks today */}
+      {!loading && !error && stocks.length > 0 && gainFiltered.length === 0 && (
+        <div className="px-4 py-8 text-center">
+          <BarChart3 size={32} className="text-oracle-muted/30 mx-auto mb-2" />
+          <p className="text-oracle-muted text-sm font-medium">No explosive setups today</p>
+          <p className="text-oracle-muted/60 text-xs mt-1">All {stocks.length} stocks have less than 10% upside — check Gem Finder for tomorrow's plays</p>
         </div>
       )}
 

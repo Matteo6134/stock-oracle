@@ -822,15 +822,15 @@ function passesQualityFilter(stock, marketRegime) {
   const price = stock.price || q.regularMarketPrice || 0;
 
   // 1. Minimum liquidity — avoid penny stocks and illiquid names
-  if (price < 2) return false;              // No penny stocks
-  if (volume < 200000) return false;         // Minimum 200K daily volume
-  if (marketCap > 0 && marketCap < 200e6) return false;  // Min $200M market cap (if data available)
+  if (price < 5) return false;              // Min $5 — skip penny stocks
+  if (volume < 300000) return false;         // Minimum 300K daily volume
+  if (marketCap > 0 && marketCap < 300e6) return false;  // Min $300M market cap
 
   // 2. Don't recommend stocks we tell users NOT to buy
   if (stock.entrySignal === 'too_late') return false;
 
-  // 3. Minimum score threshold
-  if (stock.score < 40) return false;
+  // 3. Minimum score threshold — only explosive setups
+  if (stock.score < 50) return false;
 
   // 4. MARKET REGIME FILTER — the most important filter
   // In fear regime (VIX > 30): extreme selectivity
@@ -861,6 +861,10 @@ function passesQualityFilter(stock, marketRegime) {
   if (stock.tradeSetup?.preMarketGapPct > 6) return false;
   // If pre-market gap is negative and large, something broke overnight — avoid
   if (stock.tradeSetup?.preMarketGapPct < -5) return false;
+
+  // 7. MINIMUM POTENTIAL GAIN — only show gems with 10%+ upside
+  // User wants explosive movers, not small swings
+  if (stock.tradeSetup?.available && stock.tradeSetup?.potentialGain < 10) return false;
 
   return true;
 }

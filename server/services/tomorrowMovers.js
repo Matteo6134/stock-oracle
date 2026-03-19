@@ -223,9 +223,9 @@ async function _scan() {
     const candidateSymbols = [];
     for (const [symbol, quote] of Object.entries(quotes)) {
       if (!quote || !quote.regularMarketPrice) continue;
-      if (quote.regularMarketPrice < 2) continue;
+      if (quote.regularMarketPrice < 5) continue;
       const vol = quote.regularMarketVolume || 0;
-      if (vol < 100000) continue;
+      if (vol < 200000) continue;
       const avgVol = quote.averageDailyVolume10Day || quote.averageDailyVolume3Month || vol;
       const volRatio = avgVol > 0 ? vol / avgVol : 1;
       // Get history for anything with above-average volume or in squeeze/breakout lists
@@ -259,8 +259,8 @@ async function _scan() {
 
     for (const [symbol, quote] of Object.entries(quotes)) {
       if (!quote || !quote.regularMarketPrice) continue;
-      if (quote.regularMarketPrice < 2) continue;
-      if ((quote.regularMarketVolume || 0) < 100000) continue;
+      if (quote.regularMarketPrice < 5) continue;       // Min $5 — skip penny stock noise
+      if ((quote.regularMarketVolume || 0) < 200000) continue; // Min 200K daily vol
 
       const signals = [];
       let setupScore = 0;
@@ -462,8 +462,8 @@ async function _scan() {
         details.priceCompression = Math.round(hist.priceCompression * 100);
       }
 
-      // Only include stocks with at least one signal and minimum score
-      if (signals.length >= 1 && setupScore >= 10) {
+      // Only include stocks with strong signals — at least 2 signals and setup score 20+
+      if (signals.length >= 2 && setupScore >= 20) {
         const gemScore = calculateGemScore(signals, details, hist);
 
         setups.push({
@@ -483,7 +483,7 @@ async function _scan() {
           gemScore, // 0-100 explosive potential
           details,
           timing: categorizeUrgency(signals),
-          risk: gemScore >= 60 ? 'high_conviction' : gemScore >= 35 ? 'moderate' : 'speculative',
+          risk: gemScore >= 60 ? 'high_conviction' : 'moderate',
         });
       }
     }
@@ -492,12 +492,12 @@ async function _scan() {
     const sorted = setups.sort((a, b) => b.gemScore - a.gemScore);
 
     // ── Categorize for UI ──
-    const gems = sorted.filter(s => s.gemScore >= 50);
+    const gems = sorted.filter(s => s.gemScore >= 60);
     const result = {
       // TOP GEMS — highest explosive potential
       gems: gems.slice(0, 10),
       // Top picks by raw setup score
-      topPicks: sorted.filter(s => s.setupScore >= 25).slice(0, 5),
+      topPicks: sorted.filter(s => s.setupScore >= 35).slice(0, 5),
       // Smart money accumulation (stealth buying)
       accumulation: sorted.filter(s =>
         s.signals.includes('unusual_volume') ||
