@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Routes, Route, NavLink, useLocation, matchPath } from 'react-router-dom'
-import { LayoutDashboard, TrendingUp, PieChart, CalendarDays, History as HistoryIcon, DollarSign, Zap, Crosshair, Menu, X, Bookmark, Diamond, Users } from 'lucide-react'
+import { LayoutDashboard, TrendingUp, PieChart, CalendarDays, History as HistoryIcon, DollarSign, Zap, Crosshair, Menu, X, Bookmark, Diamond, Users, Rocket } from 'lucide-react'
 import ErrorBoundary from './components/ErrorBoundary'
 import { ToastProvider } from './components/Toast'
 import LandscapeSplit from './components/LandscapeSplit'
@@ -12,10 +12,12 @@ import TrendingPage from './pages/TrendingPage'
 import TomorrowPage from './pages/TomorrowPage'
 import BacktesterPage from './pages/BacktesterPage'
 import PaperTradingPage from './pages/PaperTradingPage'
+import AlpacaTradingPage from './pages/AlpacaTradingPage'
 import MoversPage from './pages/MoversPage'
 import BuyTomorrowPage from './pages/BuyTomorrowPage'
 import WishlistPage from './pages/WishlistPage'
 import GemBacktestPage from './pages/GemBacktestPage'
+import PennyStocksPage from './pages/PennyStocksPage'
 import packageJson from '../package.json'
 import { isNotificationSupported, isNotificationEnabled, requestNotificationPermission, disableNotifications } from './lib/notifications'
 import { checkSmartAlerts } from './lib/tradeAlerts'
@@ -27,10 +29,12 @@ const navItems = [
   { to: '/gems', icon: Diamond, label: 'Gem Finder' },
   { to: '/buy-tomorrow', icon: Crosshair, label: 'Buy Tomorrow' },
   { to: '/wishlist', icon: Bookmark, label: 'My Watchlist' },
+  { to: '/penny-stocks', icon: Rocket, label: 'Penny Stocks' },
   { to: '/movers', icon: Zap, label: 'Movers' },
   { to: '/trending', icon: TrendingUp, label: 'Trending' },
   { to: '/trading-desk', icon: Users, label: 'Trading Desk' },
-  { to: '/paper', icon: DollarSign, label: 'Paper Trade' },
+  { to: '/trade', icon: DollarSign, label: 'Trade' },
+  { to: '/paper', icon: DollarSign, label: 'Paper Trade (Old)' },
   { to: '/history', icon: HistoryIcon, label: 'History' },
   { to: '/sectors', icon: PieChart, label: 'Sectors' },
 ]
@@ -240,11 +244,13 @@ export default function App() {
             <Route path="/gems" element={<TomorrowPage />} />
             <Route path="/buy-tomorrow" element={<BuyTomorrowPage />} />
             <Route path="/wishlist" element={<WishlistPage />} />
+            <Route path="/penny-stocks" element={<PennyStocksPage />} />
             <Route path="/movers" element={<MoversPage />} />
             <Route path="/stock/:symbol" element={<StockDetail />} />
             <Route path="/sectors" element={<SectorsPage />} />
             <Route path="/sectors/:sectorName" element={<SectorDetail />} />
             <Route path="/trending" element={<TrendingPage />} />
+            <Route path="/trade" element={<AlpacaTradingPage />} />
             <Route path="/paper" element={<PaperTradingPage />} />
             <Route path="/trading-desk" element={<GemBacktestPage />} />
             <Route path="/history" element={<BacktesterPage />} />

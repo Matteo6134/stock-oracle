@@ -14,6 +14,8 @@ import { analyzeGem, getAgentProfiles } from '../services/tradingDesk.js';
 import { saveGemSnapshot, getGemBacktestData } from '../services/gemHistory.js';
 import { searchStocks } from '../services/yahooFinance.js';
 import { getOrderFlow } from '../services/orderFlow.js';
+import { scanPennyStocks } from '../services/pennyScanner.js';
+import * as alpaca from '../services/alpaca.js';
 
 const router = express.Router();
 
@@ -1731,14 +1733,13 @@ router.get('/tomorrow-movers', async (req, res, next) => {
     console.log('[TomorrowMovers] Scanning for setups...');
     const result = await findTomorrowMovers();
 
-    // Run AI Trading Desk on each gem
+    // Run AI Trading Desk analysis + save snapshot (verdicts stay on Trading Desk page only)
     if (result.gems?.length > 0) {
-      result.gems = result.gems.map(gem => {
+      const gemsWithVerdicts = result.gems.map(gem => {
         const { verdicts, consensus, buyCount, avgConviction } = analyzeGem(gem);
         return { ...gem, verdicts, consensus, buyCount, avgConviction };
       });
-      // Save snapshot (fire-and-forget)
-      saveGemSnapshot(result.gems).catch(err => console.error('[GemHistory] Save error:', err.message));
+      saveGemSnapshot(gemsWithVerdicts).catch(err => console.error('[GemHistory] Save error:', err.message));
     }
 
     setCache('tomorrow-movers', result, 10 * 60 * 1000);
@@ -1758,6 +1759,15 @@ router.get('/order-flow/:symbol', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+// ── Penny Stocks Scanner ──
+router.get('/penny-stocks', async (req, res, next) => {
+  try {
+    const maxPrice = parseFloat(req.query.maxPrice) || 5;
+    const data = await scanPennyStocks(maxPrice);
+    res.json(data);
+  } catch (err) { next(err); }
+});
+
 // ── Gem Backtest — AI Trading Desk Results ──
 router.get('/gem-backtest', async (req, res, next) => {
   try {
@@ -1772,6 +1782,97 @@ router.get('/gem-backtest', async (req, res, next) => {
 // ── Agent Profiles ──
 router.get('/agent-profiles', (req, res) => {
   res.json(getAgentProfiles());
+});
+
+// ══════════════════════════════════════════
+// Alpaca Paper Trading
+// ══════════════════════════════════════════
+
+router.get('/alpaca/status', (req, res) => {
+  res.json({ configured: alpaca.isConfigured() });
+});
+
+router.get('/alpaca/account', async (req, res, next) => {
+  try {
+    if (!alpaca.isConfigured()) return res.status(503).json({ error: 'Alpaca API keys not configured' });
+    const account = await alpaca.getAccount();
+    res.json(account);
+  } catch (err) {
+    console.error('[Alpaca] Account error:', err.response?.data?.message || err.message);
+    res.status(err.response?.status || 500).json({ error: err.response?.data?.message || err.message });
+  }
+});
+
+router.get('/alpaca/positions', async (req, res, next) => {
+  try {
+    if (!alpaca.isConfigured()) return res.status(503).json({ error: 'Alpaca API keys not configured' });
+    const positions = await alpaca.getPositions();
+    res.json(positions);
+  } catch (err) {
+    console.error('[Alpaca] Positions error:', err.response?.data?.message || err.message);
+    res.status(err.response?.status || 500).json({ error: err.response?.data?.message || err.message });
+  }
+});
+
+router.get('/alpaca/orders', async (req, res, next) => {
+  try {
+    if (!alpaca.isConfigured()) return res.status(503).json({ error: 'Alpaca API keys not configured' });
+    const status = req.query.status || 'all';
+    const limit = parseInt(req.query.limit) || 50;
+    const orders = await alpaca.getOrders(status, limit);
+    res.json(orders);
+  } catch (err) {
+    console.error('[Alpaca] Orders error:', err.response?.data?.message || err.message);
+    res.status(err.response?.status || 500).json({ error: err.response?.data?.message || err.message });
+  }
+});
+
+router.post('/alpaca/orders', async (req, res, next) => {
+  try {
+    if (!alpaca.isConfigured()) return res.status(503).json({ error: 'Alpaca API keys not configured' });
+    const { symbol, qty, notional, side, type, timeInForce, limitPrice, stopPrice } = req.body;
+    if (!symbol) return res.status(400).json({ error: 'Symbol is required' });
+    if (!qty && !notional) return res.status(400).json({ error: 'Quantity or dollar amount is required' });
+    const order = await alpaca.submitOrder({ symbol, qty, notional, side, type, timeInForce, limitPrice, stopPrice });
+    res.json(order);
+  } catch (err) {
+    console.error('[Alpaca] Order submit error:', err.response?.data?.message || err.message);
+    res.status(err.response?.status || 500).json({ error: err.response?.data?.message || err.message });
+  }
+});
+
+router.delete('/alpaca/orders/:orderId', async (req, res, next) => {
+  try {
+    if (!alpaca.isConfigured()) return res.status(503).json({ error: 'Alpaca API keys not configured' });
+    await alpaca.cancelOrder(req.params.orderId);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('[Alpaca] Cancel order error:', err.response?.data?.message || err.message);
+    res.status(err.response?.status || 500).json({ error: err.response?.data?.message || err.message });
+  }
+});
+
+router.delete('/alpaca/positions/:symbol', async (req, res, next) => {
+  try {
+    if (!alpaca.isConfigured()) return res.status(503).json({ error: 'Alpaca API keys not configured' });
+    const result = await alpaca.closePosition(req.params.symbol);
+    res.json(result);
+  } catch (err) {
+    console.error('[Alpaca] Close position error:', err.response?.data?.message || err.message);
+    res.status(err.response?.status || 500).json({ error: err.response?.data?.message || err.message });
+  }
+});
+
+router.get('/alpaca/history', async (req, res, next) => {
+  try {
+    if (!alpaca.isConfigured()) return res.status(503).json({ error: 'Alpaca API keys not configured' });
+    const period = req.query.period || '1M';
+    const history = await alpaca.getPortfolioHistory(period);
+    res.json(history);
+  } catch (err) {
+    console.error('[Alpaca] History error:', err.response?.data?.message || err.message);
+    res.status(err.response?.status || 500).json({ error: err.response?.data?.message || err.message });
+  }
 });
 
 export default router;

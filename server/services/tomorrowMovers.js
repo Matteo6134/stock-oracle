@@ -23,6 +23,7 @@
 import { getQuoteBatch, getHistoricalData, getEarningsCalendar } from './yahooFinance.js';
 import { getShortSqueezeSetups, getBreakoutSetups, STOCK_UNIVERSE } from './premarketScanner.js';
 import { classifySector, getSectorTrends } from './sectorAnalysis.js';
+import { getOrderFlow } from './orderFlow.js';
 
 // ── Cache ──
 let cache = { data: null, ts: 0 };
@@ -164,6 +165,11 @@ function calculateGemScore(signals, details, histAnalysis) {
     oversold_bounce: 6,
     bull_flag: 8,
     golden_cross: 5,
+    // Order flow signals (smart money)
+    insider_buying: 20,
+    bullish_options: 16,
+    institutions_accumulating: 14,
+    unusual_options_volume: 12,
   };
 
   for (const sig of signals) {
@@ -485,6 +491,74 @@ async function _scan() {
           timing: categorizeUrgency(signals),
           risk: gemScore >= 60 ? 'high_conviction' : 'moderate',
         });
+      }
+    }
+
+    // ── Order Flow Enrichment ──
+    // Fetch smart money signals for top candidates (max 15 to stay fast)
+    const topCandidates = [...setups].sort((a, b) => b.gemScore - a.gemScore).slice(0, 15);
+    if (topCandidates.length > 0) {
+      console.log(`[GemFinder] Enriching ${topCandidates.length} top candidates with order flow...`);
+      const flowResults = await Promise.allSettled(
+        topCandidates.map(s => getOrderFlow(s.symbol).then(flow => ({ symbol: s.symbol, flow })))
+      );
+      const flowMap = {};
+      for (const r of flowResults) {
+        if (r.status === 'fulfilled' && r.value.flow) flowMap[r.value.symbol] = r.value.flow;
+      }
+
+      for (const setup of setups) {
+        const flow = flowMap[setup.symbol];
+        if (!flow) continue;
+
+        let flowBoost = 0;
+
+        // Insider buying — executives putting their own money in
+        if (flow.insiders?.netBuying > 0) {
+          setup.signals.push('insider_buying');
+          flowBoost += flow.insiders.netBuying > 500000 ? 22 : flow.insiders.netBuying > 100000 ? 16 : 10;
+          setup.details.insiderNetBuying = flow.insiders.netBuyingLabel;
+          setup.details.insiderBuys = flow.insiders.recentBuys;
+        }
+
+        // Bullish options flow — big money betting on upside
+        if (flow.options?.putCallRatio < 0.7) {
+          setup.signals.push('bullish_options');
+          flowBoost += flow.options.putCallRatio < 0.5 ? 18 : 12;
+          setup.details.putCallRatio = flow.options.putCallRatio;
+          setup.details.optionsSentiment = flow.options.sentimentLabel;
+        }
+
+        // Unusual options volume — something big is brewing
+        if (flow.options?.unusualActivity) {
+          setup.signals.push('unusual_options_volume');
+          flowBoost += 12;
+          setup.details.unusualOptions = true;
+        }
+
+        // Institutions accumulating — funds loading up
+        if (flow.institutions?.netChange > 5) {
+          setup.signals.push('institutions_accumulating');
+          flowBoost += flow.institutions.netChange > 15 ? 16 : 10;
+          setup.details.institutionPct = flow.institutions.institutionPct;
+          setup.details.institutionChange = flow.institutions.netChange;
+        }
+
+        if (flowBoost > 0) {
+          setup.setupScore += flowBoost;
+          setup.signalCount = setup.signals.length;
+          setup.gemScore = calculateGemScore(setup.signals, setup.details, null);
+          setup.details.orderFlowScore = flow.flowScore;
+          setup.details.orderFlowSignal = flow.flowSignal;
+          // Triple threat detection
+          const hasInsider = setup.signals.includes('insider_buying');
+          const hasOptions = setup.signals.includes('bullish_options') || setup.signals.includes('unusual_options_volume');
+          const hasVolume = setup.signals.includes('multi_day_accumulation') || setup.signals.includes('smart_money') || setup.signals.includes('unusual_volume');
+          if (hasInsider && hasOptions && hasVolume) {
+            setup.details.tripleThreat = true;
+            setup.risk = 'high_conviction';
+          }
+        }
       }
     }
 

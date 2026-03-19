@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import {
   CalendarDays, AlertCircle, RefreshCw, Zap, ShoppingCart, Clock,
   Diamond, Activity, TrendingUp, TrendingDown, Flame, Eye, Target,
-  ArrowUpRight, ArrowDownRight, ChevronRight, BarChart3, Timer
+  ArrowUpRight, ArrowDownRight, ChevronRight, BarChart3, Timer, DollarSign
 } from 'lucide-react'
 import LoadingSkeleton from '../components/LoadingSkeleton'
 
@@ -27,6 +27,10 @@ const SIGNAL_LABELS = {
   bull_flag: 'Bull Flag',
   golden_cross: 'Golden Cross',
   price_compression: 'Price Coiling',
+  insider_buying: 'Insider Buying',
+  bullish_options: 'Bullish Options',
+  unusual_options_volume: 'Options Surge',
+  institutions_accumulating: 'Institutions Loading',
 }
 
 const SIGNAL_COLORS = {
@@ -46,6 +50,10 @@ const SIGNAL_COLORS = {
   bull_flag: 'bg-indigo-500/20 text-indigo-300 border-indigo-400/30',
   golden_cross: 'bg-lime-500/20 text-lime-300 border-lime-400/30',
   price_compression: 'bg-fuchsia-500/20 text-fuchsia-300 border-fuchsia-400/30',
+  insider_buying: 'bg-green-600/25 text-green-200 border-green-400/50',
+  bullish_options: 'bg-emerald-600/25 text-emerald-200 border-emerald-400/50',
+  unusual_options_volume: 'bg-teal-600/25 text-teal-200 border-teal-400/50',
+  institutions_accumulating: 'bg-cyan-600/25 text-cyan-200 border-cyan-400/50',
 }
 
 const TIMING_STYLES = {
@@ -118,12 +126,21 @@ function SetupCard({ stock }) {
             <p className="text-oracle-muted text-[11px] truncate">{stock.companyName}</p>
           </div>
         </div>
-        <div className="text-right shrink-0">
-          <p className="text-oracle-text font-bold text-sm">${(stock.price ?? 0).toFixed(2)}</p>
-          <p className={`text-xs font-semibold flex items-center justify-end gap-0.5 ${isUp ? 'text-oracle-green' : 'text-oracle-red'}`}>
-            {isUp ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}
-            {isUp ? '+' : ''}{(stock.changePct ?? 0).toFixed(2)}%
-          </p>
+        <div className="flex items-center gap-2 shrink-0">
+          <div className="text-right">
+            <p className="text-oracle-text font-bold text-sm">${(stock.price ?? 0).toFixed(2)}</p>
+            <p className={`text-xs font-semibold flex items-center justify-end gap-0.5 ${isUp ? 'text-oracle-green' : 'text-oracle-red'}`}>
+              {isUp ? <ArrowUpRight size={10} /> : <ArrowDownRight size={10} />}
+              {isUp ? '+' : ''}{(stock.changePct ?? 0).toFixed(2)}%
+            </p>
+          </div>
+          <button
+            onClick={e => { e.stopPropagation(); navigate(`/trade?symbol=${stock.symbol}&amount=100`) }}
+            className="p-1.5 rounded bg-oracle-green/15 text-oracle-green border border-oracle-green/30 hover:bg-oracle-green/25 transition-all"
+            title="Trade"
+          >
+            <DollarSign size={12} />
+          </button>
         </div>
       </div>
 
@@ -176,6 +193,26 @@ function SetupCard({ stock }) {
               : stock.details.shortPercentOfFloat >= 20
                 ? 'High short interest. A catalyst could trigger forced covering and rapid price increase.'
                 : 'Elevated shorts building. Watch for volume spikes as squeeze trigger.'}
+          </div>
+        </div>
+      )}
+
+      {/* Smart Money / Order Flow info */}
+      {stock.details?.tripleThreat && (
+        <div className="glass-inner rounded-lg p-2 mb-2 border-l-2 border-l-green-400/60">
+          <div className="text-[10px] leading-relaxed">
+            <span className="text-green-300 font-bold">TRIPLE THREAT — </span>
+            <span className="text-oracle-muted">Insiders buying + bullish options + volume accumulation. All three firing together = extremely high conviction setup.</span>
+          </div>
+        </div>
+      )}
+      {!stock.details?.tripleThreat && (stock.details?.insiderNetBuying || stock.details?.optionsSentiment || stock.details?.institutionChange > 0) && (
+        <div className="glass-inner rounded-lg p-2 mb-2 border-l-2 border-l-emerald-400/40">
+          <div className="text-[10px] text-oracle-muted leading-relaxed">
+            <span className="text-emerald-300 font-semibold">Smart Money: </span>
+            {stock.details.insiderNetBuying && <span>{stock.details.insiderNetBuying} · </span>}
+            {stock.details.optionsSentiment && <span>{stock.details.optionsSentiment} · </span>}
+            {stock.details.institutionChange > 0 && <span>Institutions +{stock.details.institutionChange}%</span>}
           </div>
         </div>
       )}
