@@ -279,6 +279,119 @@ export async function scanPremarketMovers(earningsCalendar = []) {
 }
 
 // ────────────────────────────────────────────────────────────────────────────
+// Squeeze Classification & Price Target Engine
+// ────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Classify squeeze type and predict price targets.
+ *
+ * Types:
+ * - MOASS: SI > 50%, DTC > 8, low float → extreme squeeze (100-500%+)
+ * - Short Squeeze: SI > 20%, DTC > 3 → forced covering (30-100%)
+ * - Gamma Squeeze: High SI + rapidly increasing call options (estimated from volume surge)
+ * - Squeeze Watch: SI > 15%, needs catalyst → potential (15-40%)
+ *
+ * Price targets based on historical squeeze patterns:
+ * - The higher the SI% and DTC, the more violent the squeeze
+ * - Low float amplifies the move (less shares to absorb buying pressure)
+ * - Volume/float ratio indicates buying pressure intensity
+ */
+function classifySqueeze(shortPct, daysToCover, floatShares, currentPrice, avgVolume) {
+  const si = shortPct ?? 0;
+  const dtc = daysToCover ?? 0;
+  const fl = floatShares ?? 0;
+  const price = currentPrice ?? 0;
+
+  if (price <= 0) return { squeezeType: 'unknown', targets: null, probability: 0, explanation: '' };
+
+  // ── Classification ──
+  let squeezeType = 'watch';
+  let minGain = 15, midGain = 30, maxGain = 60;
+  let probability = 20;
+
+  // MOASS conditions: extreme SI + high DTC + low float
+  if (si >= 50 && dtc >= 8) {
+    squeezeType = 'moass';
+    minGain = 100; midGain = 250; maxGain = 500;
+    probability = 15; // rare but explosive
+  } else if (si >= 50 && dtc >= 5) {
+    squeezeType = 'moass';
+    minGain = 80; midGain = 200; maxGain = 400;
+    probability = 20;
+  }
+  // Short Squeeze: high SI, meaningful DTC
+  else if (si >= 30 && dtc >= 5) {
+    squeezeType = 'short_squeeze';
+    minGain = 50; midGain = 100; maxGain = 200;
+    probability = 30;
+  } else if (si >= 20 && dtc >= 3) {
+    squeezeType = 'short_squeeze';
+    minGain = 30; midGain = 60; maxGain = 120;
+    probability = 35;
+  }
+  // Gamma Squeeze potential: moderate SI + high volume activity
+  else if (si >= 15 && avgVolume && fl > 0 && (avgVolume / fl) > 0.03) {
+    squeezeType = 'gamma_squeeze';
+    minGain = 25; midGain = 50; maxGain = 100;
+    probability = 25;
+  }
+  // Squeeze Watch: meets threshold but needs catalyst
+  else if (si >= 15 || dtc >= 5) {
+    squeezeType = 'squeeze_watch';
+    minGain = 15; midGain = 30; maxGain = 60;
+    probability = 15;
+  }
+
+  // ── Float amplifier ── low float = more explosive
+  if (fl > 0 && fl < 10e6) {
+    minGain *= 1.5; midGain *= 1.5; maxGain *= 1.5; probability += 5;
+  } else if (fl > 0 && fl < 30e6) {
+    minGain *= 1.2; midGain *= 1.2; maxGain *= 1.2; probability += 3;
+  }
+
+  // ── DTC amplifier ── longer to cover = more violent squeeze
+  if (dtc >= 10) {
+    minGain *= 1.3; midGain *= 1.3; maxGain *= 1.3; probability += 5;
+  }
+
+  // Cap probability
+  probability = Math.min(probability, 60);
+
+  // ── Price targets ──
+  const targets = {
+    conservative: Math.round(price * (1 + minGain / 100) * 100) / 100,
+    moderate: Math.round(price * (1 + midGain / 100) * 100) / 100,
+    extreme: Math.round(price * (1 + maxGain / 100) * 100) / 100,
+    conservativeGain: Math.round(minGain),
+    moderateGain: Math.round(midGain),
+    extremeGain: Math.round(maxGain),
+  };
+
+  // ── Explanation ──
+  const typeLabels = {
+    moass: 'MOASS (Mother Of All Short Squeezes)',
+    short_squeeze: 'Short Squeeze',
+    gamma_squeeze: 'Gamma Squeeze',
+    squeeze_watch: 'Squeeze Watch',
+  };
+
+  const explanations = {
+    moass: `Extreme setup: ${si.toFixed(1)}% of shares are sold short with ${dtc.toFixed(1)} days to cover. If buying pressure starts, shorts need ${dtc.toFixed(0)}+ days to exit — creating a violent chain reaction. ${fl < 30e6 ? 'Low float amplifies the move.' : ''}`,
+    short_squeeze: `${si.toFixed(1)}% short interest with ${dtc.toFixed(1)} days to cover. When shorts are forced to buy back shares, demand spikes while supply is limited. A catalyst (earnings beat, news, volume surge) could trigger forced covering.`,
+    gamma_squeeze: `${si.toFixed(1)}% short interest combined with high options activity. Market makers hedging call options are forced to buy shares, pushing price up, which forces more hedging — a self-reinforcing loop.`,
+    squeeze_watch: `${si.toFixed(1)}% short interest detected — above average but needs a catalyst to trigger. Watch for volume spikes, positive news, or earnings surprises that could start the squeeze.`,
+  };
+
+  return {
+    squeezeType,
+    squeezeLabel: typeLabels[squeezeType] || 'Unknown',
+    targets,
+    probability,
+    explanation: explanations[squeezeType] || '',
+  };
+}
+
+// ────────────────────────────────────────────────────────────────────────────
 // Short Squeeze Setups
 // ────────────────────────────────────────────────────────────────────────────
 
@@ -318,7 +431,7 @@ export async function getShortSqueezeSetups(symbols = []) {
           batch.map(async (symbol) => {
             try {
               const summary = await yf.quoteSummary(symbol, {
-                modules: ['defaultKeyStatistics'],
+                modules: ['defaultKeyStatistics', 'price'],
               });
 
               const stats = summary?.defaultKeyStatistics;
@@ -345,6 +458,14 @@ export async function getShortSqueezeSetups(symbols = []) {
               const squeezePotential =
                 (shortPct || 0) * (shortRatio || 1);
 
+              // ── Squeeze Classification & Price Prediction ──
+              const price = summary?.price?.regularMarketPrice?.raw
+                ?? summary?.price?.regularMarketPrice ?? null;
+              const avgVol = summary?.defaultKeyStatistics?.averageDailyVolume10Day?.raw
+                ?? summary?.price?.averageDailyVolume10Day?.raw ?? null;
+
+              const analysis = classifySqueeze(shortPct, shortRatio, floatShares, price, avgVol);
+
               return {
                 symbol,
                 shortPercentOfFloat: shortPct != null ? Math.round(shortPct * 100) / 100 : null,
@@ -354,6 +475,8 @@ export async function getShortSqueezeSetups(symbols = []) {
                 sharesOutstanding,
                 squeezePotential: Math.round(squeezePotential * 100) / 100,
                 floatRotation: calcFloatRotation(sharesShort, floatShares),
+                price: price ?? null,
+                ...analysis,
               };
             } catch (err) {
               // Silently skip symbols that fail

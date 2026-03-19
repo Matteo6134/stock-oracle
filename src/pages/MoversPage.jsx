@@ -133,8 +133,16 @@ function PreMarketCard({ stock }) {
   )
 }
 
+const SQUEEZE_TYPE_STYLES = {
+  moass: { label: 'MOASS', color: 'text-oracle-red', bg: 'bg-oracle-red/15', border: 'border-oracle-red/30', icon: '💥' },
+  short_squeeze: { label: 'Short Squeeze', color: 'text-orange-400', bg: 'bg-orange-400/15', border: 'border-orange-400/30', icon: '🔥' },
+  gamma_squeeze: { label: 'Gamma Squeeze', color: 'text-oracle-purple', bg: 'bg-oracle-purple/15', border: 'border-oracle-purple/30', icon: '⚡' },
+  squeeze_watch: { label: 'Squeeze Watch', color: 'text-oracle-yellow', bg: 'bg-oracle-yellow/15', border: 'border-oracle-yellow/30', icon: '👀' },
+}
+
 function SqueezeCard({ stock }) {
   const navigate = useNavigate()
+  const [expanded, setExpanded] = useState(false)
   const {
     symbol,
     shortPercentOfFloat,
@@ -146,8 +154,6 @@ function SqueezeCard({ stock }) {
   const siRatio = shortRatio ?? 0
   const siShares = floatShares ?? 0
   const siPotential = squeezePotential ?? 0
-  const isHighShort = siFloat > 30
-  // Normalize squeezePotential to 0-100 scale (typical range 0-500+)
   const squeezeScore = Math.min(100, siPotential / 5)
   const scoreWidth = Math.min(squeezeScore, 100)
   const scoreColor = squeezeScore >= 80
@@ -158,60 +164,100 @@ function SqueezeCard({ stock }) {
         ? 'bg-oracle-yellow'
         : 'bg-oracle-accent'
 
+  const sqType = stock.squeezeType || 'squeeze_watch'
+  const style = SQUEEZE_TYPE_STYLES[sqType] || SQUEEZE_TYPE_STYLES.squeeze_watch
+  const targets = stock.targets
+  const probability = stock.probability ?? 0
+  const currentPrice = stock.price ?? 0
+
   return (
-    <div
-      onClick={() => navigate(`/stock/${symbol}`)}
-      className="glass-card p-3.5 cursor-pointer hover:bg-white/[0.03] transition-all duration-300 active:scale-[0.98]"
-    >
-      <div className="flex items-start justify-between gap-3 mb-2.5">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
-            <span className="text-oracle-text font-bold text-sm">{symbol}</span>
-            {isHighShort && (
-              <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-semibold bg-oracle-red/15 text-oracle-red border border-oracle-red/30">
-                <AlertTriangle size={9} />
-                High SI
+    <div className="glass-card p-3.5 cursor-pointer hover:bg-white/[0.03] transition-all duration-300 active:scale-[0.98]">
+      <div onClick={() => navigate(`/stock/${symbol}`)}>
+        <div className="flex items-start justify-between gap-3 mb-2">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-oracle-text font-bold text-sm">{symbol}</span>
+              <span className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-semibold ${style.bg} ${style.color} border ${style.border}`}>
+                {style.icon} {style.label}
               </span>
-            )}
+            </div>
+            {currentPrice > 0 && <span className="text-oracle-muted text-[10px]">${currentPrice}</span>}
+          </div>
+          <div className="text-right shrink-0">
+            <div className="text-oracle-text font-bold text-sm">{siFloat.toFixed(1)}%</div>
+            <div className="text-oracle-muted text-[10px]">short of float</div>
           </div>
         </div>
-        <div className="text-right shrink-0">
-          <div className="text-oracle-text font-bold text-sm">{siFloat.toFixed(1)}%</div>
-          <div className="text-oracle-muted text-[10px]">short of float</div>
-        </div>
-      </div>
 
-      <div className="grid grid-cols-2 gap-3 mb-2.5 text-xs">
-        <div className="glass-inner rounded-lg p-2">
-          <div className="text-oracle-muted text-[10px] mb-0.5">Days to Cover</div>
-          <div className="text-oracle-text font-semibold">{siRatio.toFixed(1)} days</div>
-        </div>
-        <div className="glass-inner rounded-lg p-2">
-          <div className="text-oracle-muted text-[10px] mb-0.5">Float</div>
-          <div className="text-oracle-text font-semibold">
-            {siShares >= 1e9
-              ? `${(siShares / 1e9).toFixed(1)}B`
-              : siShares >= 1e6
-                ? `${(siShares / 1e6).toFixed(1)}M`
-                : siShares >= 1e3
-                  ? `${(siShares / 1e3).toFixed(0)}K`
-                  : siShares > 0 ? siShares.toLocaleString() : 'N/A'}
+        <div className="grid grid-cols-3 gap-2 mb-2.5 text-xs">
+          <div className="glass-inner rounded-lg p-2">
+            <div className="text-oracle-muted text-[10px] mb-0.5">Days to Cover</div>
+            <div className="text-oracle-text font-semibold">{siRatio.toFixed(1)}d</div>
+          </div>
+          <div className="glass-inner rounded-lg p-2">
+            <div className="text-oracle-muted text-[10px] mb-0.5">Float</div>
+            <div className="text-oracle-text font-semibold">
+              {siShares >= 1e9 ? `${(siShares / 1e9).toFixed(1)}B`
+                : siShares >= 1e6 ? `${(siShares / 1e6).toFixed(1)}M`
+                : siShares >= 1e3 ? `${(siShares / 1e3).toFixed(0)}K`
+                : siShares > 0 ? siShares.toLocaleString() : 'N/A'}
+            </div>
+          </div>
+          <div className="glass-inner rounded-lg p-2">
+            <div className="text-oracle-muted text-[10px] mb-0.5">Probability</div>
+            <div className={`font-semibold ${probability >= 30 ? 'text-oracle-green' : 'text-oracle-yellow'}`}>{probability}%</div>
           </div>
         </div>
+
+        {/* Price targets */}
+        {targets && currentPrice > 0 && (
+          <div className="mb-2.5">
+            <div className="text-oracle-muted text-[10px] mb-1 font-medium">Squeeze Price Targets</div>
+            <div className="grid grid-cols-3 gap-1.5 text-xs">
+              <div className="glass-inner rounded-lg p-1.5 text-center">
+                <div className="text-oracle-yellow text-[9px]">Conservative</div>
+                <div className="text-oracle-text font-bold">${targets.conservative}</div>
+                <div className="text-oracle-green text-[9px]">+{targets.conservativeGain}%</div>
+              </div>
+              <div className="glass-inner rounded-lg p-1.5 text-center border border-oracle-accent/20">
+                <div className="text-oracle-accent text-[9px]">Moderate</div>
+                <div className="text-oracle-text font-bold">${targets.moderate}</div>
+                <div className="text-oracle-green text-[9px]">+{targets.moderateGain}%</div>
+              </div>
+              <div className="glass-inner rounded-lg p-1.5 text-center">
+                <div className="text-oracle-red text-[9px]">Extreme</div>
+                <div className="text-oracle-text font-bold">${targets.extreme}</div>
+                <div className="text-oracle-green text-[9px]">+{targets.extremeGain}%</div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
-      <div>
+      {/* Squeeze score bar */}
+      <div className="mb-2">
         <div className="flex items-center justify-between mb-1">
           <span className="text-oracle-muted text-[10px] font-medium">Squeeze Score</span>
           <span className="text-oracle-text text-xs font-bold">{squeezeScore.toFixed(0)}/100</span>
         </div>
         <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
-          <div
-            className={`h-full rounded-full transition-all duration-500 ${scoreColor}`}
-            style={{ width: `${scoreWidth}%` }}
-          />
+          <div className={`h-full rounded-full transition-all duration-500 ${scoreColor}`} style={{ width: `${scoreWidth}%` }} />
         </div>
       </div>
+
+      {/* Expand for explanation */}
+      <button
+        onClick={(e) => { e.stopPropagation(); setExpanded(!expanded) }}
+        className="text-oracle-accent text-[10px] font-medium hover:underline"
+      >
+        {expanded ? 'Hide explanation' : 'Why is this a squeeze?'}
+      </button>
+
+      {expanded && stock.explanation && (
+        <div className="mt-2 p-2 glass-inner rounded-lg">
+          <p className="text-[10px] text-oracle-muted leading-relaxed">{stock.explanation}</p>
+        </div>
+      )}
     </div>
   )
 }
