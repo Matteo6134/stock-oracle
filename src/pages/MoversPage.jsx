@@ -79,10 +79,9 @@ const SIGNAL_LABELS = {
 
 function PreMarketCard({ stock }) {
   const navigate = useNavigate()
-  const {
-    symbol, companyName, gapPct = 0, volumeRatio = 0,
-    currentPrice, preMarketPrice, signals = []
-  } = stock
+  const { symbol, companyName, currentPrice, preMarketPrice, signals = [] } = stock
+  const gapPct = stock.gapPct ?? 0
+  const volumeRatio = stock.volumeRatio ?? 0
   const isUp = gapPct >= 0
   const allSignals = signals.map(s => SIGNAL_LABELS[s] || s)
 
@@ -137,12 +136,19 @@ function PreMarketCard({ stock }) {
 function SqueezeCard({ stock }) {
   const navigate = useNavigate()
   const {
-    symbol, shortPercentOfFloat = 0, shortRatio = 0,
-    floatShares = 0, squeezePotential = 0
+    symbol,
+    shortPercentOfFloat,
+    shortRatio,
+    floatShares,
+    squeezePotential,
   } = stock
-  const isHighShort = shortPercentOfFloat > 30
+  const siFloat = shortPercentOfFloat ?? 0
+  const siRatio = shortRatio ?? 0
+  const siShares = floatShares ?? 0
+  const siPotential = squeezePotential ?? 0
+  const isHighShort = siFloat > 30
   // Normalize squeezePotential to 0-100 scale (typical range 0-500+)
-  const squeezeScore = Math.min(100, squeezePotential / 5)
+  const squeezeScore = Math.min(100, siPotential / 5)
   const scoreWidth = Math.min(squeezeScore, 100)
   const scoreColor = squeezeScore >= 80
     ? 'bg-oracle-red'
@@ -170,7 +176,7 @@ function SqueezeCard({ stock }) {
           </div>
         </div>
         <div className="text-right shrink-0">
-          <div className="text-oracle-text font-bold text-sm">{shortPercentOfFloat.toFixed(1)}%</div>
+          <div className="text-oracle-text font-bold text-sm">{siFloat.toFixed(1)}%</div>
           <div className="text-oracle-muted text-[10px]">short of float</div>
         </div>
       </div>
@@ -178,18 +184,18 @@ function SqueezeCard({ stock }) {
       <div className="grid grid-cols-2 gap-3 mb-2.5 text-xs">
         <div className="glass-inner rounded-lg p-2">
           <div className="text-oracle-muted text-[10px] mb-0.5">Days to Cover</div>
-          <div className="text-oracle-text font-semibold">{(shortRatio || 0).toFixed(1)} days</div>
+          <div className="text-oracle-text font-semibold">{siRatio.toFixed(1)} days</div>
         </div>
         <div className="glass-inner rounded-lg p-2">
           <div className="text-oracle-muted text-[10px] mb-0.5">Float</div>
           <div className="text-oracle-text font-semibold">
-            {floatShares >= 1e9
-              ? `${(floatShares / 1e9).toFixed(1)}B`
-              : floatShares >= 1e6
-                ? `${(floatShares / 1e6).toFixed(1)}M`
-                : floatShares >= 1e3
-                  ? `${(floatShares / 1e3).toFixed(0)}K`
-                  : floatShares > 0 ? floatShares.toLocaleString() : 'N/A'}
+            {siShares >= 1e9
+              ? `${(siShares / 1e9).toFixed(1)}B`
+              : siShares >= 1e6
+                ? `${(siShares / 1e6).toFixed(1)}M`
+                : siShares >= 1e3
+                  ? `${(siShares / 1e3).toFixed(0)}K`
+                  : siShares > 0 ? siShares.toLocaleString() : 'N/A'}
           </div>
         </div>
       </div>
@@ -212,10 +218,12 @@ function SqueezeCard({ stock }) {
 
 function BreakoutCard({ stock }) {
   const navigate = useNavigate()
-  const {
-    symbol, bbWidth = 0, volumeContraction = 0,
-    rangeContraction = 0, lastClose = 0, squeezeStrength = 0
-  } = stock
+  const { symbol } = stock
+  const bbWidth = stock.bbWidth ?? 0
+  const volumeContraction = stock.volumeContraction ?? 0
+  const rangeContraction = stock.rangeContraction ?? 0
+  const lastClose = stock.lastClose ?? 0
+  const squeezeStrength = stock.squeezeStrength ?? 0
   const coilLevel = Math.min(100, Math.max(0, (1 - bbWidth / 0.15) * 100))
   const coilColor = coilLevel >= 75
     ? 'text-oracle-green'
@@ -280,9 +288,9 @@ function BreakoutCard({ stock }) {
 
 function RelativeStrengthCard({ stock }) {
   const navigate = useNavigate()
-  const {
-    symbol, companyName, gapPct = 0, relativeStrengthScore = 0
-  } = stock
+  const { symbol, companyName } = stock
+  const gapPct = stock.gapPct ?? 0
+  const relativeStrengthScore = stock.relativeStrengthScore ?? 0
   // RS score is typically 0-20 range, normalize to 0-100
   const rsNormalized = Math.min(100, relativeStrengthScore * 5)
   const rsColor = rsNormalized >= 70
