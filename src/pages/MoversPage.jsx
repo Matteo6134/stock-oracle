@@ -248,14 +248,15 @@ function SqueezeCard({ stock }) {
       {/* Expand for explanation */}
       <button
         onClick={(e) => { e.stopPropagation(); setExpanded(!expanded) }}
-        className="text-oracle-accent text-[10px] font-medium hover:underline"
+        className="w-full mt-2 py-2 px-3 glass-inner rounded-lg flex items-center justify-center gap-1.5 text-oracle-accent text-xs font-semibold hover:bg-white/[0.05] transition-all active:scale-[0.98]"
       >
+        <AlertTriangle size={12} />
         {expanded ? 'Hide explanation' : 'Why is this a squeeze?'}
       </button>
 
       {expanded && stock.explanation && (
-        <div className="mt-2 p-2 glass-inner rounded-lg">
-          <p className="text-[10px] text-oracle-muted leading-relaxed">{stock.explanation}</p>
+        <div className="mt-2 p-3 glass-inner rounded-lg border border-oracle-accent/20">
+          <p className="text-xs text-oracle-muted leading-relaxed">{stock.explanation}</p>
         </div>
       )}
     </div>

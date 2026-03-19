@@ -216,6 +216,23 @@ function SetupCard({ stock }) {
         </div>
       )}
 
+      {/* Squeeze explanation if squeeze signal present */}
+      {stock.signals.some(s => s === 'short_squeeze_loading' || s === 'bb_squeeze') && stock.details?.shortPercentOfFloat > 0 && (
+        <div className="glass-inner rounded-lg p-2 mb-2 border-l-2 border-l-orange-400/50">
+          <div className="text-[10px] text-oracle-muted leading-relaxed">
+            <span className="text-orange-300 font-semibold">Squeeze Setup: </span>
+            {stock.details.shortPercentOfFloat.toFixed(1)}% SI
+            {stock.details.daysToCover ? ` · ${stock.details.daysToCover.toFixed(1)}d to cover` : ''}
+            {' — '}
+            {stock.details.shortPercentOfFloat >= 30
+              ? 'Extreme SI. If price rises, shorts forced to buy → explosive chain reaction.'
+              : stock.details.shortPercentOfFloat >= 20
+                ? 'High SI. A catalyst could trigger forced covering and rapid price spike.'
+                : 'Elevated shorts. Watch for volume spikes as squeeze trigger.'}
+          </div>
+        </div>
+      )}
+
       {/* Score bar */}
       <SetupScoreBar score={stock.setupScore} />
     </div>

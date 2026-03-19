@@ -127,12 +127,21 @@ function SetupCard({ stock }) {
         </div>
       </div>
 
-      {/* Timing badge */}
-      <div className="flex items-center gap-2 mb-2">
+      {/* Timing + Consensus badges */}
+      <div className="flex items-center gap-2 mb-2 flex-wrap">
         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold border ${timing.bg} ${timing.text} ${timing.border} ${stock.timing === 'buy_today' ? 'animate-pulse' : ''}`}>
           <TimingIcon size={9} />
           {timing.label}
         </span>
+        {stock.consensus && stock.consensus !== 'No Trade' && (
+          <span className={`px-1.5 py-0.5 rounded text-[8px] font-bold border ${
+            stock.consensus === 'Strong Buy' ? 'bg-oracle-green/15 text-oracle-green border-oracle-green/25'
+            : stock.consensus === 'Buy' ? 'bg-oracle-accent/15 text-oracle-accent border-oracle-accent/25'
+            : 'bg-oracle-yellow/15 text-oracle-yellow border-oracle-yellow/25'
+          }`}>
+            {stock.buyCount || 0}/5 Agents: {stock.consensus}
+          </span>
+        )}
         {stock.risk === 'high_conviction' && (
           <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-oracle-green/15 text-oracle-green border border-oracle-green/25">
             HIGH CONVICTION
@@ -153,6 +162,23 @@ function SetupCard({ stock }) {
           </span>
         )}
       </div>
+
+      {/* Squeeze explanation if squeeze signal present */}
+      {(stock.signals || []).some(s => s === 'short_squeeze_loading' || s === 'bb_squeeze') && stock.details?.shortPercentOfFloat > 0 && (
+        <div className="glass-inner rounded-lg p-2 mb-2 border-l-2 border-l-orange-400/50">
+          <div className="text-[10px] text-oracle-muted leading-relaxed">
+            <span className="text-orange-300 font-semibold">Squeeze Setup: </span>
+            {stock.details.shortPercentOfFloat.toFixed(1)}% SI
+            {stock.details.daysToCover ? ` · ${stock.details.daysToCover.toFixed(1)}d to cover` : ''}
+            {' — '}
+            {stock.details.shortPercentOfFloat >= 30
+              ? 'Extreme short interest. If price rises, shorts are forced to buy back shares, creating explosive chain reaction.'
+              : stock.details.shortPercentOfFloat >= 20
+                ? 'High short interest. A catalyst could trigger forced covering and rapid price increase.'
+                : 'Elevated shorts building. Watch for volume spikes as squeeze trigger.'}
+          </div>
+        </div>
+      )}
 
       {/* Key details row */}
       <div className="flex items-center gap-3 text-[10px] text-oracle-muted">
