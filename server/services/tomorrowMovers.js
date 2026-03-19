@@ -223,7 +223,7 @@ async function _scan() {
     const candidateSymbols = [];
     for (const [symbol, quote] of Object.entries(quotes)) {
       if (!quote || !quote.regularMarketPrice) continue;
-      if (quote.regularMarketPrice < 5) continue;
+      if (quote.regularMarketPrice < 2) continue;
       const vol = quote.regularMarketVolume || 0;
       if (vol < 200000) continue;
       const avgVol = quote.averageDailyVolume10Day || quote.averageDailyVolume3Month || vol;
@@ -259,7 +259,7 @@ async function _scan() {
 
     for (const [symbol, quote] of Object.entries(quotes)) {
       if (!quote || !quote.regularMarketPrice) continue;
-      if (quote.regularMarketPrice < 5) continue;       // Min $5 — skip penny stock noise
+      if (quote.regularMarketPrice < 2) continue;       // Min $5 — skip penny stock noise
       if ((quote.regularMarketVolume || 0) < 200000) continue; // Min 200K daily vol
 
       const signals = [];

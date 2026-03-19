@@ -44,6 +44,9 @@ const BIOTECH_PHARMA = [
   'REGN', 'EXEL', 'INCY', 'HALO',
   // Clinical-stage
   'PCVX', 'IOVA', 'RCKT', 'FATE', 'KRTX', 'PRAX', 'ARVN', 'GTHX', 'TGTX',
+  // Micro-cap biotech runners (penny stock territory but explosive)
+  'SER', 'BNGO', 'SNDL', 'TLRY', 'OCGN', 'VXRT', 'CLOV', 'WKHS', 'GOEV',
+  'APRE', 'QURE', 'INBS', 'AQST', 'CABA', 'MDXH', 'NKTR', 'MNKD',
 ];
 
 const MEME_VOLATILE = [
@@ -225,7 +228,7 @@ export async function scanPremarketMovers(earningsCalendar = []) {
         const hasSignal = absGap >= 5 || (volumeRatio > 3 && absGap > 2);
         if (!hasSignal) continue;
         // Min price $5 to skip penny stocks
-        if (currentPrice < 5) continue;
+        if (currentPrice < 2) continue;
 
         const entry = {
           symbol,
