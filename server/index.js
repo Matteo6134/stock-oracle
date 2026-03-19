@@ -2,6 +2,8 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import cron from 'node-cron';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import apiRoutes from './routes/api.js';
 import { scanPremarketMovers } from './services/premarketScanner.js';
 import { findTomorrowMovers } from './services/tomorrowMovers.js';
@@ -10,6 +12,9 @@ import { saveGemSnapshot } from './services/gemHistory.js';
 import * as yahooFinance from './services/yahooFinance.js';
 import { scanPennyStocks } from './services/pennyScanner.js';
 import { processSignals, checkExitSignals } from './services/autoTrader.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -235,9 +240,26 @@ app.get('/health', (req, res) => {
   });
 });
 
-app.use((req, res) => {
-  res.status(404).json({ error: 'Not found' });
-});
+// ══════════════════════════════════════════
+// Serve frontend (Vite build) in production
+// ══════════════════════════════════════════
+const distPath = path.join(__dirname, '..', 'dist');
+import fs from 'fs';
+if (fs.existsSync(distPath)) {
+  app.use(express.static(distPath));
+  // SPA fallback — serve index.html for all non-API routes
+  app.get('*', (req, res) => {
+    if (req.path.startsWith('/api')) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+    res.sendFile(path.join(distPath, 'index.html'));
+  });
+  console.log('[Server] Serving frontend from dist/');
+} else {
+  app.use((req, res) => {
+    res.status(404).json({ error: 'Not found' });
+  });
+}
 
 app.use((err, req, res, next) => {
   console.error('[Server Error]', err.message);
