@@ -1,5 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom'
-import { ArrowLeft, TrendingUp, TrendingDown, AlertCircle, Newspaper, MessageCircle, Activity, RefreshCw, Calendar, Target, Zap, CircleCheck, AlertTriangle, XCircle, Clock } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { ArrowLeft, TrendingUp, TrendingDown, AlertCircle, Newspaper, MessageCircle, Activity, RefreshCw, Calendar, Target, Zap, CircleCheck, AlertTriangle, XCircle, Clock, BarChart3, Users, ShoppingCart } from 'lucide-react'
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from 'recharts'
 import ScoreCircle from '../components/ScoreCircle'
 import ScoreBar from '../components/ScoreBar'
@@ -34,6 +35,150 @@ function TimeAgo({ date }) {
   if (diffMins < 60) return <span>{diffMins}m ago</span>
   if (diffHours < 24) return <span>{diffHours}h ago</span>
   return <span>{diffDays}d ago</span>
+}
+
+const FLOW_COLORS = {
+  strong_buy: { bg: 'bg-oracle-green/15', text: 'text-oracle-green', border: 'border-oracle-green/30', label: 'Strong Buy Flow' },
+  bullish: { bg: 'bg-oracle-green/10', text: 'text-oracle-green', border: 'border-oracle-green/20', label: 'Bullish Flow' },
+  neutral: { bg: 'bg-white/5', text: 'text-oracle-muted', border: 'border-oracle-border', label: 'Neutral Flow' },
+  bearish: { bg: 'bg-oracle-red/10', text: 'text-oracle-red', border: 'border-oracle-red/20', label: 'Bearish Flow' },
+  strong_sell: { bg: 'bg-oracle-red/15', text: 'text-oracle-red', border: 'border-oracle-red/30', label: 'Strong Sell Flow' },
+}
+
+function OrderFlowSection({ symbol }) {
+  const [flow, setFlow] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!symbol) return
+    setLoading(true)
+    fetch(`/api/order-flow/${symbol}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { setFlow(d); setLoading(false) })
+      .catch(() => setLoading(false))
+  }, [symbol])
+
+  if (loading) return (
+    <div className="glass-card p-4 mb-4 animate-pulse">
+      <div className="h-3 bg-white/5 rounded w-32 mb-3" />
+      <div className="h-16 bg-white/5 rounded" />
+    </div>
+  )
+  if (!flow) return null
+
+  const style = FLOW_COLORS[flow.flowSignal] || FLOW_COLORS.neutral
+
+  return (
+    <div className="glass-card p-4 mb-4">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-xs text-oracle-muted font-medium flex items-center gap-1">
+          <BarChart3 size={12} /> Order Flow Intelligence
+        </h3>
+        <span className={`px-2 py-0.5 rounded text-[9px] font-bold border ${style.bg} ${style.text} ${style.border}`}>
+          {style.label}
+        </span>
+      </div>
+
+      {flow.summary && (
+        <p className="text-xs text-oracle-muted mb-3">{flow.summary}</p>
+      )}
+
+      {/* Insider Activity */}
+      {flow.insiders && (flow.insiders.recentBuys > 0 || flow.insiders.recentSells > 0) && (
+        <div className="glass-inner rounded-lg p-3 mb-2">
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <Users size={11} className="text-oracle-accent" />
+            <span className="text-[10px] font-semibold text-oracle-text">Insider Trading (90 days)</span>
+          </div>
+          <div className="flex gap-3 mb-2 text-[10px]">
+            {flow.insiders.recentBuys > 0 && (
+              <span className="text-oracle-green font-semibold">{flow.insiders.recentBuys} buys</span>
+            )}
+            {flow.insiders.recentSells > 0 && (
+              <span className="text-oracle-red font-semibold">{flow.insiders.recentSells} sells</span>
+            )}
+            <span className={`font-bold ${flow.insiders.netBuying > 0 ? 'text-oracle-green' : flow.insiders.netBuying < 0 ? 'text-oracle-red' : 'text-oracle-muted'}`}>
+              {flow.insiders.netBuyingLabel}
+            </span>
+          </div>
+          {flow.insiders.recentTrades?.slice(0, 3).map((t, i) => (
+            <div key={i} className="flex items-center justify-between text-[9px] text-oracle-muted py-0.5">
+              <span className="truncate flex-1">{t.name} ({t.relation})</span>
+              <span className={`font-semibold ${t.type === 'BUY' ? 'text-oracle-green' : 'text-oracle-red'}`}>
+                {t.type} {t.shares > 0 ? t.shares.toLocaleString() : ''} shares
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Options Flow */}
+      {flow.options && (
+        <div className="glass-inner rounded-lg p-3 mb-2">
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <Activity size={11} className="text-oracle-purple" />
+            <span className="text-[10px] font-semibold text-oracle-text">Options Flow</span>
+            {flow.options.unusualActivity && (
+              <span className="px-1 py-0.5 rounded text-[8px] font-bold bg-oracle-yellow/15 text-oracle-yellow border border-oracle-yellow/30 animate-pulse">
+                UNUSUAL
+              </span>
+            )}
+          </div>
+          <div className="flex gap-4 text-[10px] mb-2">
+            <div>
+              <span className="text-oracle-muted">Put/Call: </span>
+              <span className={`font-bold ${flow.options.putCallRatio < 0.7 ? 'text-oracle-green' : flow.options.putCallRatio > 1.3 ? 'text-oracle-red' : 'text-oracle-text'}`}>
+                {flow.options.putCallRatio}
+              </span>
+            </div>
+            <div>
+              <span className="text-oracle-muted">Calls: </span>
+              <span className="text-oracle-green font-semibold">{(flow.options.totalCallVol || 0).toLocaleString()}</span>
+            </div>
+            <div>
+              <span className="text-oracle-muted">Puts: </span>
+              <span className="text-oracle-red font-semibold">{(flow.options.totalPutVol || 0).toLocaleString()}</span>
+            </div>
+          </div>
+          <p className="text-[9px] text-oracle-muted">{flow.options.sentimentLabel}</p>
+          {flow.options.topStrikes?.length > 0 && (
+            <div className="mt-2 space-y-0.5">
+              <div className="text-[9px] text-oracle-muted font-medium">Top Volume Strikes:</div>
+              {flow.options.topStrikes.slice(0, 3).map((s, i) => (
+                <div key={i} className="flex items-center justify-between text-[9px]">
+                  <span className={s.type === 'CALL' ? 'text-oracle-green' : 'text-oracle-red'}>
+                    {s.type} ${s.strike}
+                  </span>
+                  <span className="text-oracle-muted">{s.volume.toLocaleString()} vol / {s.openInterest.toLocaleString()} OI</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Institutional Holdings */}
+      {flow.institutions && (
+        <div className="glass-inner rounded-lg p-3">
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <ShoppingCart size={11} className="text-oracle-yellow" />
+            <span className="text-[10px] font-semibold text-oracle-text">Institutional Holdings</span>
+          </div>
+          <div className="flex gap-4 text-[10px] mb-1">
+            <div>
+              <span className="text-oracle-muted">Institutions: </span>
+              <span className="text-oracle-text font-semibold">{flow.institutions.institutionPct}%</span>
+            </div>
+            <div>
+              <span className="text-oracle-muted">Insiders: </span>
+              <span className="text-oracle-text font-semibold">{flow.institutions.insiderPct}%</span>
+            </div>
+          </div>
+          <p className="text-[9px] text-oracle-muted">{flow.institutions.sentimentLabel}</p>
+        </div>
+      )}
+    </div>
+  )
 }
 
 export default function StockDetail() {
@@ -776,6 +921,9 @@ export default function StockDetail() {
           </div>
         </div>
       )}
+
+      {/* Order Flow Intelligence */}
+      <OrderFlowSection symbol={stock.symbol} />
 
       {/* News Articles */}
       {news.length > 0 && (

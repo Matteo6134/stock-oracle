@@ -13,6 +13,7 @@ import { findTomorrowMovers } from '../services/tomorrowMovers.js';
 import { analyzeGem, getAgentProfiles } from '../services/tradingDesk.js';
 import { saveGemSnapshot, getGemBacktestData } from '../services/gemHistory.js';
 import { searchStocks } from '../services/yahooFinance.js';
+import { getOrderFlow } from '../services/orderFlow.js';
 
 const router = express.Router();
 
@@ -1746,6 +1747,15 @@ router.get('/tomorrow-movers', async (req, res, next) => {
   } catch (err) {
     next(err);
   }
+});
+
+// ── Order Flow Intelligence ──
+router.get('/order-flow/:symbol', async (req, res, next) => {
+  try {
+    const symbol = req.params.symbol.toUpperCase();
+    const data = await getOrderFlow(symbol);
+    res.json(data);
+  } catch (err) { next(err); }
 });
 
 // ── Gem Backtest — AI Trading Desk Results ──
