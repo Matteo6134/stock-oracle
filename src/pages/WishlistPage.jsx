@@ -116,7 +116,7 @@ function WishlistCard({ stock, onRemove }) {
       {stock.squeezeSetup && !stock.tomorrowSetup && (
         <div className="glass-inner rounded-lg p-2 mb-2">
           <p className="text-[10px] text-oracle-muted leading-relaxed">
-            Short interest {stock.squeezeSetup.shortPercentOfFloat?.toFixed(1)}% · {stock.squeezeSetup.daysToCover?.toFixed(1)}d to cover
+            Short interest {(stock.squeezeSetup.shortPercentOfFloat ?? 0).toFixed(1)}% · {(stock.squeezeSetup.shortRatio ?? stock.squeezeSetup.daysToCover ?? 0).toFixed(1)}d to cover
           </p>
         </div>
       )}

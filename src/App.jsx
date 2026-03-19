@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Routes, Route, NavLink, useLocation, matchPath } from 'react-router-dom'
-import { LayoutDashboard, TrendingUp, PieChart, CalendarDays, History as HistoryIcon, DollarSign, Zap, Crosshair, Menu, X, Bookmark } from 'lucide-react'
+import { LayoutDashboard, TrendingUp, PieChart, CalendarDays, History as HistoryIcon, DollarSign, Zap, Crosshair, Menu, X, Bookmark, Diamond } from 'lucide-react'
 import ErrorBoundary from './components/ErrorBoundary'
 import { ToastProvider } from './components/Toast'
 import LandscapeSplit from './components/LandscapeSplit'
@@ -22,10 +22,10 @@ import { checkWishlistAlerts } from './lib/wishlistAlerts'
 
 const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Home' },
+  { to: '/gems', icon: Diamond, label: 'Gem Finder' },
   { to: '/buy-tomorrow', icon: Crosshair, label: 'Buy Tomorrow' },
   { to: '/wishlist', icon: Bookmark, label: 'My Watchlist' },
   { to: '/movers', icon: Zap, label: 'Movers' },
-  { to: '/tomorrow', icon: CalendarDays, label: 'Tomorrow' },
   { to: '/trending', icon: TrendingUp, label: 'Trending' },
   { to: '/paper', icon: DollarSign, label: 'Paper Trade' },
   { to: '/history', icon: HistoryIcon, label: 'History' },
@@ -227,11 +227,11 @@ export default function App() {
         <ErrorBoundary>
           <Routes>
             <Route path="/" element={<Dashboard />} />
+            <Route path="/gems" element={<TomorrowPage />} />
             <Route path="/buy-tomorrow" element={<BuyTomorrowPage />} />
             <Route path="/wishlist" element={<WishlistPage />} />
             <Route path="/movers" element={<MoversPage />} />
             <Route path="/stock/:symbol" element={<StockDetail />} />
-            <Route path="/tomorrow" element={<TomorrowPage />} />
             <Route path="/sectors" element={<SectorsPage />} />
             <Route path="/sectors/:sectorName" element={<SectorDetail />} />
             <Route path="/trending" element={<TrendingPage />} />
