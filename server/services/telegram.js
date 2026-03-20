@@ -30,6 +30,18 @@ function saveConfig(cfg) {
 }
 function $(n) { return `$${(n || 0).toFixed(2)}`; }
 function p(n) { return `${(n || 0) >= 0 ? '+' : ''}${(n || 0).toFixed(1)}%`; }
+function getTargetInfo(stock) {
+  const buyVerdicts = (stock.verdicts || []).filter(v => v.action === 'BUY');
+  if (buyVerdicts.length === 0 || !stock.price) return null;
+  const avgTarget = buyVerdicts.reduce((s, v) => s + (parseFloat(v.targetGain) || 0), 0) / buyVerdicts.length;
+  const avgStopPct = buyVerdicts.reduce((s, v) => {
+    return s + (v.stopLoss ? Math.round(((stock.price - v.stopLoss) / stock.price) * 100) : 5);
+  }, 0) / buyVerdicts.length;
+  const tp = $(stock.price * (1 + avgTarget / 100));
+  const sl = $(stock.price * (1 - avgStopPct / 100));
+  return `+${avgTarget.toFixed(0)}% \u2192 ${tp}  SL ${sl}`;
+}
+
 function send(id, text) {
   if (!bot) return;
   bot.sendMessage(id, text, { parse_mode: 'Markdown', disable_web_page_preview: true }).catch(() => {});
@@ -147,7 +159,9 @@ function registerCommands() {
       lines.push('\uD83D\uDC8E *Gems*');
       top.forEach(g => {
         const icon = g.consensus === 'Strong Buy' ? '\uD83D\uDFE2' : g.consensus === 'Buy' ? '\uD83D\uDD35' : '\u26AA';
+        const info = getTargetInfo(g);
         lines.push(`${icon} *${g.symbol}*  ${$(g.price)}  ${p(g.changePct)}`);
+        if (info) lines.push(`   \uD83C\uDFAF ${info}`);
       });
       lines.push('');
     }
@@ -157,7 +171,9 @@ function registerCommands() {
       lines.push('\uD83E\uDE99 *Pennies*');
       top.forEach(pp => {
         const icon = pp.consensus === 'Strong Buy' ? '\uD83D\uDFE2' : pp.consensus === 'Buy' ? '\uD83D\uDD35' : '\u26AA';
+        const info = getTargetInfo(pp);
         lines.push(`${icon} *${pp.symbol}*  ${$(pp.price)}  ${p(pp.changePct)}`);
+        if (info) lines.push(`   \uD83C\uDFAF ${info}`);
       });
     }
 
@@ -197,11 +213,27 @@ function registerCommands() {
       lines.push(label);
       autoBuys.forEach(s => {
         const amt = s.consensus === 'Strong Buy' ? config.strongBuyAmount : config.buyAmount;
-        lines.push(`   *${s.symbol}*  ${$(s.price)}  \u2192  ${$(amt)}`);
+        // Get target/stop from agent verdicts
+        const buyVerdicts = (s.verdicts || []).filter(v => v.action === 'BUY');
+        const avgTarget = buyVerdicts.length > 0
+          ? buyVerdicts.reduce((sum, v) => sum + (parseFloat(v.targetGain) || 0), 0) / buyVerdicts.length
+          : config.takeProfitPct || 10;
+        const avgStop = buyVerdicts.length > 0
+          ? buyVerdicts.reduce((sum, v) => {
+              const stopPctVal = v.stopLoss && s.price ? Math.round(((s.price - v.stopLoss) / s.price) * 100) : 5;
+              return sum + stopPctVal;
+            }, 0) / buyVerdicts.length
+          : config.defaultStopPct || 5;
+        const tp = s.price ? $(s.price * (1 + avgTarget / 100)) : '?';
+        const sl = s.price ? $(s.price * (1 - avgStop / 100)) : '?';
+
+        lines.push(`   *${s.symbol}*  ${$(s.price)}  LONG  ${$(amt)}`);
+        lines.push(`   \uD83C\uDFAF +${avgTarget.toFixed(0)}% \u2192 ${tp}  \uD83D\uDED1 -${avgStop.toFixed(0)}% \u2192 ${sl}`);
+        lines.push('');
       });
       if (config.enabled) {
         const total = autoBuys.reduce((sum, s) => sum + (s.consensus === 'Strong Buy' ? config.strongBuyAmount : config.buyAmount), 0);
-        lines.push(`   Total: *${$(total)}*`);
+        lines.push(`\uD83D\uDCB0 Total: *${$(total)}*`);
       }
       lines.push('');
     }
