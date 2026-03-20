@@ -160,8 +160,14 @@ export default function AlpacaTradingPage() {
   const [autoConfig, setAutoConfig] = useState(null)
   const [agentLog, setAgentLog] = useState([])
   const [agentProfiles, setAgentProfiles] = useState([])
+  const [draftProfiles, setDraftProfiles] = useState(null) // local edits before save
+  const [agentsDirty, setAgentsDirty] = useState(false)
+  const [savingAgents, setSavingAgents] = useState(false)
   const [expandedAgent, setExpandedAgent] = useState(null)
   const [showAgentSettings, setShowAgentSettings] = useState(false)
+  const [configDirty, setConfigDirty] = useState(false)
+  const [draftConfig, setDraftConfig] = useState(null)
+  const [savingConfig, setSavingConfig] = useState(false)
 
   // Trade form
   const [tradeSymbol, setTradeSymbol] = useState(searchParams.get('symbol') || '')
@@ -277,32 +283,88 @@ export default function AlpacaTradingPage() {
     } catch { /* ignore */ }
   }
 
-  const handleUpdateConfig = async (updates) => {
+  const handleUpdateConfigDraft = (updates) => {
+    setDraftConfig(prev => ({ ...(prev || autoConfig), ...updates }))
+    setConfigDirty(true)
+  }
+
+  const handleSaveConfig = async () => {
+    if (!draftConfig) return
+    setSavingConfig(true)
     try {
       const res = await fetch(`${API}/api/auto-trade/config`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates),
+        body: JSON.stringify(draftConfig),
       })
-      if (res.ok) setAutoConfig(await res.json())
+      if (res.ok) {
+        const saved = await res.json()
+        setAutoConfig(saved)
+        setDraftConfig(null)
+        setConfigDirty(false)
+      }
     } catch { /* ignore */ }
+    setSavingConfig(false)
   }
 
-  const handleUpdateAgent = async (style, updates) => {
+  const handleDiscardConfig = () => {
+    setDraftConfig(null)
+    setConfigDirty(false)
+  }
+
+  const handleUpdateAgentDraft = (style, updates) => {
+    setDraftProfiles(prev => {
+      const base = prev || agentProfiles
+      return base.map(a => a.style === style ? { ...a, ...updates } : a)
+    })
+    setAgentsDirty(true)
+  }
+
+  const handleSaveAgents = async () => {
+    if (!draftProfiles) return
+    setSavingAgents(true)
     try {
-      const res = await fetch(`${API}/api/agents/profiles/${style}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates),
-      })
-      if (res.ok) setAgentProfiles(await res.json())
+      // Save each changed agent
+      for (const draft of draftProfiles) {
+        const orig = agentProfiles.find(a => a.style === draft.style)
+        if (!orig || JSON.stringify(draft) !== JSON.stringify(orig)) {
+          await fetch(`${API}/api/agents/profiles/${draft.style}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              enabled: draft.enabled,
+              stopPct: draft.stopPct,
+              targetGainRange: draft.targetGainRange,
+              timeframeDays: draft.timeframeDays,
+            }),
+          })
+        }
+      }
+      // Refresh from server
+      const res = await fetch(`${API}/api/agents/profiles`)
+      if (res.ok) {
+        const saved = await res.json()
+        setAgentProfiles(saved)
+        setDraftProfiles(null)
+        setAgentsDirty(false)
+      }
     } catch { /* ignore */ }
+    setSavingAgents(false)
+  }
+
+  const handleDiscardAgents = () => {
+    setDraftProfiles(null)
+    setAgentsDirty(false)
   }
 
   const handleResetAgents = async () => {
     try {
       const res = await fetch(`${API}/api/agents/profiles/reset`, { method: 'POST' })
-      if (res.ok) setAgentProfiles(await res.json())
+      if (res.ok) {
+        setAgentProfiles(await res.json())
+        setDraftProfiles(null)
+        setAgentsDirty(false)
+      }
     } catch { /* ignore */ }
   }
 
@@ -557,7 +619,9 @@ export default function AlpacaTradingPage() {
               </button>
             </div>
 
-            {autoConfig.enabled && (
+            {autoConfig.enabled && (() => {
+              const cfg = draftConfig || autoConfig
+              return (
               <div className="mt-3 pt-3 border-t border-oracle-border space-y-3">
                 {/* Budget */}
                 <div className="p-2 bg-oracle-accent/5 rounded border border-oracle-accent/20">
@@ -565,20 +629,20 @@ export default function AlpacaTradingPage() {
                   <div className="grid grid-cols-3 gap-2">
                     <div>
                       <label className="text-oracle-muted text-[8px] block mb-0.5">Max Budget $</label>
-                      <input type="number" value={autoConfig.maxBudget || 1000}
-                        onChange={e => handleUpdateConfig({ maxBudget: parseInt(e.target.value) || 1000 })}
+                      <input type="number" value={cfg.maxBudget || 1000}
+                        onChange={e => handleUpdateConfigDraft({ maxBudget: parseInt(e.target.value) || 1000 })}
                         className="w-full bg-white/5 border border-oracle-border rounded px-2 py-1 text-oracle-text text-[11px]" />
                     </div>
                     <div>
                       <label className="text-oracle-muted text-[8px] block mb-0.5">Strong Buy $</label>
-                      <input type="number" value={autoConfig.strongBuyAmount}
-                        onChange={e => handleUpdateConfig({ strongBuyAmount: parseInt(e.target.value) || 200 })}
+                      <input type="number" value={cfg.strongBuyAmount}
+                        onChange={e => handleUpdateConfigDraft({ strongBuyAmount: parseInt(e.target.value) || 200 })}
                         className="w-full bg-white/5 border border-oracle-border rounded px-2 py-1 text-oracle-text text-[11px]" />
                     </div>
                     <div>
                       <label className="text-oracle-muted text-[8px] block mb-0.5">Max Pos.</label>
-                      <input type="number" value={autoConfig.maxPositions}
-                        onChange={e => handleUpdateConfig({ maxPositions: parseInt(e.target.value) || 5 })}
+                      <input type="number" value={cfg.maxPositions}
+                        onChange={e => handleUpdateConfigDraft({ maxPositions: parseInt(e.target.value) || 5 })}
                         className="w-full bg-white/5 border border-oracle-border rounded px-2 py-1 text-oracle-text text-[11px]" />
                     </div>
                   </div>
@@ -590,20 +654,20 @@ export default function AlpacaTradingPage() {
                   <div className="grid grid-cols-3 gap-2">
                     <div>
                       <label className="text-oracle-muted text-[8px] block mb-0.5">Stop Loss %</label>
-                      <input type="number" value={autoConfig.defaultStopPct}
-                        onChange={e => handleUpdateConfig({ defaultStopPct: parseInt(e.target.value) || 5 })}
+                      <input type="number" value={cfg.defaultStopPct}
+                        onChange={e => handleUpdateConfigDraft({ defaultStopPct: parseInt(e.target.value) || 5 })}
                         className="w-full bg-white/5 border border-oracle-border rounded px-2 py-1 text-oracle-text text-[11px]" />
                     </div>
                     <div>
                       <label className="text-oracle-muted text-[8px] block mb-0.5">Take Profit %</label>
-                      <input type="number" value={autoConfig.takeProfitPct}
-                        onChange={e => handleUpdateConfig({ takeProfitPct: parseInt(e.target.value) || 10 })}
+                      <input type="number" value={cfg.takeProfitPct}
+                        onChange={e => handleUpdateConfigDraft({ takeProfitPct: parseInt(e.target.value) || 10 })}
                         className="w-full bg-white/5 border border-oracle-border rounded px-2 py-1 text-oracle-text text-[11px]" />
                     </div>
                     <div>
                       <label className="text-oracle-muted text-[8px] block mb-0.5">Trail Stop %</label>
-                      <input type="number" value={autoConfig.trailingStopPct || 3}
-                        onChange={e => handleUpdateConfig({ trailingStopPct: parseInt(e.target.value) || 3 })}
+                      <input type="number" value={cfg.trailingStopPct || 3}
+                        onChange={e => handleUpdateConfigDraft({ trailingStopPct: parseInt(e.target.value) || 3 })}
                         className="w-full bg-white/5 border border-oracle-border rounded px-2 py-1 text-oracle-text text-[11px]" />
                     </div>
                   </div>
@@ -615,42 +679,62 @@ export default function AlpacaTradingPage() {
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <label className="text-oracle-muted text-[8px] block mb-0.5">Min Gem Score</label>
-                      <input type="number" value={autoConfig.minGemScore}
-                        onChange={e => handleUpdateConfig({ minGemScore: parseInt(e.target.value) || 60 })}
+                      <input type="number" value={cfg.minGemScore}
+                        onChange={e => handleUpdateConfigDraft({ minGemScore: parseInt(e.target.value) || 60 })}
                         className="w-full bg-white/5 border border-oracle-border rounded px-2 py-1 text-oracle-text text-[11px]" />
                     </div>
                     <div>
                       <label className="text-oracle-muted text-[8px] block mb-0.5">Min Conviction</label>
-                      <input type="number" value={autoConfig.minConviction}
-                        onChange={e => handleUpdateConfig({ minConviction: parseInt(e.target.value) || 4 })}
+                      <input type="number" value={cfg.minConviction}
+                        onChange={e => handleUpdateConfigDraft({ minConviction: parseInt(e.target.value) || 4 })}
                         className="w-full bg-white/5 border border-oracle-border rounded px-2 py-1 text-oracle-text text-[11px]" />
                     </div>
                   </div>
                   <div className="grid grid-cols-2 gap-2 mt-2">
                     <div>
                       <label className="text-oracle-muted text-[8px] block mb-0.5">Max Stock Price $</label>
-                      <input type="number" value={autoConfig.maxStockPrice || 5}
-                        onChange={e => handleUpdateConfig({ maxStockPrice: parseFloat(e.target.value) || 5 })}
+                      <input type="number" value={cfg.maxStockPrice || 5}
+                        onChange={e => handleUpdateConfigDraft({ maxStockPrice: parseFloat(e.target.value) || 5 })}
                         className="w-full bg-white/5 border border-oracle-border rounded px-2 py-1 text-oracle-text text-[11px]" />
                     </div>
                   </div>
                   <div className="flex gap-3 mt-2">
                     <label className="flex items-center gap-1 text-[9px] text-oracle-muted cursor-pointer">
-                      <input type="checkbox" checked={autoConfig.onlyStrongBuy !== false}
-                        onChange={e => handleUpdateConfig({ onlyStrongBuy: e.target.checked })}
+                      <input type="checkbox" checked={cfg.onlyStrongBuy !== false}
+                        onChange={e => handleUpdateConfigDraft({ onlyStrongBuy: e.target.checked })}
                         className="rounded" />
                       Strong Buy only
                     </label>
                     <label className="flex items-center gap-1 text-[9px] text-oracle-muted cursor-pointer">
-                      <input type="checkbox" checked={autoConfig.requireOrderFlow !== false}
-                        onChange={e => handleUpdateConfig({ requireOrderFlow: e.target.checked })}
+                      <input type="checkbox" checked={cfg.requireOrderFlow !== false}
+                        onChange={e => handleUpdateConfigDraft({ requireOrderFlow: e.target.checked })}
                         className="rounded" />
                       Require order flow
                     </label>
                   </div>
                 </div>
+
+                {/* Save / Discard buttons for config */}
+                {configDirty && (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={handleSaveConfig}
+                      disabled={savingConfig}
+                      className="flex-1 py-2 rounded font-bold text-xs bg-oracle-accent/20 text-oracle-accent border border-oracle-accent/40 hover:bg-oracle-accent/30 transition-all disabled:opacity-50"
+                    >
+                      {savingConfig ? <Loader2 size={14} className="animate-spin mx-auto" /> : '💾 Save Settings'}
+                    </button>
+                    <button
+                      onClick={handleDiscardConfig}
+                      className="px-4 py-2 rounded text-xs text-oracle-muted border border-oracle-border hover:text-oracle-red transition-all"
+                    >
+                      Discard
+                    </button>
+                  </div>
+                )}
               </div>
-            )}
+              )
+            })()}
           </div>
 
           {/* ── Agent Profiles Settings ── */}
@@ -671,23 +755,17 @@ export default function AlpacaTradingPage() {
               </div>
             </div>
 
-            {showAgentSettings && (
+            {showAgentSettings && (() => {
+              const profiles = draftProfiles || agentProfiles
+              return (
               <div className="mt-3 pt-3 border-t border-oracle-border space-y-2">
-                <p className="text-oracle-muted text-[10px] mb-2">Configure each agent's strategy — enable/disable, adjust stop loss, target gain, and timeframe.</p>
+                <p className="text-oracle-muted text-[10px] mb-2">Configure each agent's strategy — changes apply when you press Save.</p>
 
-                {agentProfiles.map(agent => {
+                {profiles.map(agent => {
                   const isExpanded = expandedAgent === agent.style
-                  const styleColors = {
-                    momentum: 'oracle-green',
-                    squeeze: 'oracle-red',
-                    accumulation: 'oracle-accent',
-                    catalyst: 'oracle-yellow',
-                    contrarian: 'purple-400',
-                  }
-                  const color = styleColors[agent.style] || 'oracle-accent'
 
                   return (
-                    <div key={agent.style} className={`rounded border transition-all ${agent.enabled ? `border-${color}/30 bg-${color}/5` : 'border-oracle-border/50 bg-white/[0.01] opacity-60'}`}>
+                    <div key={agent.style} className={`rounded border transition-all ${agent.enabled ? 'border-oracle-accent/20 bg-oracle-accent/5' : 'border-oracle-border/50 bg-white/[0.01] opacity-60'}`}>
                       {/* Agent Header */}
                       <div
                         className="flex items-center justify-between p-2.5 cursor-pointer"
@@ -719,7 +797,7 @@ export default function AlpacaTradingPage() {
                           <div className="flex items-center justify-between pt-2">
                             <span className="text-oracle-muted text-[10px] font-semibold">ENABLED</span>
                             <button
-                              onClick={(e) => { e.stopPropagation(); handleUpdateAgent(agent.style, { enabled: !agent.enabled }) }}
+                              onClick={(e) => { e.stopPropagation(); handleUpdateAgentDraft(agent.style, { enabled: !agent.enabled }) }}
                               className={`px-3 py-1 rounded-full text-[9px] font-bold transition-all border ${
                                 agent.enabled
                                   ? 'bg-oracle-green/25 text-oracle-green border-oracle-green/50'
@@ -739,7 +817,7 @@ export default function AlpacaTradingPage() {
                               <input
                                 type="range" min="1" max="20" step="1"
                                 value={agent.stopPct}
-                                onChange={e => handleUpdateAgent(agent.style, { stopPct: parseInt(e.target.value) })}
+                                onChange={e => handleUpdateAgentDraft(agent.style, { stopPct: parseInt(e.target.value) })}
                                 className="flex-1 accent-oracle-red h-1"
                               />
                               <span className="text-oracle-red text-xs font-bold w-8 text-right">{agent.stopPct}%</span>
@@ -756,7 +834,7 @@ export default function AlpacaTradingPage() {
                                 <span className="text-oracle-muted text-[8px]">Min</span>
                                 <input type="number" min="1" max="100"
                                   value={agent.targetGainRange[0]}
-                                  onChange={e => handleUpdateAgent(agent.style, { targetGainRange: [parseInt(e.target.value) || 5, agent.targetGainRange[1]] })}
+                                  onChange={e => handleUpdateAgentDraft(agent.style, { targetGainRange: [parseInt(e.target.value) || 5, agent.targetGainRange[1]] })}
                                   className="w-full bg-white/5 border border-oracle-border rounded px-2 py-1 text-oracle-text text-[11px]"
                                 />
                               </div>
@@ -764,7 +842,7 @@ export default function AlpacaTradingPage() {
                                 <span className="text-oracle-muted text-[8px]">Max</span>
                                 <input type="number" min="1" max="200"
                                   value={agent.targetGainRange[1]}
-                                  onChange={e => handleUpdateAgent(agent.style, { targetGainRange: [agent.targetGainRange[0], parseInt(e.target.value) || 20] })}
+                                  onChange={e => handleUpdateAgentDraft(agent.style, { targetGainRange: [agent.targetGainRange[0], parseInt(e.target.value) || 20] })}
                                   className="w-full bg-white/5 border border-oracle-border rounded px-2 py-1 text-oracle-text text-[11px]"
                                 />
                               </div>
@@ -781,7 +859,7 @@ export default function AlpacaTradingPage() {
                                 <span className="text-oracle-muted text-[8px]">Min</span>
                                 <input type="number" min="1" max="30"
                                   value={agent.timeframeDays[0]}
-                                  onChange={e => handleUpdateAgent(agent.style, { timeframeDays: [parseInt(e.target.value) || 1, agent.timeframeDays[1]] })}
+                                  onChange={e => handleUpdateAgentDraft(agent.style, { timeframeDays: [parseInt(e.target.value) || 1, agent.timeframeDays[1]] })}
                                   className="w-full bg-white/5 border border-oracle-border rounded px-2 py-1 text-oracle-text text-[11px]"
                                 />
                               </div>
@@ -789,7 +867,7 @@ export default function AlpacaTradingPage() {
                                 <span className="text-oracle-muted text-[8px]">Max</span>
                                 <input type="number" min="1" max="30"
                                   value={agent.timeframeDays[1]}
-                                  onChange={e => handleUpdateAgent(agent.style, { timeframeDays: [agent.timeframeDays[0], parseInt(e.target.value) || 7] })}
+                                  onChange={e => handleUpdateAgentDraft(agent.style, { timeframeDays: [agent.timeframeDays[0], parseInt(e.target.value) || 7] })}
                                   className="w-full bg-white/5 border border-oracle-border rounded px-2 py-1 text-oracle-text text-[11px]"
                                 />
                               </div>
@@ -813,7 +891,25 @@ export default function AlpacaTradingPage() {
                   )
                 })}
 
-                {/* Reset Button */}
+                {/* Save / Discard / Reset buttons */}
+                {agentsDirty && (
+                  <div className="flex gap-2 pt-1">
+                    <button
+                      onClick={handleSaveAgents}
+                      disabled={savingAgents}
+                      className="flex-1 py-2 rounded font-bold text-xs bg-oracle-green/20 text-oracle-green border border-oracle-green/40 hover:bg-oracle-green/30 transition-all disabled:opacity-50"
+                    >
+                      {savingAgents ? <Loader2 size={14} className="animate-spin mx-auto" /> : '💾 Save Agent Settings'}
+                    </button>
+                    <button
+                      onClick={handleDiscardAgents}
+                      className="px-4 py-2 rounded text-xs text-oracle-muted border border-oracle-border hover:text-oracle-red transition-all"
+                    >
+                      Discard
+                    </button>
+                  </div>
+                )}
+
                 <button
                   onClick={handleResetAgents}
                   className="w-full flex items-center justify-center gap-1.5 py-1.5 text-oracle-muted text-[10px] hover:text-oracle-accent transition-all"
@@ -822,7 +918,8 @@ export default function AlpacaTradingPage() {
                   Reset all agents to defaults
                 </button>
               </div>
-            )}
+              )
+            })()}
           </div>
 
           {/* Agent Trade Log */}
