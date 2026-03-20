@@ -16,7 +16,6 @@ import { fileURLToPath } from 'url';
 import { randomUUID } from 'crypto';
 import * as alpaca from './alpaca.js';
 import { notifyNewTrade, notifyTradeExit } from './telegram.js';
-import { logNewTrade, updateTradeExit } from './sheetsLogger.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CONFIG_FILE = path.join(__dirname, '..', 'data', 'autoTradeConfig.json');
@@ -224,7 +223,6 @@ export async function processSignals(analyzedStocks) {
 
       // Notify Telegram + Google Sheets (fire & forget)
       notifyNewTrade(tradeEntry).catch(() => {});
-      logNewTrade(tradeEntry).catch(() => {});
 
     } catch (err) {
       console.error(`[AutoTrader] Failed to buy ${symbol}:`, err.response?.data?.message || err.message);
@@ -283,7 +281,7 @@ export async function checkExitSignals() {
         }
         results.closed.push({ symbol, reason: 'trailing_stop', pnl: pos.unrealizedPL });
         // Notify Telegram + Sheets
-        if (entry) { notifyTradeExit(entry).catch(() => {}); updateTradeExit(entry).catch(() => {}); }
+        if (entry) { notifyTradeExit(entry).catch(() => {}); }
       } catch (err) {
         console.error(`[AutoTrader] Failed to close ${symbol}:`, err.message);
       }
@@ -304,7 +302,7 @@ export async function checkExitSignals() {
         }
         results.closed.push({ symbol, reason: 'stop_loss', pnl: pos.unrealizedPL });
         // Notify Telegram + Sheets
-        if (entry) { notifyTradeExit(entry).catch(() => {}); updateTradeExit(entry).catch(() => {}); }
+        if (entry) { notifyTradeExit(entry).catch(() => {}); }
       } catch (err) {
         console.error(`[AutoTrader] Failed to close ${symbol}:`, err.message);
       }
@@ -325,7 +323,7 @@ export async function checkExitSignals() {
         }
         results.closed.push({ symbol, reason: 'take_profit', pnl: pos.unrealizedPL });
         // Notify Telegram + Sheets
-        if (entry) { notifyTradeExit(entry).catch(() => {}); updateTradeExit(entry).catch(() => {}); }
+        if (entry) { notifyTradeExit(entry).catch(() => {}); }
       } catch (err) {
         console.error(`[AutoTrader] Failed to close ${symbol}:`, err.message);
       }
