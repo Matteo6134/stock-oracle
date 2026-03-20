@@ -54,7 +54,18 @@ export function initTelegramBot() {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   if (!token) { console.log('[Telegram] No token'); return null; }
   try {
-    bot = new TelegramBot(token, { polling: true });
+    bot = new TelegramBot(token, { polling: { params: { timeout: 10 } } });
+
+    // Catch polling errors so they don't crash the server
+    bot.on('polling_error', (err) => {
+      console.error('[Telegram] Polling error:', err.message);
+      // If 409 conflict, stop polling — another instance is running
+      if (err.message && err.message.includes('409')) {
+        console.error('[Telegram] Another bot instance detected — stopping polling');
+        bot.stopPolling();
+      }
+    });
+
     const cfg = loadConfig();
     if (cfg.chatId) chatId = cfg.chatId;
     console.log(`[Telegram] Bot online${chatId ? ` (chat: ${chatId})` : ''}`);
