@@ -123,7 +123,8 @@ function registerCommands() {
         '         ━━━━━━━━━━━━━━━━━━━━━━',
       ].filter(Boolean).join('\n'));
     } catch (err) {
-      send(msg.chat.id, `Something went wrong. Check the web app.`);
+      console.error('[Telegram] /portfolio error:', err.message);
+      send(msg.chat.id, `Something went wrong: ${err.message}`);
     }
   });
 
