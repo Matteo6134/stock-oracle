@@ -63,7 +63,8 @@
       "Bash(gh auth:*)",
       "Bash(curl -s \"https://stock-oracle-blue.vercel.app/api/alpaca/status\")",
       "Bash(node -e \"require\\(''dotenv''\\).config\\(\\); console.log\\(''KEY set:'', !!process.env.ALPACA_API_KEY, ''KEY length:'', \\(process.env.ALPACA_API_KEY||''''\\).length\\); console.log\\(''SECRET set:'', !!process.env.ALPACA_SECRET_KEY, ''SECRET length:'', \\(process.env.ALPACA_SECRET_KEY||''''\\).length\\); console.log\\(''BASE_URL:'', process.env.ALPACA_BASE_URL || ''\\(default\\)''\\);\")",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "WebFetch(domain:stock-oracle-production-064f.up.railway.app)"
     ]
   }
 }
