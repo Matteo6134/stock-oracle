@@ -10,7 +10,7 @@ import { classifySector, getSectorTrends, SECTOR_REPS } from '../services/sector
 import { saveDailyPicks, getHistoryWithPerformance } from '../services/history.js';
 import { scanPremarketMovers, getShortSqueezeSetups, getBreakoutSetups } from '../services/premarketScanner.js';
 import { findTomorrowMovers } from '../services/tomorrowMovers.js';
-import { analyzeGem, getAgentProfiles } from '../services/tradingDesk.js';
+import { analyzeGem, getAgentProfiles, updateAgentProfile, resetAgentProfiles } from '../services/tradingDesk.js';
 import { saveGemSnapshot, getGemBacktestData } from '../services/gemHistory.js';
 import { searchStocks } from '../services/yahooFinance.js';
 import { getOrderFlow } from '../services/orderFlow.js';
@@ -1898,6 +1898,26 @@ router.post('/auto-trade/toggle', (req, res) => {
 
 router.get('/auto-trade/log', (req, res) => {
   res.json(getAutoTradeLog());
+});
+
+// ── Agent Profiles (per-agent settings) ──
+router.get('/agents/profiles', (req, res) => {
+  res.json(getAgentProfiles());
+});
+
+router.put('/agents/profiles/:style', (req, res) => {
+  const { style } = req.params;
+  const validStyles = ['momentum', 'squeeze', 'accumulation', 'catalyst', 'contrarian'];
+  if (!validStyles.includes(style)) {
+    return res.status(400).json({ error: `Invalid agent style: ${style}` });
+  }
+  const profiles = updateAgentProfile(style, req.body);
+  res.json(profiles);
+});
+
+router.post('/agents/profiles/reset', (req, res) => {
+  const profiles = resetAgentProfiles();
+  res.json(profiles);
 });
 
 export default router;

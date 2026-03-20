@@ -3,14 +3,23 @@
  *
  * Each agent analyzes gems from their unique trading style.
  * Rule-based (no LLM calls), persona-driven reasoning.
+ * Agent parameters are user-configurable via the UI.
  */
 
-// ── Agent Profiles ──
-const AGENTS = [
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const AGENT_CONFIG_FILE = path.join(__dirname, '..', 'data', 'agentConfig.json');
+
+// ── Default Agent Profiles ──
+const DEFAULT_AGENTS = [
   {
     name: 'Momentum Mike',
     style: 'momentum',
     emoji: '🚀',
+    enabled: true,
     description: 'Rides breakouts and momentum acceleration. Buys when price is moving UP with volume confirmation.',
     targetSignals: ['early_momentum', 'momentum_acceleration', 'near_52w_high', 'bull_flag', 'golden_cross'],
     targetGainRange: [15, 30],
@@ -21,6 +30,7 @@ const AGENTS = [
     name: 'Squeeze Sarah',
     style: 'squeeze',
     emoji: '🔥',
+    enabled: true,
     description: 'Hunts short squeezes and volatility explosions. Buys trapped shorts and coiled springs.',
     targetSignals: ['short_squeeze_loading', 'bb_squeeze', 'price_compression', 'volume_contraction'],
     targetGainRange: [20, 50],
@@ -31,6 +41,7 @@ const AGENTS = [
     name: 'Volume Victor',
     style: 'accumulation',
     emoji: '📊',
+    enabled: true,
     description: 'Follows smart money. Buys when institutions are quietly loading shares before a big push.',
     targetSignals: ['unusual_volume', 'multi_day_accumulation', 'smart_money'],
     targetGainRange: [10, 20],
@@ -41,6 +52,7 @@ const AGENTS = [
     name: 'Catalyst Claire',
     style: 'catalyst',
     emoji: '⚡',
+    enabled: true,
     description: 'Plays earnings and events. Buys before catalysts with strong setup scores.',
     targetSignals: ['earnings_tomorrow'],
     targetGainRange: [5, 15],
@@ -51,6 +63,7 @@ const AGENTS = [
     name: 'Contrarian Carlos',
     style: 'contrarian',
     emoji: '🔄',
+    enabled: true,
     description: 'Buys fear, sells greed. Targets oversold quality stocks and sector laggards about to catch up.',
     targetSignals: ['oversold_bounce', 'sector_lag'],
     targetGainRange: [8, 15],
@@ -59,10 +72,44 @@ const AGENTS = [
   },
 ];
 
+// ── Agent Config Persistence ──
+function loadAgentOverrides() {
+  try {
+    if (fs.existsSync(AGENT_CONFIG_FILE)) {
+      return JSON.parse(fs.readFileSync(AGENT_CONFIG_FILE, 'utf8'));
+    }
+  } catch { /* use defaults */ }
+  return {};
+}
+
+function saveAgentOverrides(overrides) {
+  const dir = path.dirname(AGENT_CONFIG_FILE);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(AGENT_CONFIG_FILE, JSON.stringify(overrides, null, 2), 'utf8');
+}
+
+/** Get merged agent profiles (defaults + user overrides) */
+function getAgents() {
+  const overrides = loadAgentOverrides();
+  return DEFAULT_AGENTS.map(agent => {
+    const ov = overrides[agent.style] || {};
+    return {
+      ...agent,
+      enabled: ov.enabled !== undefined ? ov.enabled : agent.enabled,
+      stopPct: ov.stopPct !== undefined ? ov.stopPct : agent.stopPct,
+      targetGainRange: ov.targetGainRange || agent.targetGainRange,
+      timeframeDays: ov.timeframeDays || agent.timeframeDays,
+    };
+  });
+}
+
+// Alias for backward compat
+const AGENTS = getAgents();
+
 // ── Individual Agent Analysis Functions ──
 
 function momentumMike(gem) {
-  const profile = AGENTS[0];
+  const profile = getAgents()[0];
   const relevant = profile.targetSignals;
   const matches = gem.signals.filter(s => relevant.includes(s));
   const base = { agent: profile.name, style: profile.style, emoji: profile.emoji };
@@ -103,7 +150,7 @@ function momentumMike(gem) {
 }
 
 function squeezeSarah(gem) {
-  const profile = AGENTS[1];
+  const profile = getAgents()[1];
   const relevant = profile.targetSignals;
   const matches = gem.signals.filter(s => relevant.includes(s));
   const base = { agent: profile.name, style: profile.style, emoji: profile.emoji };
@@ -145,7 +192,7 @@ function squeezeSarah(gem) {
 }
 
 function volumeVictor(gem) {
-  const profile = AGENTS[2];
+  const profile = getAgents()[2];
   const relevant = profile.targetSignals;
   const matches = gem.signals.filter(s => relevant.includes(s));
   const base = { agent: profile.name, style: profile.style, emoji: profile.emoji };
@@ -184,7 +231,7 @@ function volumeVictor(gem) {
 }
 
 function catalystClaire(gem) {
-  const profile = AGENTS[3];
+  const profile = getAgents()[3];
   const base = { agent: profile.name, style: profile.style, emoji: profile.emoji };
 
   if (!gem.signals.includes('earnings_tomorrow')) {
@@ -221,7 +268,7 @@ function catalystClaire(gem) {
 }
 
 function contrarianCarlos(gem) {
-  const profile = AGENTS[4];
+  const profile = getAgents()[4];
   const relevant = profile.targetSignals;
   const matches = gem.signals.filter(s => relevant.includes(s));
   const base = { agent: profile.name, style: profile.style, emoji: profile.emoji };
@@ -269,10 +316,23 @@ const AGENT_FUNCS = [momentumMike, squeezeSarah, volumeVictor, catalystClaire, c
 
 /**
  * Run all 5 agents on a gem, return verdicts + consensus.
+ * Respects per-agent enabled flag.
  */
 export function analyzeGem(gem) {
-  const verdicts = AGENT_FUNCS.map(fn => fn(gem));
-  const buyCount = verdicts.filter(v => v.action === 'BUY').length;
+  const agents = getAgents();
+  const verdicts = AGENT_FUNCS.map((fn, i) => {
+    if (!agents[i].enabled) {
+      return {
+        agent: agents[i].name, style: agents[i].style, emoji: agents[i].emoji,
+        action: 'DISABLED', conviction: 0, targetGain: null, timeframe: null,
+        reasoning: 'Agent disabled by user.', stopLoss: null, targetPrice: null,
+      };
+    }
+    return fn(gem);
+  });
+
+  const activeVerdicts = verdicts.filter(v => v.action !== 'DISABLED');
+  const buyCount = activeVerdicts.filter(v => v.action === 'BUY').length;
 
   let consensus;
   if (buyCount >= 3) consensus = 'Strong Buy';
@@ -280,25 +340,45 @@ export function analyzeGem(gem) {
   else if (buyCount === 1) consensus = 'Speculative';
   else consensus = 'No Trade';
 
-  const avgConviction = verdicts.filter(v => v.action === 'BUY').length > 0
-    ? Math.round(verdicts.filter(v => v.action === 'BUY').reduce((s, v) => s + v.conviction, 0) / buyCount * 10) / 10
+  const avgConviction = buyCount > 0
+    ? Math.round(activeVerdicts.filter(v => v.action === 'BUY').reduce((s, v) => s + v.conviction, 0) / buyCount * 10) / 10
     : 0;
 
   return { verdicts, consensus, buyCount, avgConviction };
 }
 
 /**
- * Return agent profile metadata for the UI.
+ * Return agent profile metadata for the UI (with user overrides merged).
  */
 export function getAgentProfiles() {
-  return AGENTS.map(a => ({
+  return getAgents().map(a => ({
     name: a.name,
     style: a.style,
     emoji: a.emoji,
+    enabled: a.enabled,
     description: a.description,
     targetSignals: a.targetSignals,
     targetGainRange: a.targetGainRange,
     timeframeDays: a.timeframeDays,
     stopPct: a.stopPct,
   }));
+}
+
+/**
+ * Update an agent's config by style key.
+ * Accepts partial updates: { enabled, stopPct, targetGainRange, timeframeDays }
+ */
+export function updateAgentProfile(style, updates) {
+  const overrides = loadAgentOverrides();
+  overrides[style] = { ...(overrides[style] || {}), ...updates };
+  saveAgentOverrides(overrides);
+  return getAgentProfiles();
+}
+
+/**
+ * Reset all agents to defaults.
+ */
+export function resetAgentProfiles() {
+  saveAgentOverrides({});
+  return getAgentProfiles();
 }

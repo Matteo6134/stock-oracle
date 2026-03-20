@@ -3,7 +3,8 @@ import { useSearchParams, useNavigate } from 'react-router-dom'
 import {
   DollarSign, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight,
   RefreshCw, X, ShoppingCart, AlertTriangle, Wallet, BarChart3,
-  Clock, CheckCircle, XCircle, Loader2, ExternalLink
+  Clock, CheckCircle, XCircle, Loader2, ExternalLink, Settings, ChevronDown,
+  ChevronUp, RotateCcw, Bot, Shield, Target, Zap
 } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import LoadingSkeleton from '../components/LoadingSkeleton'
@@ -158,6 +159,9 @@ export default function AlpacaTradingPage() {
   const [tab, setTab] = useState('positions') // positions | orders | history | agents
   const [autoConfig, setAutoConfig] = useState(null)
   const [agentLog, setAgentLog] = useState([])
+  const [agentProfiles, setAgentProfiles] = useState([])
+  const [expandedAgent, setExpandedAgent] = useState(null)
+  const [showAgentSettings, setShowAgentSettings] = useState(false)
 
   // Trade form
   const [tradeSymbol, setTradeSymbol] = useState(searchParams.get('symbol') || '')
@@ -189,13 +193,15 @@ export default function AlpacaTradingPage() {
       setPositions(posRes.ok ? await posRes.json() : [])
       setOrders(ordRes.ok ? await ordRes.json() : [])
 
-      // Fetch auto-trade config + log
-      const [cfgRes, logRes] = await Promise.all([
+      // Fetch auto-trade config + log + agent profiles
+      const [cfgRes, logRes, profRes] = await Promise.all([
         fetch(`${API}/api/auto-trade/config`).catch(() => null),
         fetch(`${API}/api/auto-trade/log`).catch(() => null),
+        fetch(`${API}/api/agents/profiles`).catch(() => null),
       ])
       if (cfgRes?.ok) setAutoConfig(await cfgRes.json())
       if (logRes?.ok) setAgentLog(await logRes.json())
+      if (profRes?.ok) setAgentProfiles(await profRes.json())
     } catch (err) {
       setError(err.message)
     } finally {
@@ -279,6 +285,24 @@ export default function AlpacaTradingPage() {
         body: JSON.stringify(updates),
       })
       if (res.ok) setAutoConfig(await res.json())
+    } catch { /* ignore */ }
+  }
+
+  const handleUpdateAgent = async (style, updates) => {
+    try {
+      const res = await fetch(`${API}/api/agents/profiles/${style}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      })
+      if (res.ok) setAgentProfiles(await res.json())
+    } catch { /* ignore */ }
+  }
+
+  const handleResetAgents = async () => {
+    try {
+      const res = await fetch(`${API}/api/agents/profiles/reset`, { method: 'POST' })
+      if (res.ok) setAgentProfiles(await res.json())
     } catch { /* ignore */ }
   }
 
@@ -515,7 +539,10 @@ export default function AlpacaTradingPage() {
           <div className="glass-card p-3">
             <div className="flex items-center justify-between mb-2">
               <div>
-                <p className="text-oracle-text text-sm font-bold">Agent Auto-Trading</p>
+                <p className="text-oracle-text text-sm font-bold flex items-center gap-1.5">
+                  <Bot size={16} className="text-oracle-accent" />
+                  Agent Auto-Trading
+                </p>
                 <p className="text-oracle-muted text-[10px]">Agents scan gems + pennies every 5 min and auto-execute trades</p>
               </div>
               <button
@@ -534,7 +561,7 @@ export default function AlpacaTradingPage() {
               <div className="mt-3 pt-3 border-t border-oracle-border space-y-3">
                 {/* Budget */}
                 <div className="p-2 bg-oracle-accent/5 rounded border border-oracle-accent/20">
-                  <p className="text-oracle-accent text-[9px] font-bold mb-1">BUDGET</p>
+                  <p className="text-oracle-accent text-[9px] font-bold mb-1">💰 BUDGET</p>
                   <div className="grid grid-cols-3 gap-2">
                     <div>
                       <label className="text-oracle-muted text-[8px] block mb-0.5">Max Budget $</label>
@@ -559,7 +586,7 @@ export default function AlpacaTradingPage() {
 
                 {/* Risk Management */}
                 <div className="p-2 bg-oracle-red/5 rounded border border-oracle-red/20">
-                  <p className="text-oracle-red text-[9px] font-bold mb-1">RISK MANAGEMENT</p>
+                  <p className="text-oracle-red text-[9px] font-bold mb-1">🛡️ RISK MANAGEMENT</p>
                   <div className="grid grid-cols-3 gap-2">
                     <div>
                       <label className="text-oracle-muted text-[8px] block mb-0.5">Stop Loss %</label>
@@ -584,7 +611,7 @@ export default function AlpacaTradingPage() {
 
                 {/* Quality Filters */}
                 <div className="p-2 bg-oracle-green/5 rounded border border-oracle-green/20">
-                  <p className="text-oracle-green text-[9px] font-bold mb-1">QUALITY FILTERS</p>
+                  <p className="text-oracle-green text-[9px] font-bold mb-1">✅ QUALITY FILTERS</p>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <label className="text-oracle-muted text-[8px] block mb-0.5">Min Gem Score</label>
@@ -622,6 +649,178 @@ export default function AlpacaTradingPage() {
                     </label>
                   </div>
                 </div>
+              </div>
+            )}
+          </div>
+
+          {/* ── Agent Profiles Settings ── */}
+          <div className="glass-card p-3">
+            <div
+              className="flex items-center justify-between cursor-pointer"
+              onClick={() => setShowAgentSettings(!showAgentSettings)}
+            >
+              <p className="text-oracle-text text-sm font-bold flex items-center gap-1.5">
+                <Settings size={16} className="text-oracle-accent" />
+                Agent Profiles
+              </p>
+              <div className="flex items-center gap-2">
+                <span className="text-oracle-muted text-[10px]">
+                  {agentProfiles.filter(a => a.enabled).length}/{agentProfiles.length} active
+                </span>
+                {showAgentSettings ? <ChevronUp size={14} className="text-oracle-muted" /> : <ChevronDown size={14} className="text-oracle-muted" />}
+              </div>
+            </div>
+
+            {showAgentSettings && (
+              <div className="mt-3 pt-3 border-t border-oracle-border space-y-2">
+                <p className="text-oracle-muted text-[10px] mb-2">Configure each agent's strategy — enable/disable, adjust stop loss, target gain, and timeframe.</p>
+
+                {agentProfiles.map(agent => {
+                  const isExpanded = expandedAgent === agent.style
+                  const styleColors = {
+                    momentum: 'oracle-green',
+                    squeeze: 'oracle-red',
+                    accumulation: 'oracle-accent',
+                    catalyst: 'oracle-yellow',
+                    contrarian: 'purple-400',
+                  }
+                  const color = styleColors[agent.style] || 'oracle-accent'
+
+                  return (
+                    <div key={agent.style} className={`rounded border transition-all ${agent.enabled ? `border-${color}/30 bg-${color}/5` : 'border-oracle-border/50 bg-white/[0.01] opacity-60'}`}>
+                      {/* Agent Header */}
+                      <div
+                        className="flex items-center justify-between p-2.5 cursor-pointer"
+                        onClick={() => setExpandedAgent(isExpanded ? null : agent.style)}
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="text-base">{agent.emoji}</span>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-oracle-text font-bold text-xs">{agent.name}</span>
+                              {!agent.enabled && <span className="text-[8px] text-oracle-muted bg-white/5 px-1 rounded">OFF</span>}
+                            </div>
+                            <p className="text-oracle-muted text-[9px] truncate">{agent.description}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <div className="text-right">
+                            <p className="text-oracle-muted text-[8px]">Stop {agent.stopPct}%</p>
+                            <p className="text-oracle-muted text-[8px]">+{agent.targetGainRange[0]}-{agent.targetGainRange[1]}%</p>
+                          </div>
+                          {isExpanded ? <ChevronUp size={12} className="text-oracle-muted" /> : <ChevronDown size={12} className="text-oracle-muted" />}
+                        </div>
+                      </div>
+
+                      {/* Expanded Settings */}
+                      {isExpanded && (
+                        <div className="px-2.5 pb-2.5 space-y-2 border-t border-white/5">
+                          {/* Enable/Disable Toggle */}
+                          <div className="flex items-center justify-between pt-2">
+                            <span className="text-oracle-muted text-[10px] font-semibold">ENABLED</span>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); handleUpdateAgent(agent.style, { enabled: !agent.enabled }) }}
+                              className={`px-3 py-1 rounded-full text-[9px] font-bold transition-all border ${
+                                agent.enabled
+                                  ? 'bg-oracle-green/25 text-oracle-green border-oracle-green/50'
+                                  : 'bg-white/5 text-oracle-muted border-oracle-border'
+                              }`}
+                            >
+                              {agent.enabled ? 'ON' : 'OFF'}
+                            </button>
+                          </div>
+
+                          {/* Stop Loss */}
+                          <div>
+                            <label className="text-oracle-muted text-[9px] font-semibold flex items-center gap-1 mb-1">
+                              <Shield size={10} /> STOP LOSS %
+                            </label>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="range" min="1" max="20" step="1"
+                                value={agent.stopPct}
+                                onChange={e => handleUpdateAgent(agent.style, { stopPct: parseInt(e.target.value) })}
+                                className="flex-1 accent-oracle-red h-1"
+                              />
+                              <span className="text-oracle-red text-xs font-bold w-8 text-right">{agent.stopPct}%</span>
+                            </div>
+                          </div>
+
+                          {/* Target Gain Range */}
+                          <div>
+                            <label className="text-oracle-muted text-[9px] font-semibold flex items-center gap-1 mb-1">
+                              <Target size={10} /> TARGET GAIN RANGE %
+                            </label>
+                            <div className="grid grid-cols-2 gap-2">
+                              <div className="flex items-center gap-1">
+                                <span className="text-oracle-muted text-[8px]">Min</span>
+                                <input type="number" min="1" max="100"
+                                  value={agent.targetGainRange[0]}
+                                  onChange={e => handleUpdateAgent(agent.style, { targetGainRange: [parseInt(e.target.value) || 5, agent.targetGainRange[1]] })}
+                                  className="w-full bg-white/5 border border-oracle-border rounded px-2 py-1 text-oracle-text text-[11px]"
+                                />
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <span className="text-oracle-muted text-[8px]">Max</span>
+                                <input type="number" min="1" max="200"
+                                  value={agent.targetGainRange[1]}
+                                  onChange={e => handleUpdateAgent(agent.style, { targetGainRange: [agent.targetGainRange[0], parseInt(e.target.value) || 20] })}
+                                  className="w-full bg-white/5 border border-oracle-border rounded px-2 py-1 text-oracle-text text-[11px]"
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Timeframe */}
+                          <div>
+                            <label className="text-oracle-muted text-[9px] font-semibold flex items-center gap-1 mb-1">
+                              <Zap size={10} /> TIMEFRAME (days)
+                            </label>
+                            <div className="grid grid-cols-2 gap-2">
+                              <div className="flex items-center gap-1">
+                                <span className="text-oracle-muted text-[8px]">Min</span>
+                                <input type="number" min="1" max="30"
+                                  value={agent.timeframeDays[0]}
+                                  onChange={e => handleUpdateAgent(agent.style, { timeframeDays: [parseInt(e.target.value) || 1, agent.timeframeDays[1]] })}
+                                  className="w-full bg-white/5 border border-oracle-border rounded px-2 py-1 text-oracle-text text-[11px]"
+                                />
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <span className="text-oracle-muted text-[8px]">Max</span>
+                                <input type="number" min="1" max="30"
+                                  value={agent.timeframeDays[1]}
+                                  onChange={e => handleUpdateAgent(agent.style, { timeframeDays: [agent.timeframeDays[0], parseInt(e.target.value) || 7] })}
+                                  className="w-full bg-white/5 border border-oracle-border rounded px-2 py-1 text-oracle-text text-[11px]"
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Signals (read-only display) */}
+                          <div>
+                            <label className="text-oracle-muted text-[9px] font-semibold mb-1 block">TARGET SIGNALS</label>
+                            <div className="flex flex-wrap gap-1">
+                              {agent.targetSignals.map(sig => (
+                                <span key={sig} className="text-[8px] px-1.5 py-0.5 rounded bg-white/5 text-oracle-muted border border-oracle-border/50">
+                                  {sig.replace(/_/g, ' ')}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+
+                {/* Reset Button */}
+                <button
+                  onClick={handleResetAgents}
+                  className="w-full flex items-center justify-center gap-1.5 py-1.5 text-oracle-muted text-[10px] hover:text-oracle-accent transition-all"
+                >
+                  <RotateCcw size={10} />
+                  Reset all agents to defaults
+                </button>
               </div>
             )}
           </div>
