@@ -78,7 +78,9 @@ const scanCache = {
   gems: [],
   pennies: [],
   allAnalyzed: [],
+  movers: [],
   lastScanTime: null,
+  lastMoversTime: null,
 };
 
 if (!process.env.VERCEL) {
@@ -226,6 +228,8 @@ if (!process.env.VERCEL) {
     try {
       const result = await scanPremarketMovers();
       if (result.length > 0) {
+        scanCache.movers = result;
+        scanCache.lastMoversTime = new Date().toISOString();
         broadcastSSE({
           type: 'movers_update',
           count: result.length,
