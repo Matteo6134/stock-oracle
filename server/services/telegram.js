@@ -216,8 +216,9 @@ function registerCommands() {
     send(msg.chat.id, lines.join('\n'));
   });
 
-  // /next — what happens at market open
-  bot.onText(/\/next/, (msg) => {
+  // /next — what the bot will buy on Alpaca at market open
+  // So you can place the same orders early if you want
+  bot.onText(/\/next/, async (msg) => {
     const config = getAutoTradeConfig();
     const all = scanCacheRef.allAnalyzed || [];
     const movers = scanCacheRef.movers || [];
@@ -226,10 +227,20 @@ function registerCommands() {
       return send(msg.chat.id, 'No data yet. Scanning starts 4 AM ET.');
     }
 
+    // Already held symbols — bot won't buy duplicates
+    let heldSymbols = new Set();
+    try {
+      if (alpaca.isConfigured()) {
+        const positions = await alpaca.getPositions();
+        heldSymbols = new Set(positions.map(pp => pp.symbol));
+      }
+    } catch {}
+
     const lines = [];
 
-    // Auto-buys
+    // 1. Auto-buys — exactly what the bot will execute at 9:30
     const autoBuys = all.filter(s => {
+      if (heldSymbols.has(s.symbol)) return false;
       if (!s.consensus || s.consensus === 'No Trade' || s.consensus === 'Speculative') return false;
       if (config.onlyStrongBuy && s.consensus !== 'Strong Buy') return false;
       if (s.gemScore < config.minGemScore) return false;
@@ -242,14 +253,18 @@ function registerCommands() {
         if (!hasFlow) return false;
       }
       return true;
-    }).sort((a, b) => (b.gemScore || 0) - (a.gemScore || 0)).slice(0, 5);
+    }).sort((a, b) => (b.gemScore || 0) - (a.gemScore || 0)).slice(0, 8);
 
     if (autoBuys.length > 0) {
-      const label = config.enabled ? '\uD83D\uDFE2 *Buying at open*' : '\uD83D\uDFE1 *Would buy (auto off)*';
-      lines.push(label);
+      lines.push(config.enabled
+        ? '\uD83D\uDFE2 *Auto-buying at 9:30 AM*'
+        : '\uD83D\uDFE1 *Would buy (auto-trade is off)*');
+      lines.push('');
+
+      let totalAmt = 0;
       autoBuys.forEach(s => {
         const amt = s.consensus === 'Strong Buy' ? config.strongBuyAmount : config.buyAmount;
-        // Get target/stop from agent verdicts
+        totalAmt += amt;
         const buyVerdicts = (s.verdicts || []).filter(v => v.action === 'BUY');
         const avgTarget = buyVerdicts.length > 0
           ? buyVerdicts.reduce((sum, v) => sum + (parseFloat(v.targetGain) || 0), 0) / buyVerdicts.length
@@ -260,44 +275,48 @@ function registerCommands() {
               return sum + stopPctVal;
             }, 0) / buyVerdicts.length
           : config.defaultStopPct || 5;
-        const tp = s.price ? $(s.price * (1 + avgTarget / 100)) : '?';
-        const sl = s.price ? $(s.price * (1 - avgStop / 100)) : '?';
+        const tpPrice = s.price ? $(s.price * (1 + avgTarget / 100)) : '?';
+        const slPrice = s.price ? $(s.price * (1 - avgStop / 100)) : '?';
 
-        lines.push(`   *${s.symbol}*  ${$(s.price)}  LONG  ${$(amt)}`);
-        lines.push(`   \uD83C\uDFAF +${avgTarget.toFixed(0)}% \u2192 ${tp}  \uD83D\uDED1 -${avgStop.toFixed(0)}% \u2192 ${sl}`);
-        lines.push('');
+        lines.push(`\uD83D\uDFE2 *${s.symbol}*  LONG  ${$(s.price)}`);
+        lines.push(`   ${$(amt)}  \uD83C\uDFAF +${avgTarget.toFixed(0)}% ${tpPrice}  \uD83D\uDED1 -${avgStop.toFixed(0)}% ${slPrice}`);
       });
-      if (config.enabled) {
-        const total = autoBuys.reduce((sum, s) => sum + (s.consensus === 'Strong Buy' ? config.strongBuyAmount : config.buyAmount), 0);
-        lines.push(`\uD83D\uDCB0 Total: *${$(total)}*`);
-      }
+      lines.push(`\n\uD83D\uDCB0 *${$(totalAmt)}* / ${$(config.maxBudget)}`);
       lines.push('');
     }
 
-    // Hot premarket
-    const hot = [...movers].filter(m => Math.abs(m.gapPct || 0) > 5).sort((a, b) => Math.abs(b.gapPct || 0) - Math.abs(a.gapPct || 0)).slice(0, 5);
+    // 2. Hot pre-market movers — might explode at open
+    const hot = [...movers]
+      .filter(m => Math.abs(m.gapPct || 0) > 5 && !heldSymbols.has(m.symbol))
+      .sort((a, b) => Math.abs(b.gapPct || 0) - Math.abs(a.gapPct || 0))
+      .slice(0, 5);
     if (hot.length > 0) {
-      lines.push('\uD83D\uDD25 *Hot pre-market*');
+      lines.push('\uD83D\uDD25 *Moving pre-market*');
       hot.forEach(m => {
         const icon = (m.gapPct || 0) >= 0 ? '\uD83D\uDFE2' : '\uD83D\uDD34';
-        lines.push(`${icon} *${m.symbol}*  ${p(m.gapPct)}`);
+        lines.push(`${icon} *${m.symbol}*  ${p(m.gapPct)}  vol ${(m.volumeRatio || 0).toFixed(1)}x`);
       });
       lines.push('');
     }
 
-    // Watching closely
-    const watching = all.filter(s => s.consensus === 'Buy' || (s.consensus === 'Speculative' && (s.gemScore || 0) >= 50))
-      .sort((a, b) => (b.gemScore || 0) - (a.gemScore || 0)).slice(0, 3);
-    if (watching.length > 0) {
-      lines.push('\uD83D\uDD35 *Watching*');
-      watching.forEach(s => {
+    // 3. Close to triggering — one more signal and they buy
+    const almostReady = all.filter(s => {
+      if (heldSymbols.has(s.symbol)) return false;
+      if (autoBuys.find(a => a.symbol === s.symbol)) return false;
+      return s.consensus === 'Buy' && s.gemScore >= 50;
+    }).sort((a, b) => (b.gemScore || 0) - (a.gemScore || 0)).slice(0, 4);
+
+    if (almostReady.length > 0) {
+      lines.push('\uD83D\uDD35 *Almost triggering*');
+      almostReady.forEach(s => {
+        const info = getTargetInfo(s);
         lines.push(`   *${s.symbol}*  ${$(s.price)}  ${p(s.changePct)}`);
+        if (info) lines.push(`   \uD83C\uDFAF ${info}`);
       });
     }
 
     if (lines.length === 0) {
       lines.push('Nothing strong enough yet.');
-      lines.push('Scanning every 5 min...');
     }
 
     send(msg.chat.id, lines.join('\n'));
