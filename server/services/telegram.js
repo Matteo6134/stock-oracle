@@ -48,6 +48,7 @@ function send(id, text) {
 }
 
 export function initTelegramBot() {
+  if (process.env.VERCEL) { console.log('[Telegram] Skipped on Vercel'); return null; }
   const token = process.env.TELEGRAM_BOT_TOKEN;
   if (!token) { console.log('[Telegram] No token'); return null; }
   try {
