@@ -21,6 +21,7 @@ import packageJson from '../package.json'
 import { isNotificationSupported, isNotificationEnabled, requestNotificationPermission, disableNotifications } from './lib/notifications'
 import { checkSmartAlerts } from './lib/tradeAlerts'
 import { checkWishlistAlerts } from './lib/wishlistAlerts'
+import { syncWatchlistToServer } from './lib/wishlist'
 import { useSSE } from './hooks/useSSE'
 
 const navItems = [
@@ -51,6 +52,9 @@ export default function App() {
   useEffect(() => {
     setSidebarOpen(false)
   }, [location.pathname])
+
+  // Sync watchlist to server on load (so Telegram can read it)
+  useEffect(() => { syncWatchlistToServer() }, [])
 
   // Register SW on mount
   useEffect(() => {

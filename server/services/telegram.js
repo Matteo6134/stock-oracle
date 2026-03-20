@@ -9,6 +9,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import * as alpaca from './alpaca.js';
 import { getAutoTradeConfig, getAutoTradeLog } from './autoTrader.js';
+import { getWatchlist } from './watchlist.js';
+import * as yahoo from './yahooFinance.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CONFIG_FILE = path.join(__dirname, '..', 'data', 'telegramConfig.json');
@@ -76,7 +78,8 @@ function registerCommands() {
       '/portfolio \u2014 balance & positions',
       '/trades \u2014 results',
       '/next \u2014 before the bell',
-      '/watchlist \u2014 top picks',
+      '/watchlist \u2014 your saved stocks',
+      '/scan \u2014 best picks right now',
     ].join('\n'));
   });
 
@@ -134,14 +137,46 @@ function registerCommands() {
     send(msg.chat.id, lines.join('\n'));
   });
 
-  // /watchlist
-  bot.onText(/\/watchlist/, (msg) => {
+  // /watchlist — YOUR saved watchlist from the web app
+  bot.onText(/\/watchlist/, async (msg) => {
+    const symbols = getWatchlist();
+
+    if (symbols.length === 0) {
+      return send(msg.chat.id, 'Your watchlist is empty. Add stocks from the web app.');
+    }
+
+    try {
+      const quotes = await yahoo.getQuoteBatch(symbols);
+      const lines = ['\uD83D\uDCCC *Your Watchlist*', ''];
+
+      symbols.forEach(sym => {
+        const q = quotes.find(qq => qq.symbol === sym);
+        if (q && q.regularMarketPrice) {
+          const change = q.regularMarketChangePercent || 0;
+          const icon = change >= 0 ? '\uD83D\uDFE2' : '\uD83D\uDD34';
+          lines.push(`${icon} *${sym}*  ${$(q.regularMarketPrice)}  ${p(change)}`);
+        } else {
+          lines.push(`\u26AA *${sym}*`);
+        }
+      });
+
+      send(msg.chat.id, lines.join('\n'));
+    } catch {
+      // Fallback without prices
+      const lines = ['\uD83D\uDCCC *Your Watchlist*', ''];
+      symbols.forEach(sym => lines.push(`\u26AA *${sym}*`));
+      send(msg.chat.id, lines.join('\n'));
+    }
+  });
+
+  // /scan — best picks from latest scan (gems + pennies + movers)
+  bot.onText(/\/scan/, (msg) => {
     const gems = scanCacheRef.gems || [];
     const pennies = scanCacheRef.pennies || [];
     const movers = scanCacheRef.movers || [];
 
     if (gems.length === 0 && pennies.length === 0 && movers.length === 0) {
-      return send(msg.chat.id, 'Scanning... check back in a few minutes.');
+      return send(msg.chat.id, 'No scan data yet. Check back during market hours.');
     }
 
     const lines = [];

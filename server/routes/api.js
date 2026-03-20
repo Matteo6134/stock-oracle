@@ -12,6 +12,7 @@ import { scanPremarketMovers, getShortSqueezeSetups, getBreakoutSetups } from '.
 import { findTomorrowMovers } from '../services/tomorrowMovers.js';
 import { analyzeGem, getAgentProfiles, updateAgentProfile, resetAgentProfiles } from '../services/tradingDesk.js';
 import { getBotInfo, sendTestMessage } from '../services/telegram.js';
+import { getWatchlist, setWatchlist, addToWatchlist, removeFromWatchlist } from '../services/watchlist.js';
 import { saveGemSnapshot, getGemBacktestData } from '../services/gemHistory.js';
 import { searchStocks } from '../services/yahooFinance.js';
 import { getOrderFlow } from '../services/orderFlow.js';
@@ -1929,6 +1930,32 @@ router.get('/telegram/status', (req, res) => {
 router.post('/telegram/test', async (req, res) => {
   const result = await sendTestMessage();
   res.json(result);
+});
+
+// ── Watchlist (synced from web app, readable by Telegram) ──
+router.get('/watchlist', (req, res) => {
+  res.json(getWatchlist());
+});
+
+router.post('/watchlist', (req, res) => {
+  const { symbols } = req.body;
+  if (Array.isArray(symbols)) {
+    res.json(setWatchlist(symbols));
+  } else {
+    res.status(400).json({ error: 'symbols must be an array' });
+  }
+});
+
+router.post('/watchlist/add', (req, res) => {
+  const { symbol } = req.body;
+  if (!symbol) return res.status(400).json({ error: 'symbol required' });
+  res.json(addToWatchlist(symbol));
+});
+
+router.post('/watchlist/remove', (req, res) => {
+  const { symbol } = req.body;
+  if (!symbol) return res.status(400).json({ error: 'symbol required' });
+  res.json(removeFromWatchlist(symbol));
 });
 
 export default router;
