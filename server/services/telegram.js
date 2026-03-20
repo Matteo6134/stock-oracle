@@ -88,9 +88,11 @@ function registerCommands() {
       '',
       '/portfolio \u2014 balance & positions',
       '/trades \u2014 results',
-      '/next \u2014 before the bell',
+      '/next \u2014 before the bell picks',
+      '/gems \u2014 top quality stocks',
+      '/pennies \u2014 best penny stocks <$5',
       '/watchlist \u2014 your saved stocks',
-      '/scan \u2014 best picks right now',
+      '/scan \u2014 everything right now',
     ].join('\n'));
   });
 
@@ -224,6 +226,50 @@ function registerCommands() {
       });
     }
 
+    send(msg.chat.id, lines.join('\n'));
+  });
+
+  // /gems — top quality gem stocks from latest scan
+  bot.onText(/\/gems/, (msg) => {
+    const gems = scanCacheRef.gems || [];
+    if (gems.length === 0) {
+      return send(msg.chat.id, '\uD83D\uDC8E No gem data yet. Check back during market hours (8 AM\u20136 PM ET).');
+    }
+    const top = [...gems].sort((a, b) => (b.gemScore || 0) - (a.gemScore || 0)).slice(0, 8);
+    const lines = ['\uD83D\uDC8E *Top Gems*', ''];
+    top.forEach(g => {
+      const icon = g.consensus === 'Strong Buy' ? '\uD83D\uDFE2' : g.consensus === 'Buy' ? '\uD83D\uDD35' : '\u26AA';
+      const info = getTargetInfo(g);
+      lines.push(`${icon} *${g.symbol}*  ${$(g.price)}  ${p(g.changePct)}  Score ${g.gemScore || 0}`);
+      if (info) lines.push(`   \uD83C\uDFAF ${info}`);
+      if (g.consensus) lines.push(`   ${g.consensus} \u00B7 ${g.buyCount || 0}/5 agents`);
+    });
+    if (scanCacheRef.lastScanTime) {
+      const t = new Date(scanCacheRef.lastScanTime).toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit' });
+      lines.push(`\n\u23F1 Updated ${t} ET`);
+    }
+    send(msg.chat.id, lines.join('\n'));
+  });
+
+  // /pennies — top penny stocks under $5
+  bot.onText(/\/pennies/, (msg) => {
+    const pennies = scanCacheRef.pennies || [];
+    if (pennies.length === 0) {
+      return send(msg.chat.id, '\uD83E\uDE99 No penny data yet. Check back during market hours (8 AM\u20136 PM ET).');
+    }
+    const top = [...pennies].sort((a, b) => (b.gemScore || 0) - (a.gemScore || 0)).slice(0, 8);
+    const lines = ['\uD83E\uDE99 *Top Pennies* (under $5)', ''];
+    top.forEach(pp => {
+      const icon = pp.consensus === 'Strong Buy' ? '\uD83D\uDFE2' : pp.consensus === 'Buy' ? '\uD83D\uDD35' : '\u26AA';
+      const info = getTargetInfo(pp);
+      lines.push(`${icon} *${pp.symbol}*  ${$(pp.price)}  ${p(pp.changePct)}  Score ${pp.gemScore || 0}`);
+      if (info) lines.push(`   \uD83C\uDFAF ${info}`);
+      if (pp.consensus) lines.push(`   ${pp.consensus} \u00B7 ${pp.buyCount || 0}/5 agents`);
+    });
+    if (scanCacheRef.lastScanTime) {
+      const t = new Date(scanCacheRef.lastScanTime).toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit' });
+      lines.push(`\n\u23F1 Updated ${t} ET`);
+    }
     send(msg.chat.id, lines.join('\n'));
   });
 
