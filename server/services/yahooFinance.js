@@ -1,7 +1,10 @@
 import YahooFinance from 'yahoo-finance2';
 import axios from 'axios';
 
-const yf = new YahooFinance({ suppressNotices: ['yahooSurvey', 'ripHistorical'] });
+const yf = new YahooFinance({
+  suppressNotices: ['yahooSurvey', 'ripHistorical'],
+  validation: { logErrors: false, logOptionsErrors: false },
+});
 
 // ── Earnings calendar cache ──
 let earningsCache = { data: [], timestamp: 0 };
@@ -90,7 +93,7 @@ export async function getEarningsHistory(symbol) {
   try {
     const summary = await yf.quoteSummary(symbol, {
       modules: ['earnings', 'earningsHistory', 'earningsTrend']
-    });
+    }, { validateResult: false });
 
     const result = {
       beatStreak: 0,          // consecutive quarters beating estimates
@@ -234,7 +237,7 @@ export async function getUpcomingCatalysts(symbol) {
   try {
     const summary = await yf.quoteSummary(symbol, {
       modules: ['calendarEvents', 'earnings', 'financialData', 'recommendationTrend']
-    });
+    }, { validateResult: false });
 
     const catalysts = [];
     const cal = summary?.calendarEvents;
@@ -340,15 +343,15 @@ export async function getQuoteBatch(symbols) {
   for (let i = 0; i < symbols.length; i += CHUNK_SIZE) {
     const chunk = symbols.slice(i, i + CHUNK_SIZE);
     try {
-      const result = await yf.quote(chunk);
+      const result = await yf.quote(chunk, {}, { validateResult: false });
       const quotes = Array.isArray(result) ? result : [result];
-      allQuotes.push(...quotes.map(q => ({ ...q, currentSessionPrice: getCurrentSessionPrice(q) })));
+      allQuotes.push(...quotes.filter(Boolean).map(q => ({ ...q, currentSessionPrice: getCurrentSessionPrice(q) })));
     } catch (err) {
       console.warn(`[YahooFinance] Chunk ${i}-${i + chunk.length} failed:`, err.message);
       // Fallback: try individually with delay
       for (const s of chunk) {
         try {
-          const q = await yf.quote(s);
+          const q = await yf.quote(s, {}, { validateResult: false });
           if (q) allQuotes.push({ ...q, currentSessionPrice: getCurrentSessionPrice(q) });
         } catch { /* skip symbol */ }
         await new Promise(r => setTimeout(r, 200)); // small delay between calls
@@ -365,7 +368,7 @@ export async function getQuoteBatch(symbols) {
 
 export async function getQuote(symbol) {
   try {
-    const q = await yf.quote(symbol);
+    const q = await yf.quote(symbol, {}, { validateResult: false });
     if (!q) return {};
     return {
       ...q,
@@ -399,7 +402,7 @@ export async function getHistoricalData(symbol) {
         period1: start.toISOString().split('T')[0],
         period2: end.toISOString().split('T')[0],
         interval: '1d'
-      });
+      }, { validateResult: false });
       if (result?.quotes?.length > 0) {
         return result.quotes.map(d => ({ date: d.date, open: d.open, high: d.high, low: d.low, close: d.close, volume: d.volume }));
       }
@@ -408,7 +411,7 @@ export async function getHistoricalData(symbol) {
         period1: start.toISOString().split('T')[0],
         period2: end.toISOString().split('T')[0],
         interval: '1d'
-      });
+      }, { validateResult: false });
       return Array.isArray(result) ? result.map(d => ({ date: d.date, open: d.open, high: d.high, low: d.low, close: d.close, volume: d.volume })) : [];
     }
     return [];

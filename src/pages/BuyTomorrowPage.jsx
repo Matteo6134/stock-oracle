@@ -282,6 +282,13 @@ export default function BuyTomorrowPage() {
     return () => clearInterval(interval)
   }, [fetchData])
 
+  // Auto-retry when server is still scanning (scanning: true state)
+  useEffect(() => {
+    if (!data?.scanning) return
+    const retryTimer = setTimeout(() => fetchData(false), 32000)
+    return () => clearTimeout(retryTimer)
+  }, [data, fetchData])
+
   const handleTouchStart = useCallback((e) => {
     if (containerRef.current && containerRef.current.scrollTop === 0) {
       touchStartY.current = e.touches[0].clientY
@@ -386,6 +393,17 @@ export default function BuyTomorrowPage() {
           </div>
         </div>
       </div>
+
+      {/* Scanning in progress banner */}
+      {!loading && data?.scanning && (
+        <div className="glass-card p-3 mb-3 border-l-4 border-l-oracle-accent flex items-center gap-3">
+          <RefreshCw size={16} className="text-oracle-accent animate-spin shrink-0" />
+          <div>
+            <p className="text-oracle-text text-[11px] font-semibold">Scanning markets…</p>
+            <p className="text-oracle-muted text-[10px]">First scan takes ~30s. Auto-refreshing.</p>
+          </div>
+        </div>
+      )}
 
       {/* Stats */}
       {!loading && data && (

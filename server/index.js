@@ -305,5 +305,25 @@ if (!process.env.VERCEL) {
     // Initialize Telegram bot + share scan cache
     setScanCache(scanCache);
     initTelegramBot();
+
+    // Warm up gem + penny cache 15s after start so first page load is fast
+    setTimeout(async () => {
+      console.log('[Startup] Pre-warming scan cache...');
+      try {
+        const result = await findTomorrowMovers();
+        if (result.gems?.length > 0) {
+          const gemsWithVerdicts = result.gems.map(gem => {
+            const { verdicts, consensus, buyCount, avgConviction } = analyzeGem(gem);
+            return { ...gem, verdicts, consensus, buyCount, avgConviction, source: 'gem' };
+          });
+          scanCache.gems = gemsWithVerdicts;
+          scanCache.allAnalyzed = gemsWithVerdicts;
+          scanCache.lastScanTime = new Date().toISOString();
+          console.log(`[Startup] Cache warmed: ${gemsWithVerdicts.length} gems`);
+        }
+      } catch (err) {
+        console.warn('[Startup] Warm-up failed (will retry on next cron tick):', err.message);
+      }
+    }, 15000);
   });
 }

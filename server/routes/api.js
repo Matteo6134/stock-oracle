@@ -1734,7 +1734,27 @@ router.get('/tomorrow-movers', async (req, res, next) => {
     if (cached) return res.json(cached);
 
     console.log('[TomorrowMovers] Scanning for setups...');
-    const result = await findTomorrowMovers();
+
+    // Timeout: if scan takes >28s respond with "scanning" status so page doesn't hang
+    const TIMEOUT_MS = 28000;
+    const timeoutResult = {
+      gems: [], topPicks: [], accumulation: [], coiledSprings: [],
+      earlyRunners: [], earningsPlays: [], bounces: [], all: [],
+      stats: { totalScanned: 0, setupsFound: 0, gemsFound: 0, highConviction: 0, avgGemScore: 0, generatedAt: new Date().toISOString() },
+      scanning: true,
+      message: 'Scan in progress — refresh in 30 seconds',
+    };
+
+    const scanPromise = findTomorrowMovers();
+    const timeoutPromise = new Promise(resolve => setTimeout(() => resolve(null), TIMEOUT_MS));
+
+    const result = await Promise.race([scanPromise, timeoutPromise]);
+
+    if (!result) {
+      // Scan is still running in background — return scanning state so page shows spinner
+      console.log('[TomorrowMovers] Scan still running, returning scanning state');
+      return res.json(timeoutResult);
+    }
 
     // Run AI Trading Desk analysis + save snapshot (verdicts stay on Trading Desk page only)
     if (result.gems?.length > 0) {
