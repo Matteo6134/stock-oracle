@@ -331,22 +331,36 @@ export function getCurrentSessionPrice(quote) {
 }
 
 export async function getQuoteBatch(symbols) {
-  try {
-    if (!symbols || symbols.length === 0) return [];
-    
-    // YahooFinance supports array of symbols for quote
-    const result = await yf.quote(symbols);
-    const quotes = Array.isArray(result) ? result : [result];
+  if (!symbols || symbols.length === 0) return [];
 
-    return quotes.map(q => ({
-      ...q,
-      currentSessionPrice: getCurrentSessionPrice(q)
-    }));
-  } catch (err) {
-    console.warn(`[YahooFinance] Batch quote error for ${symbols.length} symbols, falling back to individual calls:`, err.message);
-    const results = await Promise.allSettled(symbols.map(s => getQuote(s)));
-    return results.filter(r => r.status === 'fulfilled' && r.value).map(r => r.value);
+  // Chunk into smaller batches to avoid Yahoo rate limits
+  const CHUNK_SIZE = 10;
+  const allQuotes = [];
+
+  for (let i = 0; i < symbols.length; i += CHUNK_SIZE) {
+    const chunk = symbols.slice(i, i + CHUNK_SIZE);
+    try {
+      const result = await yf.quote(chunk);
+      const quotes = Array.isArray(result) ? result : [result];
+      allQuotes.push(...quotes.map(q => ({ ...q, currentSessionPrice: getCurrentSessionPrice(q) })));
+    } catch (err) {
+      console.warn(`[YahooFinance] Chunk ${i}-${i + chunk.length} failed:`, err.message);
+      // Fallback: try individually with delay
+      for (const s of chunk) {
+        try {
+          const q = await yf.quote(s);
+          if (q) allQuotes.push({ ...q, currentSessionPrice: getCurrentSessionPrice(q) });
+        } catch { /* skip symbol */ }
+        await new Promise(r => setTimeout(r, 200)); // small delay between calls
+      }
+    }
+    // Small delay between chunks
+    if (i + CHUNK_SIZE < symbols.length) {
+      await new Promise(r => setTimeout(r, 300));
+    }
   }
+
+  return allQuotes;
 }
 
 export async function getQuote(symbol) {
