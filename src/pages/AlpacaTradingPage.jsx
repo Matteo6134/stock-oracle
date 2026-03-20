@@ -626,7 +626,7 @@ export default function AlpacaTradingPage() {
                 {/* Budget */}
                 <div className="p-2 bg-oracle-accent/5 rounded border border-oracle-accent/20">
                   <p className="text-oracle-accent text-[9px] font-bold mb-1">💰 BUDGET</p>
-                  <div className="grid grid-cols-3 gap-2">
+                  <div className="grid grid-cols-2 gap-2">
                     <div>
                       <label className="text-oracle-muted text-[8px] block mb-0.5">Max Budget $</label>
                       <input type="number" value={cfg.maxBudget || 1000}
@@ -634,15 +634,9 @@ export default function AlpacaTradingPage() {
                         className="w-full bg-white/5 border border-oracle-border rounded px-2 py-1 text-oracle-text text-[11px]" />
                     </div>
                     <div>
-                      <label className="text-oracle-muted text-[8px] block mb-0.5">Strong Buy $</label>
+                      <label className="text-oracle-muted text-[8px] block mb-0.5">Per Trade $</label>
                       <input type="number" value={cfg.strongBuyAmount}
                         onChange={e => handleUpdateConfigDraft({ strongBuyAmount: parseInt(e.target.value) || 200 })}
-                        className="w-full bg-white/5 border border-oracle-border rounded px-2 py-1 text-oracle-text text-[11px]" />
-                    </div>
-                    <div>
-                      <label className="text-oracle-muted text-[8px] block mb-0.5">Max Pos.</label>
-                      <input type="number" value={cfg.maxPositions}
-                        onChange={e => handleUpdateConfigDraft({ maxPositions: parseInt(e.target.value) || 5 })}
                         className="w-full bg-white/5 border border-oracle-border rounded px-2 py-1 text-oracle-text text-[11px]" />
                     </div>
                   </div>

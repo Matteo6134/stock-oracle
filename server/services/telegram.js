@@ -1,7 +1,7 @@
 /**
  * Telegram Bot Service — Trade notifications + command interface
  *
- * Commands: /start, /balance, /positions, /history, /agents, /signals
+ * Commands: /start, /balance, /positions, /history, /agents, /signals, /upcoming, /gems, /pennies
  * Notifications: new trades, exits, stop losses, take profits
  */
 
@@ -18,6 +18,12 @@ const CONFIG_FILE = path.join(__dirname, '..', 'data', 'telegramConfig.json');
 
 let bot = null;
 let chatId = null;
+let scanCacheRef = { gems: [], pennies: [], allAnalyzed: [], lastScanTime: null };
+
+/** Set reference to scan cache (called from index.js to avoid circular import) */
+export function setScanCache(cache) {
+  scanCacheRef = cache;
+}
 
 // ── Config Persistence ──
 function loadConfig() {
@@ -88,7 +94,9 @@ function registerCommands() {
       '/positions — Open positions',
       '/history — Recent trades',
       '/agents — Agent status',
-      '/signals — Top signals now',
+      '/upcoming — What agents will buy at market open',
+      '/gems — Top gems from last scan',
+      '/pennies — Top penny stocks from last scan',
     ].join('\n'), { parse_mode: 'Markdown' });
   });
 
@@ -186,29 +194,113 @@ function registerCommands() {
       '',
       ...lines,
       '',
-      `💰 Budget: $${config.maxBudget} | Max ${config.maxPositions} positions`,
+      `💰 Budget: $${config.maxBudget}`,
       `🎯 Min Score: ${config.minGemScore} | Min Conviction: ${config.minConviction}`,
     ].join('\n'), { parse_mode: 'Markdown' });
   });
 
-  // /signals — Current top signals
-  bot.onText(/\/signals/, (msg) => {
-    // We'll read from the last scan cache
-    const log = getAutoTradeLog();
-    const recentBuys = log.filter(t => !t.exitPrice).slice(0, 5);
+  // /upcoming — What agents will buy when market opens
+  bot.onText(/\/upcoming/, (msg) => {
+    const config = getAutoTradeConfig();
+    const all = scanCacheRef.allAnalyzed || [];
+    const lastScan = scanCacheRef.lastScanTime;
 
-    if (recentBuys.length === 0) {
-      return bot.sendMessage(msg.chat.id, '📭 No active signals — agents scanning every 5 min');
+    if (all.length === 0) {
+      return bot.sendMessage(msg.chat.id, '📭 No scan data yet — agents scan every 5 min during market hours (8 AM - 6 PM ET)');
     }
 
-    const lines = recentBuys.map(t => {
-      return `📈 *${t.symbol}* — ${t.consensus} | Score ${t.gemScore} | $${(t.price || 0).toFixed(2)}`;
+    // Filter to stocks that would pass auto-trade filters
+    const candidates = all.filter(s => {
+      if (!s.consensus || s.consensus === 'No Trade' || s.consensus === 'Speculative') return false;
+      if (config.onlyStrongBuy && s.consensus !== 'Strong Buy') return false;
+      if (s.gemScore < config.minGemScore) return false;
+      if (s.avgConviction < config.minConviction) return false;
+      if (config.maxStockPrice && s.price > config.maxStockPrice) return false;
+      if (config.requireOrderFlow) {
+        const hasFlow = (s.signals || []).some(sig =>
+          ['insider_buying', 'bullish_options', 'unusual_options_volume', 'institutions_accumulating'].includes(sig)
+        );
+        if (!hasFlow) return false;
+      }
+      return true;
+    }).sort((a, b) => (b.gemScore || 0) - (a.gemScore || 0)).slice(0, 10);
+
+    if (candidates.length === 0) {
+      return bot.sendMessage(msg.chat.id, [
+        '📭 *No trades queued for market open*',
+        '',
+        `Last scan: ${lastScan ? new Date(lastScan).toLocaleTimeString('en-US', { timeZone: 'America/New_York' }) + ' ET' : 'never'}`,
+        `Scanned ${all.length} stocks, none passed all filters`,
+        '',
+        `Filters: Score >= ${config.minGemScore} | Conviction >= ${config.minConviction} | ${config.onlyStrongBuy ? 'Strong Buy only' : 'Buy+'}`,
+      ].join('\n'), { parse_mode: 'Markdown' });
+    }
+
+    const lines = candidates.map((s, i) => {
+      const amount = s.consensus === 'Strong Buy' ? config.strongBuyAmount : config.buyAmount;
+      const prob = s.buyCount ? Math.round((s.buyCount / 5) * 100) : 0;
+      return `${i + 1}. 📈 *${s.symbol}* @ $${(s.price || 0).toFixed(2)} — ${s.consensus}\n   💰 $${amount} | Score ${s.gemScore} | ${prob}% prob | ${s.source === 'penny' ? 'Penny' : 'Gem'}`;
+    });
+
+    const totalAmount = candidates.reduce((s, c) => s + (c.consensus === 'Strong Buy' ? config.strongBuyAmount : config.buyAmount), 0);
+
+    bot.sendMessage(msg.chat.id, [
+      `🔮 *Upcoming Trades at Market Open* (${candidates.length})`,
+      '',
+      ...lines,
+      '',
+      `💰 Total to invest: $${totalAmount} / $${config.maxBudget} budget`,
+      `⏰ Last scan: ${lastScan ? new Date(lastScan).toLocaleTimeString('en-US', { timeZone: 'America/New_York' }) + ' ET' : 'never'}`,
+    ].join('\n'), { parse_mode: 'Markdown' });
+  });
+
+  // /gems — Top gems from last scan
+  bot.onText(/\/gems/, (msg) => {
+    const gems = scanCacheRef.gems || [];
+    const lastScan = scanCacheRef.lastScanTime;
+
+    if (gems.length === 0) {
+      return bot.sendMessage(msg.chat.id, '📭 No gems found yet — next scan in a few minutes');
+    }
+
+    const top = gems.sort((a, b) => (b.gemScore || 0) - (a.gemScore || 0)).slice(0, 10);
+    const lines = top.map((g, i) => {
+      const change = (g.changePct || 0) >= 0 ? `+${(g.changePct || 0).toFixed(1)}%` : `${(g.changePct || 0).toFixed(1)}%`;
+      const emoji = g.consensus === 'Strong Buy' ? '🟢' : g.consensus === 'Buy' ? '🔵' : g.consensus === 'Speculative' ? '🟡' : '⚪';
+      return `${i + 1}. ${emoji} *${g.symbol}* — $${(g.price || 0).toFixed(2)} (${change})\n   Score ${g.gemScore} | ${g.consensus} | ${g.buyCount}/5 agents | ${g.signalCount} signals`;
     });
 
     bot.sendMessage(msg.chat.id, [
-      '📡 *Active Positions from Signals*',
+      `💎 *Top Gems* (${gems.length} found)`,
       '',
       ...lines,
+      '',
+      `⏰ Last scan: ${lastScan ? new Date(lastScan).toLocaleTimeString('en-US', { timeZone: 'America/New_York' }) + ' ET' : 'never'}`,
+    ].join('\n'), { parse_mode: 'Markdown' });
+  });
+
+  // /pennies — Top penny stocks from last scan
+  bot.onText(/\/pennies/, (msg) => {
+    const pennies = scanCacheRef.pennies || [];
+    const lastScan = scanCacheRef.lastScanTime;
+
+    if (pennies.length === 0) {
+      return bot.sendMessage(msg.chat.id, '📭 No penny stocks found yet — next scan in a few minutes');
+    }
+
+    const top = pennies.sort((a, b) => (b.gemScore || 0) - (a.gemScore || 0)).slice(0, 10);
+    const lines = top.map((p, i) => {
+      const change = (p.changePct || 0) >= 0 ? `+${(p.changePct || 0).toFixed(1)}%` : `${(p.changePct || 0).toFixed(1)}%`;
+      const emoji = p.consensus === 'Strong Buy' ? '🟢' : p.consensus === 'Buy' ? '🔵' : p.consensus === 'Speculative' ? '🟡' : '⚪';
+      return `${i + 1}. ${emoji} *${p.symbol}* — $${(p.price || 0).toFixed(2)} (${change})\n   Score ${p.gemScore} | ${p.consensus} | ${p.buyCount}/5 agents | ${p.signalCount} signals`;
+    });
+
+    bot.sendMessage(msg.chat.id, [
+      `🪙 *Top Penny Stocks* (${pennies.length} found)`,
+      '',
+      ...lines,
+      '',
+      `⏰ Last scan: ${lastScan ? new Date(lastScan).toLocaleTimeString('en-US', { timeZone: 'America/New_York' }) + ' ET' : 'never'}`,
     ].join('\n'), { parse_mode: 'Markdown' });
   });
 }

@@ -24,10 +24,9 @@ const TRADES_FILE = path.join(__dirname, '..', 'data', 'agentTrades.json');
 // ── Config ──
 const DEFAULT_CONFIG = {
   enabled: false,
-  maxBudget: 1000,           // Total max $ invested at any time
+  maxBudget: 1000,           // Total max $ invested at any time — this is the ONLY limit
   strongBuyAmount: 200,      // $ per Strong Buy trade (conservative)
   buyAmount: 100,            // $ per Buy trade
-  maxPositions: 5,           // Max simultaneous positions
   maxPerStock: 200,          // Max $ in any single stock
   defaultStopPct: 5,         // Tight stop loss (5%)
   takeProfitPct: 10,         // Take profit at 10%
@@ -151,12 +150,7 @@ export async function processSignals(analyzedStocks) {
       results.skipped.push({ symbol, reason: 'Already holding' });
       continue;
     }
-    if (openCount + results.bought.length >= config.maxPositions) {
-      results.skipped.push({ symbol, reason: 'Max positions reached' });
-      continue;
-    }
-
-    // Budget check — don't exceed max budget
+    // Budget check — don't exceed max budget (budget is the only limit on positions)
     const currentlyInvested = totalInvested + results.bought.reduce((s, b) => s + b.amount, 0);
     const amount = consensus === 'Strong Buy' ? config.strongBuyAmount : config.buyAmount;
     if (currentlyInvested + amount > config.maxBudget) {

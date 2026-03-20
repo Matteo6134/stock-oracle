@@ -12,7 +12,7 @@ import { saveGemSnapshot } from './services/gemHistory.js';
 import * as yahooFinance from './services/yahooFinance.js';
 import { scanPennyStocks } from './services/pennyScanner.js';
 import { processSignals, checkExitSignals } from './services/autoTrader.js';
-import { initTelegramBot } from './services/telegram.js';
+import { initTelegramBot, setScanCache } from './services/telegram.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -73,6 +73,14 @@ function broadcastSSE(event) {
 // ══════════════════════════════════════════
 // Background jobs (only on Railway/local, not Vercel)
 // ══════════════════════════════════════════
+// ── Global scan cache (shared with Telegram bot) ──
+const scanCache = {
+  gems: [],
+  pennies: [],
+  allAnalyzed: [],
+  lastScanTime: null,
+};
+
 if (!process.env.VERCEL) {
   // Track symbols users are watching (populated by SSE connections + API calls)
   const watchedSymbols = new Set([
@@ -135,6 +143,7 @@ if (!process.env.VERCEL) {
           return { ...gem, verdicts, consensus, buyCount, avgConviction, source: 'gem' };
         });
         saveGemSnapshot(gemsWithVerdicts).catch(() => {});
+        scanCache.gems = gemsWithVerdicts;
         allAnalyzed.push(...gemsWithVerdicts);
         broadcastSSE({
           type: 'gems_update',
@@ -158,12 +167,17 @@ if (!process.env.VERCEL) {
           // Add penny stocks that aren't already in gems (avoid duplicates)
           const gemSymbols = new Set(allAnalyzed.map(g => g.symbol));
           const uniquePennies = penniesWithVerdicts.filter(p => !gemSymbols.has(p.symbol));
+          scanCache.pennies = uniquePennies;
           allAnalyzed.push(...uniquePennies);
           console.log(`[Cron] Penny scan: ${uniquePennies.length} unique penny setups`);
         }
       } catch (err) {
         console.error('[Cron] Penny scan error:', err.message);
       }
+
+      // Update scan cache
+      scanCache.allAnalyzed = allAnalyzed;
+      scanCache.lastScanTime = new Date().toISOString();
 
       // Auto-trader: execute trades for strong consensus picks
       if (allAnalyzed.length > 0) {
@@ -278,7 +292,8 @@ export default app;
 if (!process.env.VERCEL) {
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`[StockOracle] Server running on http://0.0.0.0:${PORT}`);
-    // Initialize Telegram bot
+    // Initialize Telegram bot + share scan cache
+    setScanCache(scanCache);
     initTelegramBot();
   });
 }

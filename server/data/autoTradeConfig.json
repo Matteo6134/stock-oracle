@@ -10,7 +10,7 @@
   "trailingStopPct": 3,
   "scanPennies": true,
   "scanGems": true,
-  "minGemScore": 60,
+  "minGemScore": 90,
   "minConviction": 4,
   "requireOrderFlow": true,
   "onlyStrongBuy": true,
