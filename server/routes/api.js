@@ -11,6 +11,7 @@ import { saveDailyPicks, getHistoryWithPerformance } from '../services/history.j
 import { scanPremarketMovers, getShortSqueezeSetups, getBreakoutSetups } from '../services/premarketScanner.js';
 import { findTomorrowMovers } from '../services/tomorrowMovers.js';
 import { analyzeGem, getAgentProfiles, updateAgentProfile, resetAgentProfiles } from '../services/tradingDesk.js';
+import { getBotInfo, sendTestMessage } from '../services/telegram.js';
 import { saveGemSnapshot, getGemBacktestData } from '../services/gemHistory.js';
 import { searchStocks } from '../services/yahooFinance.js';
 import { getOrderFlow } from '../services/orderFlow.js';
@@ -1918,6 +1919,16 @@ router.put('/agents/profiles/:style', (req, res) => {
 router.post('/agents/profiles/reset', (req, res) => {
   const profiles = resetAgentProfiles();
   res.json(profiles);
+});
+
+// ── Telegram Bot ──
+router.get('/telegram/status', (req, res) => {
+  res.json(getBotInfo());
+});
+
+router.post('/telegram/test', async (req, res) => {
+  const result = await sendTestMessage();
+  res.json(result);
 });
 
 export default router;

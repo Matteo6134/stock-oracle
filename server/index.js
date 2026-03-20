@@ -12,6 +12,7 @@ import { saveGemSnapshot } from './services/gemHistory.js';
 import * as yahooFinance from './services/yahooFinance.js';
 import { scanPennyStocks } from './services/pennyScanner.js';
 import { processSignals, checkExitSignals } from './services/autoTrader.js';
+import { initTelegramBot } from './services/telegram.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -277,5 +278,7 @@ export default app;
 if (!process.env.VERCEL) {
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`[StockOracle] Server running on http://0.0.0.0:${PORT}`);
+    // Initialize Telegram bot
+    initTelegramBot();
   });
 }

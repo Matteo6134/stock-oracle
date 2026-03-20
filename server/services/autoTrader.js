@@ -15,6 +15,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { randomUUID } from 'crypto';
 import * as alpaca from './alpaca.js';
+import { notifyNewTrade, notifyTradeExit } from './telegram.js';
+import { logNewTrade, updateTradeExit } from './sheetsLogger.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CONFIG_FILE = path.join(__dirname, '..', 'data', 'autoTradeConfig.json');
@@ -220,6 +222,10 @@ export async function processSignals(analyzedStocks) {
       heldSymbols.add(symbol);
       results.bought.push({ symbol, amount, consensus, orderId: order.id });
 
+      // Notify Telegram + Google Sheets (fire & forget)
+      notifyNewTrade(tradeEntry).catch(() => {});
+      logNewTrade(tradeEntry).catch(() => {});
+
     } catch (err) {
       console.error(`[AutoTrader] Failed to buy ${symbol}:`, err.response?.data?.message || err.message);
       results.errors.push({ symbol, error: err.response?.data?.message || err.message });
@@ -276,6 +282,8 @@ export async function checkExitSignals() {
           entry.status = 'closed';
         }
         results.closed.push({ symbol, reason: 'trailing_stop', pnl: pos.unrealizedPL });
+        // Notify Telegram + Sheets
+        if (entry) { notifyTradeExit(entry).catch(() => {}); updateTradeExit(entry).catch(() => {}); }
       } catch (err) {
         console.error(`[AutoTrader] Failed to close ${symbol}:`, err.message);
       }
@@ -295,6 +303,8 @@ export async function checkExitSignals() {
           entry.status = 'closed';
         }
         results.closed.push({ symbol, reason: 'stop_loss', pnl: pos.unrealizedPL });
+        // Notify Telegram + Sheets
+        if (entry) { notifyTradeExit(entry).catch(() => {}); updateTradeExit(entry).catch(() => {}); }
       } catch (err) {
         console.error(`[AutoTrader] Failed to close ${symbol}:`, err.message);
       }
@@ -314,6 +324,8 @@ export async function checkExitSignals() {
           entry.status = 'closed';
         }
         results.closed.push({ symbol, reason: 'take_profit', pnl: pos.unrealizedPL });
+        // Notify Telegram + Sheets
+        if (entry) { notifyTradeExit(entry).catch(() => {}); updateTradeExit(entry).catch(() => {}); }
       } catch (err) {
         console.error(`[AutoTrader] Failed to close ${symbol}:`, err.message);
       }
