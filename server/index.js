@@ -17,14 +17,20 @@ import { initTelegramBot, setScanCache } from './services/telegram.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Prevent crashes from unhandled errors
+process.on('uncaughtException', (err) => {
+  console.error('[FATAL] Uncaught exception:', err.message);
+});
+process.on('unhandledRejection', (err) => {
+  console.error('[FATAL] Unhandled rejection:', err?.message || err);
+});
+
 const app = express();
 const PORT = process.env.PORT || 4000;
 
 app.use(cors({
-  origin: process.env.ALLOWED_ORIGINS
-    ? process.env.ALLOWED_ORIGINS.split(',')
-    : true, // Allow all origins in dev / when not configured
-  methods: ['GET', 'POST', 'DELETE'],
+  origin: true, // Allow all origins — Vercel + Railway + localhost
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true
 }));
 
