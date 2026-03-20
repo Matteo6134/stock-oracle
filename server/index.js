@@ -22,8 +22,8 @@ const PORT = process.env.PORT || 4000;
 app.use(cors({
   origin: process.env.ALLOWED_ORIGINS
     ? process.env.ALLOWED_ORIGINS.split(',')
-    : ['http://localhost:5173', 'http://localhost:4173', 'http://localhost:3000', 'http://localhost:5174'],
-  methods: ['GET', 'POST'],
+    : true, // Allow all origins in dev / when not configured
+  methods: ['GET', 'POST', 'DELETE'],
   credentials: true
 }));
 
@@ -241,25 +241,29 @@ app.get('/health', (req, res) => {
 });
 
 // ══════════════════════════════════════════
-// Serve frontend (Vite build) in production
+// Serve frontend — only when NOT on Vercel
+// (Vercel handles static files + SPA routing via vercel.json)
 // ══════════════════════════════════════════
-const distPath = path.join(__dirname, '..', 'dist');
-import fs from 'fs';
-if (fs.existsSync(distPath)) {
-  app.use(express.static(distPath));
-  // SPA fallback — serve index.html for all non-API routes
-  app.get('*', (req, res) => {
-    if (req.path.startsWith('/api')) {
-      return res.status(404).json({ error: 'Not found' });
+if (!process.env.VERCEL) {
+  const distPath = path.join(__dirname, '..', 'dist');
+  try {
+    const { existsSync } = await import('fs');
+    if (existsSync(distPath)) {
+      app.use(express.static(distPath));
+      app.get('*', (req, res) => {
+        if (req.path.startsWith('/api')) {
+          return res.status(404).json({ error: 'Not found' });
+        }
+        res.sendFile(path.join(distPath, 'index.html'));
+      });
+      console.log('[Server] Serving frontend from dist/');
     }
-    res.sendFile(path.join(distPath, 'index.html'));
-  });
-  console.log('[Server] Serving frontend from dist/');
-} else {
-  app.use((req, res) => {
-    res.status(404).json({ error: 'Not found' });
-  });
+  } catch {}
 }
+
+app.use((req, res) => {
+  res.status(404).json({ error: 'Not found' });
+});
 
 app.use((err, req, res, next) => {
   console.error('[Server Error]', err.message);
