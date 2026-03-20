@@ -19,6 +19,12 @@ let bot = null;
 let chatId = null;
 let scanCacheRef = { gems: [], pennies: [], allAnalyzed: [], movers: [], lastScanTime: null, lastMoversTime: null };
 
+// ── Alert dedup: don't spam the same stock every 5 minutes ──
+// symbol → { ts: timestamp, gemScore: number }
+const alertedStocks = new Map();
+const ALERT_COOLDOWN_MS = 4 * 60 * 60 * 1000; // 4 hours — re-alert if stock stays hot
+const ALERT_SCORE_JUMP = 20; // also re-alert if gem score jumps by this much
+
 export function setScanCache(cache) { scanCacheRef = cache; }
 
 function loadConfig() {
@@ -426,6 +432,115 @@ export async function sendTestMessage() {
     await bot.sendMessage(chatId, '\u2705 *Stock Oracle* \u2014 notifications active', { parse_mode: 'Markdown' });
     return { success: true };
   } catch (err) { return { success: false, error: err.message }; }
+}
+
+/**
+ * Proactive buy alerts — called after every scan cycle.
+ * Sends a Telegram message for each new strong setup the user hasn't been alerted about yet.
+ * Deduplicated: same stock won't alert again for 4 hours unless gem score jumps 20+ pts.
+ *
+ * @param {Array} stocks - analyzed stocks with verdicts, consensus, gemScore
+ */
+export async function notifyBuyAlerts(stocks) {
+  if (!bot || !chatId) return;
+  if (!stocks || stocks.length === 0) return;
+
+  const now = Date.now();
+
+  // Clean stale entries (older than cooldown)
+  for (const [sym, entry] of alertedStocks) {
+    if (now - entry.ts > ALERT_COOLDOWN_MS) alertedStocks.delete(sym);
+  }
+
+  // Find stocks that qualify for alert
+  const toAlert = stocks.filter(s => {
+    if (!s.symbol || !s.price) return false;
+    // Must have at least Buy consensus and decent score
+    if (!s.consensus || s.consensus === 'No Trade' || s.consensus === 'Speculative') return false;
+    if ((s.gemScore || 0) < 55) return false;
+    if ((s.buyCount || 0) < 2) return false;
+
+    const prev = alertedStocks.get(s.symbol);
+    if (!prev) return true; // Never alerted
+    // Re-alert if score jumped significantly
+    if ((s.gemScore || 0) >= (prev.gemScore || 0) + ALERT_SCORE_JUMP) return true;
+    return false; // Still in cooldown
+  });
+
+  if (toAlert.length === 0) return;
+
+  // Sort by gem score — best first
+  toAlert.sort((a, b) => (b.gemScore || 0) - (a.gemScore || 0));
+
+  // Send one message per stock (up to 5 at a time to avoid spam burst)
+  for (const s of toAlert.slice(0, 5)) {
+    try {
+      const isStrong = s.consensus === 'Strong Buy';
+      const icon = isStrong ? '\uD83D\uDD25' : '\uD83D\uDC8E'; // 🔥 or 💎
+      const header = isStrong ? '\uD83D\uDEA8 *STRONG BUY ALERT*' : '\uD83D\uDC8E *BUY ALERT*';
+
+      const buyVerdicts = (s.verdicts || []).filter(v => v.action === 'BUY');
+      const avgTarget = buyVerdicts.length > 0
+        ? buyVerdicts.reduce((sum, v) => sum + (parseFloat(v.targetGain) || 10), 0) / buyVerdicts.length
+        : 10;
+      const avgStop = buyVerdicts.length > 0
+        ? buyVerdicts.reduce((sum, v) => {
+            return sum + (v.stopLoss && s.price ? Math.round(((s.price - v.stopLoss) / s.price) * 100) : 5);
+          }, 0) / buyVerdicts.length
+        : 5;
+
+      const tpPrice = s.price ? $(s.price * (1 + avgTarget / 100)) : '?';
+      const slPrice = s.price ? $(s.price * (1 - avgStop / 100)) : '?';
+      const changeLine = (s.changePct || 0) >= 0
+        ? `\uD83D\uDFE2 +${(s.changePct || 0).toFixed(1)}% today`
+        : `\uD83D\uDD34 ${(s.changePct || 0).toFixed(1)}% today`;
+
+      // Top 3 signals in human-readable form
+      const sigLabels = {
+        unusual_volume: 'Volume surge',
+        multi_day_accumulation: 'Multi-day accumulation',
+        smart_money: 'Smart money buying',
+        early_momentum: 'Early momentum',
+        momentum_acceleration: 'Momentum accelerating',
+        short_squeeze_loading: 'Short squeeze loading',
+        bb_squeeze: 'BB squeeze',
+        near_52w_high: '52-week high',
+        low_float_volume: 'Low float + volume',
+        insider_buying: 'Insider buying',
+        bullish_options: 'Bullish options flow',
+        institutions_accumulating: 'Institutions buying',
+        unusual_options_volume: 'Unusual options',
+        earnings_tomorrow: 'Earnings tomorrow',
+      };
+      const topSignals = (s.signals || [])
+        .slice(0, 3)
+        .map(sig => sigLabels[sig] || sig)
+        .join(' \u00B7 ');
+
+      const lines = [
+        header,
+        '',
+        `${icon} *${s.symbol}*  ${$(s.price)}  ${changeLine}`,
+        `\uD83C\uDFAF Target: +${avgTarget.toFixed(0)}% \u2192 ${tpPrice}`,
+        `\uD83D\uDED1 Stop: -${avgStop.toFixed(0)}% \u2192 ${slPrice}`,
+        `\uD83D\uDCCA ${s.buyCount || 0}/5 agents \u00B7 Score ${s.gemScore || 0} \u00B7 ${s.consensus}`,
+        topSignals ? `\uD83D\uDD0D ${topSignals}` : '',
+        '',
+        s.source === 'penny' ? '\uD83E\uDE99 Penny stock \u2014 small position, high risk' : '\uD83D\uDC8E Quality setup',
+      ].filter(Boolean);
+
+      await bot.sendMessage(chatId, lines.join('\n'), { parse_mode: 'Markdown' });
+
+      // Mark as alerted
+      alertedStocks.set(s.symbol, { ts: now, gemScore: s.gemScore || 0 });
+
+      // Small delay between messages to avoid Telegram rate limits
+      await new Promise(r => setTimeout(r, 500));
+
+    } catch (err) {
+      console.error('[Telegram] Buy alert error:', err.message);
+    }
+  }
 }
 
 export function stopBot() { if (bot) { bot.stopPolling(); bot = null; } }

@@ -12,7 +12,7 @@ import { saveGemSnapshot } from './services/gemHistory.js';
 import * as yahooFinance from './services/yahooFinance.js';
 import { scanPennyStocks } from './services/pennyScanner.js';
 import { processSignals, checkExitSignals } from './services/autoTrader.js';
-import { initTelegramBot, setScanCache } from './services/telegram.js';
+import { initTelegramBot, setScanCache, notifyBuyAlerts } from './services/telegram.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -186,6 +186,14 @@ if (!process.env.VERCEL) {
       // Update scan cache
       scanCache.allAnalyzed = allAnalyzed;
       scanCache.lastScanTime = new Date().toISOString();
+
+      // ── Proactive Telegram buy alerts (independent of auto-trading) ──
+      // Fires for every new strong setup so user can buy manually before it moves
+      if (allAnalyzed.length > 0) {
+        notifyBuyAlerts(allAnalyzed).catch(err =>
+          console.error('[Cron] Buy alert error:', err.message)
+        );
+      }
 
       // Auto-trader: execute trades for strong consensus picks
       if (allAnalyzed.length > 0) {
