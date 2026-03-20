@@ -81,7 +81,7 @@ function registerCommands() {
     bot.sendMessage(chatId, [
       '🤖 *Stock Oracle Bot Connected!*',
       '',
-      'I\\'ll notify you when agents execute trades.',
+      'I will notify you when agents execute trades.',
       '',
       '*Commands:*',
       '/balance — Account overview',
