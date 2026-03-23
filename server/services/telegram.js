@@ -75,6 +75,25 @@ export function initTelegramBot() {
     const cfg = loadConfig();
     if (cfg.chatId) chatId = cfg.chatId;
     console.log(`[Telegram] Bot online${chatId ? ` (chat: ${chatId})` : ''}`);
+
+    // Set persistent command menu so user sees all commands when tapping "/"
+    bot.setMyCommands([
+      { command: 'start', description: 'Start the bot' },
+      { command: 'portfolio', description: 'Balance & open positions' },
+      { command: 'next', description: 'Pre-market picks (buy before open)' },
+      { command: 'gems', description: 'Top quality stocks' },
+      { command: 'pennies', description: 'Best penny stocks under $5' },
+      { command: 'watchlist', description: 'Your saved watchlist' },
+      { command: 'trades', description: 'Recent trade history' },
+      { command: 'scan', description: 'Full market scan results' },
+      { command: 'ask', description: 'Ask Claude anything about markets' },
+      { command: 'briefing', description: 'Hourly market analysis' },
+      { command: 'brain', description: 'Claude AI accuracy & status' },
+      { command: 'poly', description: 'Polymarket portfolio & picks' },
+      { command: 'bet', description: 'Force Polymarket scan now' },
+      { command: 'goal', description: 'Progress toward $400K goal' },
+    ]).catch(err => console.error('[Telegram] setMyCommands error:', err.message));
+
     registerCommands();
     return bot;
   } catch (err) { console.error('[Telegram]', err.message); return null; }
