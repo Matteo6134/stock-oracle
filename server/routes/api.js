@@ -24,7 +24,7 @@ import { isClaudeConfigured, getMarketContext, getDailySpend, askClaude } from '
 import { getClaudeAccuracy, getClaudeHistory } from '../services/claudeTracker.js';
 import { getTopMarkets } from '../services/polymarket.js';
 import { getPortfolio, placeBet, getTradeHistory as getPolyHistory, calculateKellyBet, resetPortfolio } from '../services/polySimulator.js';
-import { analyzeMarket, findBestBets } from '../services/polyBrain.js';
+import { analyzeMarket, findBestBets, getStrategyStatus, findCorrelatedArbitrage, findSafeBets } from '../services/polyBrain.js';
 
 const router = express.Router();
 
@@ -2059,6 +2059,24 @@ router.get('/poly/brain', async (req, res) => {
 router.post('/poly/reset', (req, res) => {
   resetPortfolio();
   res.json({ success: true, portfolio: getPortfolio() });
+});
+
+router.get('/poly/strategies', (req, res) => {
+  res.json(getStrategyStatus());
+});
+
+router.get('/poly/arbitrage', async (req, res) => {
+  try {
+    const markets = await getTopMarkets(30);
+    res.json(findCorrelatedArbitrage(markets));
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.get('/poly/safe-bets', async (req, res) => {
+  try {
+    const markets = await getTopMarkets(30);
+    res.json(findSafeBets(markets));
+  } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 // ── Historical Backtest ──

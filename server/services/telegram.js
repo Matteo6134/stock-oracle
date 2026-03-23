@@ -554,37 +554,79 @@ function registerCommands() {
     }
   });
 
-  // /bet — force Claude to scan Polymarket and suggest bets
+  // /bet — force Claude to scan Polymarket with ALL strategies
   bot.onText(/\/bet/, async (msg) => {
-    send(msg.chat.id, '\uD83E\uDDE0 Scanning Polymarket for edge...');
+    send(msg.chat.id, '\uD83E\uDDE0 *Scanning Polymarket — 6 strategies active...*\n\n\uD83D\uDD0D Edge Detection\n\uD83D\uDD04 Arbitrage\n\uD83C\uDFB0 Longshot Sell\n\uD83D\uDEE1 Safe Bets\n\uD83D\uDCF0 News Speed\n\uD83D\uDCCA Category Accuracy');
     try {
       const { getTopMarkets } = await import('./polymarket.js');
-      const { findBestBets } = await import('./polyBrain.js');
+      const { findBestBets, getStrategyStatus } = await import('./polyBrain.js');
 
-      const markets = await getTopMarkets(15);
+      const markets = await getTopMarkets(30);
       const picks = await findBestBets(markets);
 
       if (picks.length === 0) {
-        return send(msg.chat.id, '\u26AA No edge found right now. Markets are fairly priced. Check back later.');
+        return send(msg.chat.id, '\u26AA No edge found across any strategy. Markets are fairly priced. Check back later.');
       }
 
-      for (const pick of picks.slice(0, 3)) {
-        const actionIcon = pick.action === 'BET_YES' ? '\uD83D\uDFE2 YES' : '\uD83D\uDD34 NO';
-        const confDots = '\u25CF'.repeat(Math.min(pick.confidence, 10));
+      // Strategy summary
+      const stratCounts = {};
+      for (const p of picks) {
+        const s = p.strategy || 'edge_detection';
+        stratCounts[s] = (stratCounts[s] || 0) + 1;
+      }
+      const stratLabels = {
+        edge_detection: '\uD83D\uDD0D Edge',
+        arbitrage: '\uD83D\uDD04 Arb',
+        longshot_sell: '\uD83C\uDFB0 Longshot',
+        safe_bet: '\uD83D\uDEE1 Safe',
+      };
+      const stratLine = Object.entries(stratCounts).map(([k, v]) => `${stratLabels[k] || k}: ${v}`).join(' \u00B7 ');
+      send(msg.chat.id, `\uD83C\uDFAF Found *${picks.length}* opportunities\n${stratLine}`);
+      await new Promise(r => setTimeout(r, 300));
+
+      for (const pick of picks.slice(0, 5)) {
+        const stratIcon = {
+          edge_detection: '\uD83D\uDD0D',
+          arbitrage: '\uD83D\uDD04',
+          longshot_sell: '\uD83C\uDFB0',
+          safe_bet: '\uD83D\uDEE1',
+        }[pick.strategy] || '\uD83C\uDFAF';
+
+        const confBar = '\u2588'.repeat(Math.min(pick.confidence, 10)) + '\u2591'.repeat(Math.max(0, 10 - pick.confidence));
+
         const lines = [
-          `\uD83C\uDFAF *${pick.action === 'BET_YES' ? 'BET YES' : 'BET NO'}*`,
+          `${stratIcon} *${pick.action === 'BET_YES' ? 'BET YES' : 'BET NO'}* \u2014 _${pick.strategy.replace(/_/g, ' ')}_`,
           '',
-          `"${pick.question.slice(0, 80)}"`,
+          `"${(pick.question || '').slice(0, 80)}"`,
           '',
-          `\uD83D\uDCB0 Market: ${Math.round(pick.marketYesPrice * 100)}\u00A2 Yes / ${Math.round(pick.marketNoPrice * 100)}\u00A2 No`,
-          `\uD83E\uDDE0 Claude: ${Math.round(pick.realProbability * 100)}% real probability`,
-          `\uD83D\uDCC8 Edge: *${pick.edge > 0 ? '+' : ''}${pick.edge}%*`,
-          `${confDots} Confidence: ${pick.confidence}/10`,
-          '',
-          `\uD83D\uDCDD ${pick.thesis}`,
-          '',
-          `\uD83D\uDCB5 Suggested: ${pick.suggestedSizePct}% of bankroll`,
         ];
+
+        if (pick.strategy === 'safe_bet') {
+          lines.push(
+            `\uD83D\uDEE1 Return: *+${pick.returnPct}%* in ${pick.daysLeft} days`,
+            `\uD83D\uDCC8 Annualized: *${pick.annualizedReturn}%*`,
+            `[${confBar}] Confidence: ${pick.confidence}/10`,
+          );
+        } else if (pick.strategy === 'arbitrage') {
+          lines.push(
+            `\uD83D\uDD04 Arbitrage edge: *${pick.edge}%*`,
+            `[${confBar}] Confidence: ${pick.confidence}/10`,
+            `\uD83D\uDCDD ${pick.thesis}`,
+          );
+        } else {
+          lines.push(
+            `\uD83D\uDCB0 Market: ${Math.round((pick.marketYesPrice || 0) * 100)}\u00A2 Yes / ${Math.round((pick.marketNoPrice || 0) * 100)}\u00A2 No`,
+            `\uD83E\uDDE0 Claude: ${Math.round((pick.realProbability || 0) * 100)}% real`,
+            `\uD83D\uDCC8 Edge: *${pick.edge > 0 ? '+' : ''}${pick.edge}%*`,
+            `[${confBar}] Confidence: ${pick.confidence}/10`,
+            '',
+            `\uD83D\uDCDD ${pick.thesis}`,
+          );
+        }
+
+        lines.push('', `\uD83D\uDCB5 Size: ${pick.suggestedSizePct}% of bankroll`);
+        if (pick.isBestBet) lines.push('\n\u2B50 *BEST BET*');
+
         await send(msg.chat.id, lines.join('\n'));
         await new Promise(r => setTimeout(r, 500));
       }

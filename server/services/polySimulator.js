@@ -13,6 +13,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { randomUUID } from 'crypto';
+import { recordCategoryResult } from './polyBrain.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = path.join(__dirname, '..', 'data');
@@ -99,7 +100,7 @@ export function getPortfolio() {
  * @param {string} params.claudeThesis - Claude's reasoning
  * @param {number} params.claudeProb - Claude's estimated real probability
  */
-export function placeBet({ marketId, question, outcome, price, amount, claudeConfidence, claudeThesis, claudeProb }) {
+export function placeBet({ marketId, question, outcome, price, amount, claudeConfidence, claudeThesis, claudeProb, category, strategy }) {
   const p = loadPortfolio();
 
   if (amount > p.balance) {
@@ -128,6 +129,8 @@ export function placeBet({ marketId, question, outcome, price, amount, claudeCon
     claudeConfidence: claudeConfidence || 0,
     claudeThesis: String(claudeThesis || '').slice(0, 500),
     claudeProb: claudeProb || 0.5,
+    category: category || 'Other',
+    strategy: strategy || 'edge_detection',
     timestamp: new Date().toISOString(),
     status: 'open',
     pnl: null,
@@ -188,6 +191,9 @@ export function settleBet(positionId, won) {
   p.history.push({ ...pos });
   p.positions = p.positions.filter(pp => pp.id !== positionId);
   savePortfolio(p);
+
+  // Track category accuracy for strategy learning
+  recordCategoryResult(pos.category, won, pos.edge);
 
   console.log(`[PolySim] SETTLED ${pos.question.slice(0, 30)}... → ${won ? 'WON' : 'LOST'} (${pos.pnl >= 0 ? '+' : ''}$${pos.pnl})`);
   return { success: true, position: pos };

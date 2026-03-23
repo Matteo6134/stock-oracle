@@ -12,7 +12,7 @@ import { saveGemSnapshot } from './services/gemHistory.js';
 import * as yahooFinance from './services/yahooFinance.js';
 import { scanPennyStocks } from './services/pennyScanner.js';
 import { processSignals, checkExitSignals } from './services/autoTrader.js';
-import { initTelegramBot, setScanCache, notifyBuyAlerts } from './services/telegram.js';
+import { initTelegramBot, setScanCache, notifyBuyAlerts, notifyNewTrade } from './services/telegram.js';
 import { runCalibration, getCalibration } from './services/strategyCalibrator.js';
 import { analyzeStock, getMarketBriefing, isClaudeConfigured, getMarketContext } from './services/claudeBrain.js';
 import { logPrediction } from './services/claudeTracker.js';
@@ -386,39 +386,79 @@ if (!process.env.VERCEL) {
       }, { timezone: 'America/New_York' });
       console.log('[Claude] AI brain active — hourly briefings + per-stock analysis enabled');
 
-      // ── Polymarket Oracle: scan every 30 min, auto-bet on high-edge markets ──
+      // ── Polymarket Oracle: 6-strategy scan every 30 min, auto-bet ──
       cron.schedule('*/30 * * * *', async () => {
         try {
-          const markets = await getTopMarkets(15);
+          console.log('[PolyCron] Running 6-strategy scan...');
+          const markets = await getTopMarkets(30);
           if (markets.length === 0) return;
           const picks = await findBestBets(markets);
-          if (picks.length === 0) return;
+          if (picks.length === 0) { console.log('[PolyCron] No edge found'); return; }
 
+          console.log(`[PolyCron] ${picks.length} opportunities found`);
           const portfolio = getPortfolio();
-          // Auto-bet on high-confidence picks (conf ≥ 8, edge ≥ 15%)
-          for (const pick of picks.slice(0, 3)) {
-            if (pick.confidence < 8 || Math.abs(pick.edge) < 15) continue;
+
+          // Auto-bet rules per strategy
+          for (const pick of picks.slice(0, 5)) {
+            // Different thresholds per strategy
+            let minConf, minEdge, maxSizePct;
+            switch (pick.strategy) {
+              case 'safe_bet':
+                minConf = 7; minEdge = 3; maxSizePct = 30; break;
+              case 'arbitrage':
+                minConf = 6; minEdge = 5; maxSizePct = 15; break;
+              case 'longshot_sell':
+                minConf = 8; minEdge = 15; maxSizePct = 10; break;
+              default: // edge_detection
+                minConf = 8; minEdge = 12; maxSizePct = 20; break;
+            }
+
+            if (pick.confidence < minConf || Math.abs(pick.edge) < minEdge) continue;
+
             const outcome = pick.action === 'BET_YES' ? 'Yes' : 'No';
-            const price = pick.action === 'BET_YES' ? pick.marketYesPrice : pick.marketNoPrice;
-            const amount = calculateKellyBet(portfolio.balance, price, pick.realProbability, 20);
+            const price = pick.action === 'BET_YES'
+              ? (pick.marketYesPrice || 0.5)
+              : (pick.marketNoPrice || 0.5);
+
+            if (price <= 0 || price >= 1) continue;
+
+            const amount = calculateKellyBet(
+              portfolio.balance, price,
+              pick.realProbability || (pick.action === 'BET_YES' ? 0.7 : 0.3),
+              maxSizePct
+            );
             if (amount < 5 || amount > portfolio.balance) continue;
 
-            placeBet({
+            const betResult = placeBet({
               marketId: pick.marketId,
-              question: pick.question,
+              question: pick.question || pick.thesis?.slice(0, 100),
               outcome,
               price,
               amount,
               claudeConfidence: pick.confidence,
               claudeThesis: pick.thesis,
-              claudeProb: pick.realProbability,
+              claudeProb: pick.realProbability || 0.5,
+              category: pick.category,
+              strategy: pick.strategy,
             });
+
+            // Send Telegram alert for each auto-bet
+            if (betResult.success) {
+              const stratLabel = { edge_detection: 'Edge', arbitrage: 'Arb', longshot_sell: 'Longshot', safe_bet: 'Safe' }[pick.strategy] || pick.strategy;
+              const msg = [
+                `\uD83C\uDFAF *AUTO-BET: ${outcome.toUpperCase()}* [${stratLabel}]`,
+                `"${(pick.question || '').slice(0, 60)}"`,
+                `\uD83D\uDCB5 $${amount} at ${Math.round(price * 100)}\u00A2 \u00B7 Edge ${pick.edge}%`,
+                `\uD83E\uDDE0 ${pick.thesis?.slice(0, 100) || ''}`,
+              ].join('\n');
+              notifyNewTrade(msg).catch(() => {});
+            }
           }
         } catch (err) {
           console.error('[PolyCron] Scan error:', err.message);
         }
       });
-      console.log('[PolyOracle] Polymarket scanner active — every 30 min');
+      console.log('[PolyOracle] 6-strategy scanner active — every 30 min');
     } else {
       console.log('[Claude] No ANTHROPIC_API_KEY — running rule-based only');
     }

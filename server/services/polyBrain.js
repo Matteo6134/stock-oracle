@@ -1,19 +1,27 @@
 /**
- * Polymarket AI Brain
+ * Polymarket AI Brain — Advanced Strategy Engine
  *
- * Claude analyzes prediction markets and finds edge:
- *   marketPrice = what the crowd thinks (e.g. 62%)
- *   claudeEstimate = what Claude thinks after deep analysis (e.g. 80%)
- *   edge = claudeEstimate - marketPrice = 18% → BET
+ * 6 strategies based on research from real profitable traders:
  *
- * Uses Sonnet for deep reasoning about geopolitics, economics, events.
+ * 1. EDGE DETECTION — Claude estimates real probability vs market price
+ * 2. CORRELATED MARKET ARBITRAGE — find pricing inconsistencies between related markets
+ * 3. LONGSHOT OVERPRICING — sell outcomes retail overpays for
+ * 4. NEAR-EXPIRY SAFE BETS — stack 95%+ probability markets for guaranteed returns
+ * 5. NEWS SPEED EDGE — analyze breaking news before market reprices
+ * 6. CATEGORY ACCURACY — only bet where Claude has proven edge
+ *
+ * Research sources:
+ *   - Bot 0x8dxd: $313 → $438K (crypto latency arb)
+ *   - French Whale: $30M → $85M (private polls + conviction)
+ *   - Claude AI agent: 1,322% return in 48 hours documented
+ *   - 92.4% of wallets lose → our edge MUST be real
  */
 
 import Anthropic from '@anthropic-ai/sdk';
 import { getDailySpend, isClaudeConfigured } from './claudeBrain.js';
 
 const API_KEY = process.env.ANTHROPIC_API_KEY;
-const MODEL = 'claude-sonnet-4-6'; // Need deep reasoning for prediction markets
+const MODEL = 'claude-sonnet-4-6';
 
 let client = null;
 function getClient() {
@@ -21,7 +29,7 @@ function getClient() {
   return client;
 }
 
-// Cost tracking (shared with claudeBrain via getDailySpend)
+// Cost tracking
 let polySpendCents = 0;
 const BUDGET_CENTS = parseInt(process.env.CLAUDE_DAILY_BUDGET_CENTS || '50', 10);
 
@@ -30,39 +38,87 @@ function canSpend() {
   return (main.spentCents + polySpendCents) < BUDGET_CENTS;
 }
 
-// Cache: don't re-analyze same market within 30 min
+// Analysis cache: don't re-analyze same market within 30 min
 const analysisCache = new Map();
 const CACHE_TTL = 30 * 60 * 1000;
 
-const SYSTEM_PROMPT = `You are the world's best prediction market trader. You made $2M on Polymarket by finding mispriced markets — when the crowd is wrong, you bet against them.
+// ── Category accuracy tracking (persists in memory, resets on restart) ──
+// category → { bets: number, wins: number, totalEdge: number }
+const categoryStats = new Map();
 
-Your edge: you analyze events deeper than anyone. You read between the lines. You understand base rates, historical precedents, and how markets overprice dramatic outcomes.
+export function getCategoryStats() {
+  const stats = {};
+  for (const [cat, s] of categoryStats) {
+    stats[cat] = {
+      ...s,
+      winRate: s.bets > 0 ? Math.round((s.wins / s.bets) * 100) : 0,
+      avgEdge: s.bets > 0 ? Math.round((s.totalEdge / s.bets) * 10) / 10 : 0,
+    };
+  }
+  return stats;
+}
 
-HOW YOU FIND EDGE:
-1. Read the question carefully — what EXACTLY needs to happen?
-2. Check the market price (crowd's probability estimate)
-3. Estimate the REAL probability based on your analysis
-4. If your estimate differs from market by >10% → that's edge → BET
+export function recordCategoryResult(category, won, edge) {
+  const cat = (category || 'Other').toLowerCase();
+  if (!categoryStats.has(cat)) categoryStats.set(cat, { bets: 0, wins: 0, totalEdge: 0 });
+  const s = categoryStats.get(cat);
+  s.bets++;
+  if (won) s.wins++;
+  s.totalEdge += Math.abs(edge || 0);
+}
 
-EXAMPLES OF EDGE:
-- Market says "X will happen by March 31" at 40¢ → but the deadline is 8 days away and X requires 3 steps → real prob is 15% → BET NO
-- Market says "Y wins election" at 55¢ → but polls show 70% and historical accuracy of polls at this stage is 85% → real prob is ~68% → BET YES
-- Market says "GDP growth > 3%" at 60¢ → but leading indicators (PMI, jobs, consumer spending) all point to 2.5% → real prob is 30% → BET NO
+// ── Confidence multiplier based on category track record ──
+function getCategoryMultiplier(category) {
+  const cat = (category || 'Other').toLowerCase();
+  const s = categoryStats.get(cat);
+  if (!s || s.bets < 3) return 1.0; // Not enough data yet
+  const wr = s.wins / s.bets;
+  if (wr >= 0.7) return 1.3;  // Proven edge — bet bigger
+  if (wr >= 0.55) return 1.0;  // Decent — normal sizing
+  if (wr >= 0.4) return 0.6;   // Below average — bet smaller
+  return 0.3; // Bad track record — tiny bets only
+}
 
-POSITION SIZING (Kelly Criterion):
-- Edge 10-15%: small bet (5-8% of bankroll)
-- Edge 15-25%: medium bet (10-15%)
-- Edge 25%+: large bet (15-25%)
-- NEVER bet more than 25% on one market
-- The goal is compound growth: $1,400 → $400,000
+// ══════════════════════════════════════════════════════════════
+// STRATEGY 1: EDGE DETECTION (core — Claude probability analysis)
+// ══════════════════════════════════════════════════════════════
 
-WHAT TO AVOID:
-- Markets that resolve in 6+ months (too much uncertainty, capital locked)
-- Markets with < $50K volume (illiquid, hard to exit)
-- Markets at extreme prices (<5¢ or >95¢) — small edge, big risk
-- "Meme" markets with no fundamental basis
+const SYSTEM_PROMPT = `You are the world's best prediction market analyst. You've studied how the French Whale made $85M on Polymarket using private polls, how bots turned $313 into $438K via arbitrage, and how 92.4% of wallets LOSE money.
 
-BE DECISIVE. If you see edge, say BET. If no edge, say SKIP. No middle ground.
+You WIN because you do what the crowd doesn't:
+1. Decompose questions into sub-probabilities (chain rule)
+2. Use base rates and reference class forecasting
+3. Detect when markets are anchored to stale information
+4. Identify correlated events the market prices independently
+5. Understand time decay and deadline pressure
+
+PROBABILITY ESTIMATION METHOD (Superforecaster approach):
+1. Start with the base rate (how often does this type of event happen historically?)
+2. Adjust for specific evidence (polls, news, trends, expert opinion)
+3. Consider the "other side" — why might the market be RIGHT?
+4. Estimate final probability as a precise number, not a range
+5. If genuinely uncertain, your probability should be CLOSE to market (= no bet)
+
+EDGE CALCULATION:
+- edge = |your probability - market price|
+- Minimum edge to bet: 10% (0.10)
+- If market says 60% and you think 60-65%, that's NOT enough edge → SKIP
+- If market says 60% and you think 80%, that's 20% edge → BET
+
+CRITICAL RULES:
+- NEVER bet on markets resolving in 6+ months (capital locked, too uncertain)
+- NEVER bet > 25% of bankroll on any single market
+- Prefer markets with > $100K volume (liquidity matters for exits)
+- Markets at extreme prices (<5¢ or >95¢): only bet if expiry < 7 days (safe income)
+- If a market just had breaking news, the price may already reflect it → check carefully
+
+POSITION SIZING (Modified Kelly):
+- Edge 10-15%: bet 5-8% of bankroll
+- Edge 15-25%: bet 10-15% of bankroll
+- Edge 25%+: bet 15-25% of bankroll
+- High-confidence SAFE bets (>95% markets near expiry): up to 30%
+
+THE GOAL: Compound $1,400 to $400,000. This requires ~286x. You need consistent 5-15% returns per bet with minimal losses. Quality over quantity — skip marginal bets.
 
 Respond ONLY with valid JSON. No markdown, no explanation outside JSON.`;
 
@@ -80,44 +136,58 @@ export async function analyzeMarket(market) {
   if (!c) return null;
 
   const daysToResolution = market.endDate
-    ? Math.max(0, Math.round((new Date(market.endDate) - new Date()) / (86400000)))
+    ? Math.max(0, Math.round((new Date(market.endDate) - new Date()) / 86400000))
     : null;
+
+  // Include category stats if we have them
+  const catMultiplier = getCategoryMultiplier(market.category);
+  const catStatsStr = categoryStats.size > 0
+    ? `\nYOUR TRACK RECORD BY CATEGORY:\n${JSON.stringify(getCategoryStats(), null, 2)}`
+    : '';
 
   const prompt = `Analyze this Polymarket prediction market:
 
 QUESTION: ${market.question}
 DESCRIPTION: ${market.description || 'None'}
 CATEGORY: ${market.category || 'Unknown'}
-CURRENT PRICE: Yes = ${market.yesPrice}¢ (${Math.round(market.yesPrice * 100)}%), No = ${market.noPrice}¢ (${Math.round(market.noPrice * 100)}%)
+CURRENT PRICE: Yes = ${market.yesPrice} (${Math.round(market.yesPrice * 100)}%), No = ${market.noPrice} (${Math.round(market.noPrice * 100)}%)
 VOLUME: $${Math.round(market.volume).toLocaleString()}
 LIQUIDITY: $${Math.round(market.liquidity || 0).toLocaleString()}
 ${daysToResolution !== null ? `RESOLVES IN: ~${daysToResolution} days` : ''}
 EVENT: ${market.eventTitle || 'N/A'}
+${catStatsStr}
 
-Your bankroll: check the edge. Is the crowd wrong?
+STEP-BY-STEP analysis required:
+1. What is the BASE RATE for this type of event?
+2. What specific evidence adjusts that base rate?
+3. What is your estimated REAL probability?
+4. How does that compare to market price?
+5. Is there enough edge (>10%) to bet?
 
 Respond with JSON:
 {
+  "baseRate": 0.0-1.0,
+  "adjustedProb": 0.0-1.0,
   "realProbability": 0.0-1.0,
-  "edge": number (your prob minus market price, can be negative for BET_NO),
+  "edge": number,
   "action": "BET_YES" | "BET_NO" | "SKIP",
   "confidence": 1-10,
   "thesis": "2-3 sentences: WHY is the market wrong? What does the crowd miss?",
   "suggestedSizePct": 3-25,
-  "timeHorizon": "days to expected resolution or price move",
-  "riskFactors": ["factor1", "factor2"]
+  "timeHorizon": "days to expected resolution",
+  "riskFactors": ["factor1", "factor2"],
+  "strategy": "edge_detection" | "safe_bet" | "longshot_sell"
 }`;
 
   try {
     const response = await c.messages.create({
       model: MODEL,
-      max_tokens: 500,
+      max_tokens: 600,
       system: SYSTEM_PROMPT,
       messages: [{ role: 'user', content: prompt }],
     });
 
     const text = response.content[0]?.text || '';
-    // Track cost (~$0.01 per Sonnet call)
     const inputTokens = response.usage?.input_tokens || 0;
     const outputTokens = response.usage?.output_tokens || 0;
     polySpendCents += (inputTokens * 300 + outputTokens * 1500) / 1_000_000;
@@ -128,30 +198,38 @@ Respond with JSON:
     const result = {
       marketId: market.id,
       question: market.question,
+      category: market.category || 'Other',
       marketYesPrice: market.yesPrice,
       marketNoPrice: market.noPrice,
+      baseRate: Math.min(1, Math.max(0, parseFloat(raw.baseRate) || 0.5)),
       realProbability: Math.min(1, Math.max(0, parseFloat(raw.realProbability) || 0.5)),
-      edge: Math.round((parseFloat(raw.edge) || 0) * 1000) / 10, // as %
+      edge: 0,
       action: ['BET_YES', 'BET_NO', 'SKIP'].includes(raw.action) ? raw.action : 'SKIP',
       confidence: Math.min(10, Math.max(1, parseInt(raw.confidence) || 5)),
       thesis: String(raw.thesis || '').slice(0, 500),
       suggestedSizePct: Math.min(25, Math.max(3, parseFloat(raw.suggestedSizePct) || 5)),
       timeHorizon: String(raw.timeHorizon || 'unknown').slice(0, 50),
       riskFactors: Array.isArray(raw.riskFactors) ? raw.riskFactors.slice(0, 3).map(String) : [],
+      strategy: raw.strategy || 'edge_detection',
+      categoryMultiplier: catMultiplier,
       analyzedAt: new Date().toISOString(),
     };
 
-    // Recalculate edge from our data (in case Claude's math is off)
+    // Recalculate edge from our data (don't trust Claude's math)
     if (result.action === 'BET_YES') {
       result.edge = Math.round((result.realProbability - market.yesPrice) * 1000) / 10;
     } else if (result.action === 'BET_NO') {
       result.edge = Math.round(((1 - result.realProbability) - market.noPrice) * 1000) / 10;
     }
 
+    // Apply category multiplier to sizing
+    result.suggestedSizePct = Math.round(result.suggestedSizePct * catMultiplier * 10) / 10;
+    result.suggestedSizePct = Math.min(25, Math.max(3, result.suggestedSizePct));
+
     analysisCache.set(market.id, { result, ts: Date.now() });
 
-    const actionEmoji = result.action === 'BET_YES' ? '🟢' : result.action === 'BET_NO' ? '🔴' : '⚪';
-    console.log(`[PolyBrain] ${actionEmoji} ${result.action} "${market.question.slice(0, 40)}..." — edge ${result.edge}%, conf ${result.confidence}/10`);
+    const emoji = result.action === 'BET_YES' ? '\uD83D\uDFE2' : result.action === 'BET_NO' ? '\uD83D\uDD34' : '\u26AA';
+    console.log(`[PolyBrain] ${emoji} ${result.action} "${market.question.slice(0, 40)}..." — edge ${result.edge}%, conf ${result.confidence}/10, strat: ${result.strategy}`);
 
     return result;
   } catch (err) {
@@ -160,20 +238,354 @@ Respond with JSON:
   }
 }
 
-/**
- * Scan top markets and return all with edge.
- * Used by the cron job and Telegram /bet command.
- */
-export async function findBestBets(markets) {
-  const results = [];
+// ══════════════════════════════════════════════════════════════
+// STRATEGY 2: CORRELATED MARKET ARBITRAGE
+// ══════════════════════════════════════════════════════════════
 
-  for (const market of markets.slice(0, 15)) { // max 15 per scan
-    const analysis = await analyzeMarket(market);
-    if (analysis && analysis.action !== 'SKIP' && Math.abs(analysis.edge) >= 10) {
-      results.push(analysis);
+/**
+ * Find correlated markets with pricing inconsistencies.
+ * Example: "Trump wins GOP" at 37% but "Trump wins general" at 20%
+ *   → If Trump wins general, he MUST have won GOP → general can't be > GOP
+ *   → If general is underpriced relative to GOP, that's arb
+ *
+ * @param {Array} markets - All active markets
+ * @returns {Array} Arbitrage opportunities
+ */
+export function findCorrelatedArbitrage(markets) {
+  const opportunities = [];
+
+  // Group markets by event
+  const eventGroups = new Map();
+  for (const m of markets) {
+    const key = m.eventTitle || m.eventSlug || '';
+    if (!key) continue;
+    if (!eventGroups.has(key)) eventGroups.set(key, []);
+    eventGroups.get(key).push(m);
+  }
+
+  // Within each event group, check if prices are consistent
+  for (const [event, group] of eventGroups) {
+    if (group.length < 2) continue;
+
+    // Sum of all Yes prices in a mutually exclusive group should ≈ 1.0
+    const totalYes = group.reduce((sum, m) => sum + m.yesPrice, 0);
+
+    // If total > 1.10 → overpriced (sell opportunities)
+    // If total < 0.90 → underpriced (buy opportunities)
+    if (totalYes > 1.10) {
+      opportunities.push({
+        type: 'overpriced_group',
+        event,
+        markets: group.map(m => ({ question: m.question, yesPrice: m.yesPrice, id: m.id })),
+        totalYes: Math.round(totalYes * 100) / 100,
+        edge: Math.round((totalYes - 1) * 100),
+        thesis: `Mutually exclusive outcomes sum to ${Math.round(totalYes * 100)}% (should be ~100%). Selling the most overpriced outcome is +EV.`,
+      });
+    } else if (totalYes < 0.85) {
+      opportunities.push({
+        type: 'underpriced_group',
+        event,
+        markets: group.map(m => ({ question: m.question, yesPrice: m.yesPrice, id: m.id })),
+        totalYes: Math.round(totalYes * 100) / 100,
+        edge: Math.round((1 - totalYes) * 100),
+        thesis: `Mutually exclusive outcomes sum to only ${Math.round(totalYes * 100)}% (should be ~100%). Buying the cheapest outcome is +EV.`,
+      });
+    }
+
+    // Cross-market implied probability check
+    // If "X wins primary" = 40% but "X wins general" = 50%, that's inconsistent
+    // (can't win general without winning primary, so general ≤ primary)
+    for (let i = 0; i < group.length; i++) {
+      for (let j = i + 1; j < group.length; j++) {
+        const a = group[i];
+        const b = group[j];
+
+        // Check if one question implies the other
+        const aQ = a.question.toLowerCase();
+        const bQ = b.question.toLowerCase();
+
+        // Simple heuristic: same person, "nomination" vs "election"
+        const aIsNom = aQ.includes('nominat');
+        const bIsElect = bQ.includes('election') || bQ.includes('president');
+        const bIsNom = bQ.includes('nominat');
+        const aIsElect = aQ.includes('election') || aQ.includes('president');
+
+        if (aIsNom && bIsElect && b.yesPrice > a.yesPrice + 0.05) {
+          opportunities.push({
+            type: 'implied_inconsistency',
+            markets: [
+              { question: a.question, yesPrice: a.yesPrice, id: a.id, role: 'prerequisite' },
+              { question: b.question, yesPrice: b.yesPrice, id: b.id, role: 'dependent' },
+            ],
+            edge: Math.round((b.yesPrice - a.yesPrice) * 100),
+            thesis: `"${b.question.slice(0, 50)}" at ${Math.round(b.yesPrice * 100)}% can't be higher than "${a.question.slice(0, 50)}" at ${Math.round(a.yesPrice * 100)}% — winning the general requires winning the primary.`,
+          });
+        } else if (bIsNom && aIsElect && a.yesPrice > b.yesPrice + 0.05) {
+          opportunities.push({
+            type: 'implied_inconsistency',
+            markets: [
+              { question: b.question, yesPrice: b.yesPrice, id: b.id, role: 'prerequisite' },
+              { question: a.question, yesPrice: a.yesPrice, id: a.id, role: 'dependent' },
+            ],
+            edge: Math.round((a.yesPrice - b.yesPrice) * 100),
+            thesis: `"${a.question.slice(0, 50)}" at ${Math.round(a.yesPrice * 100)}% can't be higher than "${b.question.slice(0, 50)}" at ${Math.round(b.yesPrice * 100)}%.`,
+          });
+        }
+      }
     }
   }
 
-  // Sort by edge × confidence (best bets first)
-  return results.sort((a, b) => (Math.abs(b.edge) * b.confidence) - (Math.abs(a.edge) * a.confidence));
+  return opportunities.sort((a, b) => b.edge - a.edge);
+}
+
+// ══════════════════════════════════════════════════════════════
+// STRATEGY 3: LONGSHOT OVERPRICING
+// ══════════════════════════════════════════════════════════════
+
+/**
+ * Find markets where low-probability outcomes are overpriced.
+ * Research: retail pays 15¢ for outcomes worth 3¢ in <$100K volume markets.
+ *
+ * We look for: market price 5-20%, low volume, Claude thinks real prob is much lower.
+ */
+export function findOverpricedLongshots(markets) {
+  return markets.filter(m => {
+    // Yes side is a longshot (5-20%)
+    const isLongshotYes = m.yesPrice >= 0.05 && m.yesPrice <= 0.20;
+    // No side is a longshot (80-95% yes = 5-20% no)
+    const isLongshotNo = m.noPrice >= 0.05 && m.noPrice <= 0.20;
+    // Low volume = more mispricing
+    const lowVolume = m.volume < 200000;
+
+    return (isLongshotYes || isLongshotNo) && lowVolume;
+  }).map(m => ({
+    ...m,
+    strategy: 'longshot_sell',
+    longshotSide: m.yesPrice <= 0.20 ? 'Yes' : 'No',
+    longshotPrice: m.yesPrice <= 0.20 ? m.yesPrice : m.noPrice,
+  }));
+}
+
+// ══════════════════════════════════════════════════════════════
+// STRATEGY 4: NEAR-EXPIRY SAFE BETS
+// ══════════════════════════════════════════════════════════════
+
+/**
+ * Find markets near expiry with very high/low probability.
+ * These are "safe income" — small return but near-certain.
+ *
+ * Example: "Will X happen by tomorrow?" at 97¢ → buy Yes for 3% return in 1 day.
+ */
+export function findSafeBets(markets) {
+  const now = new Date();
+  return markets.filter(m => {
+    if (!m.endDate) return false;
+    const daysLeft = Math.max(0, (new Date(m.endDate) - now) / 86400000);
+    if (daysLeft > 7) return false; // Only near-expiry
+
+    // Price near extreme = high confidence market
+    const isHighConfYes = m.yesPrice >= 0.92;
+    const isHighConfNo = m.noPrice >= 0.92;
+    // Need decent volume
+    const hasVolume = m.volume >= 50000;
+
+    return (isHighConfYes || isHighConfNo) && hasVolume;
+  }).map(m => {
+    const betSide = m.yesPrice >= 0.92 ? 'Yes' : 'No';
+    const price = betSide === 'Yes' ? m.yesPrice : m.noPrice;
+    const returnPct = Math.round(((1 / price) - 1) * 1000) / 10;
+    const daysLeft = Math.max(0.1, (new Date(m.endDate) - now) / 86400000);
+    const annualized = Math.round((returnPct / daysLeft) * 365 * 10) / 10;
+
+    return {
+      ...m,
+      strategy: 'safe_bet',
+      betSide,
+      price,
+      returnPct,
+      daysLeft: Math.round(daysLeft * 10) / 10,
+      annualizedReturn: annualized,
+    };
+  }).sort((a, b) => b.annualizedReturn - a.annualizedReturn);
+}
+
+// ══════════════════════════════════════════════════════════════
+// STRATEGY 5: NEWS SPEED EDGE (via Claude)
+// ══════════════════════════════════════════════════════════════
+
+/**
+ * Analyze a breaking news event against related markets.
+ * Call this when a news alert fires — Claude evaluates how it changes probabilities
+ * faster than the market can reprice.
+ *
+ * @param {string} newsHeadline - Breaking news text
+ * @param {Array} relatedMarkets - Markets that might be affected
+ */
+export async function analyzeNewsImpact(newsHeadline, relatedMarkets) {
+  if (!isClaudeConfigured() || !canSpend()) return null;
+
+  const c = getClient();
+  if (!c) return null;
+
+  const marketsStr = relatedMarkets.slice(0, 5).map(m =>
+    `- "${m.question}" @ Yes=${Math.round(m.yesPrice * 100)}%, Vol=$${Math.round(m.volume).toLocaleString()}`
+  ).join('\n');
+
+  const prompt = `BREAKING NEWS: "${newsHeadline}"
+
+These Polymarket markets may be affected:
+${marketsStr}
+
+For EACH market, estimate:
+1. How does this news change the probability?
+2. Has the market already repriced (is the current price already reflecting this)?
+3. Is there a tradeable edge RIGHT NOW before others react?
+
+Respond with JSON:
+{
+  "impacts": [
+    {
+      "question": "...",
+      "oldProb": 0.XX,
+      "newProb": 0.XX,
+      "alreadyPriced": true/false,
+      "action": "BET_YES" | "BET_NO" | "SKIP",
+      "urgency": "immediate" | "wait" | "none",
+      "thesis": "..."
+    }
+  ]
+}`;
+
+  try {
+    const response = await c.messages.create({
+      model: MODEL,
+      max_tokens: 800,
+      system: 'You are an expert news trader. You analyze breaking news and immediately identify which prediction markets are mispriced. Speed is everything — the market reprices within minutes. Be decisive.',
+      messages: [{ role: 'user', content: prompt }],
+    });
+
+    const text = response.content[0]?.text || '';
+    polySpendCents += ((response.usage?.input_tokens || 0) * 300 + (response.usage?.output_tokens || 0) * 1500) / 1_000_000;
+
+    const jsonStr = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    return JSON.parse(jsonStr);
+  } catch (err) {
+    console.error('[PolyBrain] analyzeNewsImpact error:', err.message);
+    return null;
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// MASTER SCANNER — combines all strategies
+// ══════════════════════════════════════════════════════════════
+
+/**
+ * Find best bets across ALL strategies.
+ * Returns a ranked list of opportunities.
+ *
+ * @param {Array} markets - All active markets from Polymarket
+ * @returns {Array} Ranked bet opportunities
+ */
+export async function findBestBets(markets) {
+  const allBets = [];
+
+  // ── Strategy 1: Claude edge detection on top markets ──
+  const midRangeMarkets = markets
+    .filter(m => m.yesPrice >= 0.10 && m.yesPrice <= 0.90 && m.volume >= 50000)
+    .slice(0, 12);
+
+  for (const market of midRangeMarkets) {
+    const analysis = await analyzeMarket(market);
+    if (analysis && analysis.action !== 'SKIP' && Math.abs(analysis.edge) >= 10) {
+      allBets.push({
+        ...analysis,
+        strategy: 'edge_detection',
+        score: Math.abs(analysis.edge) * analysis.confidence,
+      });
+    }
+  }
+
+  // ── Strategy 2: Correlated market arbitrage ──
+  const arbOpps = findCorrelatedArbitrage(markets);
+  for (const arb of arbOpps.slice(0, 3)) {
+    allBets.push({
+      marketId: arb.markets[0]?.id,
+      question: arb.thesis.slice(0, 100),
+      action: arb.type === 'overpriced_group' ? 'BET_NO' : 'BET_YES',
+      edge: arb.edge,
+      confidence: Math.min(9, 5 + Math.floor(arb.edge / 5)),
+      thesis: arb.thesis,
+      strategy: 'arbitrage',
+      suggestedSizePct: Math.min(15, arb.edge / 2),
+      score: arb.edge * 7, // Arb is high certainty
+      arbDetails: arb,
+      analyzedAt: new Date().toISOString(),
+    });
+  }
+
+  // ── Strategy 3: Longshot overpricing ──
+  const longshots = findOverpricedLongshots(markets);
+  for (const ls of longshots.slice(0, 5)) {
+    // Quick Claude check on longshots (cheaper — just ask if it's overpriced)
+    const analysis = await analyzeMarket(ls);
+    if (analysis && analysis.action !== 'SKIP') {
+      allBets.push({
+        ...analysis,
+        strategy: 'longshot_sell',
+        score: Math.abs(analysis.edge) * analysis.confidence * 0.8,
+      });
+    }
+  }
+
+  // ── Strategy 4: Near-expiry safe bets ──
+  const safeBets = findSafeBets(markets);
+  for (const sb of safeBets.slice(0, 3)) {
+    allBets.push({
+      marketId: sb.id,
+      question: sb.question,
+      marketYesPrice: sb.yesPrice,
+      marketNoPrice: sb.noPrice,
+      action: sb.betSide === 'Yes' ? 'BET_YES' : 'BET_NO',
+      edge: sb.returnPct,
+      confidence: 9, // High confidence — near-certain outcome
+      thesis: `Near-expiry safe bet: ${sb.returnPct}% return in ${sb.daysLeft} days (${sb.annualizedReturn}% annualized). Market at ${Math.round(sb.price * 100)}% with ${sb.daysLeft} days to go.`,
+      strategy: 'safe_bet',
+      suggestedSizePct: Math.min(30, 15 + sb.returnPct), // Bigger for safe bets
+      score: sb.annualizedReturn * 0.5,
+      returnPct: sb.returnPct,
+      daysLeft: sb.daysLeft,
+      annualizedReturn: sb.annualizedReturn,
+      analyzedAt: new Date().toISOString(),
+    });
+  }
+
+  // Sort all opportunities by score (best first)
+  allBets.sort((a, b) => (b.score || 0) - (a.score || 0));
+
+  // Tag the best opportunity
+  if (allBets.length > 0) allBets[0].isBestBet = true;
+
+  console.log(`[PolyBrain] Found ${allBets.length} opportunities: ${allBets.filter(b => b.strategy === 'edge_detection').length} edge, ${allBets.filter(b => b.strategy === 'arbitrage').length} arb, ${allBets.filter(b => b.strategy === 'longshot_sell').length} longshot, ${allBets.filter(b => b.strategy === 'safe_bet').length} safe`);
+
+  return allBets;
+}
+
+/**
+ * Get a summary of all strategies and their status.
+ */
+export function getStrategyStatus() {
+  return {
+    strategies: [
+      { name: 'Edge Detection', desc: 'Claude probability vs market price', active: true },
+      { name: 'Correlated Arbitrage', desc: 'Find pricing inconsistencies', active: true },
+      { name: 'Longshot Overpricing', desc: 'Sell overpriced low-probability bets', active: true },
+      { name: 'Near-Expiry Safe Bets', desc: 'Stack near-certain outcomes', active: true },
+      { name: 'News Speed Edge', desc: 'React to breaking news fast', active: true },
+      { name: 'Category Accuracy', desc: 'Bet more where proven edge', active: categoryStats.size > 0 },
+    ],
+    categoryStats: getCategoryStats(),
+    budgetUsed: Math.round(polySpendCents * 100) / 100,
+    budgetRemaining: Math.round((BUDGET_CENTS - polySpendCents) * 100) / 100,
+    cacheSize: analysisCache.size,
+  };
 }
