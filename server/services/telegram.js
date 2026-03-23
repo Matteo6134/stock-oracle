@@ -589,8 +589,12 @@ export async function notifyBuyAlerts(stocks) {
   for (const s of toAlert.slice(0, 5)) {
     try {
       const isStrong = s.consensus === 'Strong Buy';
-      const icon = isStrong ? '\uD83D\uDD25' : '\uD83D\uDC8E'; // 🔥 or 💎
-      const header = isStrong ? '\uD83D\uDEA8 *STRONG BUY ALERT*' : '\uD83D\uDC8E *BUY ALERT*';
+      const claudeConf = s.claude?.confidence || 0;
+      const isOnFire = isStrong && claudeConf >= 8;
+      const icon = isOnFire ? '\uD83D\uDCA5' : isStrong ? '\uD83D\uDD25' : '\uD83D\uDC8E';
+      const header = isOnFire
+        ? '\uD83D\uDCA5\uD83D\uDCA5 *BUY NOW* \uD83D\uDCA5\uD83D\uDCA5'
+        : isStrong ? '\uD83D\uDEA8 *STRONG BUY ALERT*' : '\uD83D\uDC8E *BUY ALERT*';
 
       const buyVerdicts = (s.verdicts || []).filter(v => v.action === 'BUY');
       const avgTarget = buyVerdicts.length > 0

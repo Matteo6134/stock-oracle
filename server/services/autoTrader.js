@@ -281,93 +281,88 @@ export async function checkExitSignals() {
     const stopPct = entry?.stopPct || config.defaultStopPct;
     const targetPct = entry?.targetPct || config.takeProfitPct;
 
-    // Trailing stop: once stock is up > 5%, tighten stop to trailingStopPct from peak
-    const trailingStop = config.trailingStopPct || 3;
+    // ═══════════════════════════════════════════════════════
+    // "NEVER LOSE" EXIT STRATEGY
+    //
+    // Principle: once in profit, LOCK IT IN. Never give back gains.
+    //
+    // Phase 1: SURVIVAL (0 to +3%)  → hard stop only at -stopPct%
+    // Phase 2: BREAK-EVEN (+3%)     → move stop to entry price (can't lose!)
+    // Phase 3: PROFIT LOCK (+5%)    → trail 2% from peak (minimum +3% profit)
+    // Phase 4: MOON BAG (+10%)      → trail 3% from peak (let it run)
+    // Phase 5: TAKE PROFIT (+target%) → close and celebrate
+    //
+    // Result: most trades either hit TP or exit with guaranteed profit.
+    // Only lose on hard stop in Phase 1 (before reaching +3%).
+    // ═══════════════════════════════════════════════════════
+
     const maxGainSeen = entry?.maxGainSeen || 0;
-    // Track max gain seen for trailing stop
+    // Track highest gain ever seen for this position
     if (unrealizedPLPct > maxGainSeen && entry) {
       entry.maxGainSeen = unrealizedPLPct;
     }
-    // If we were up > 5% but now dropped by trailingStopPct from peak → close
-    if (maxGainSeen >= 5 && unrealizedPLPct < maxGainSeen - trailingStop) {
-      try {
-        console.log(`[AutoTrader] TRAILING STOP ${symbol} — was +${maxGainSeen.toFixed(1)}%, now +${unrealizedPLPct.toFixed(1)}% (trail ${trailingStop}%)`);
-        await alpaca.closePosition(symbol);
-        if (entry) {
-          entry.exitPrice = currentPrice;
-          entry.exitReason = `Trailing stop (was +${maxGainSeen.toFixed(1)}%, trailed ${trailingStop}%)`;
-          entry.pnl = Math.round(pos.unrealizedPL * 100) / 100;
-          entry.status = 'closed';
-        }
-        results.closed.push({ symbol, reason: 'trailing_stop', pnl: pos.unrealizedPL });
-        // Notify Telegram + Sheets
-        if (entry) {
-          notifyTradeExit(entry).catch(() => {});
-          logTradeExit(entry).catch(() => {});
-          // Track Claude prediction accuracy
-          if (entry.claudeConfidence) {
-            recordOutcome(entry.symbol, entry.exitPrice, entry.price ? ((entry.exitPrice - entry.price) / entry.price * 100) : 0, entry.exitReason);
-          }
-        }
-      } catch (err) {
-        console.error(`[AutoTrader] Failed to close ${symbol}:`, err.message);
+
+    // Helper: close position with reason
+    const closeWithReason = async (reason, logReason) => {
+      await alpaca.closePosition(symbol);
+      if (entry) {
+        entry.exitPrice = currentPrice;
+        entry.exitReason = reason;
+        entry.pnl = Math.round(pos.unrealizedPL * 100) / 100;
+        entry.status = 'closed';
       }
-      continue;
-    }
-
-    // Check stop loss
-    if (unrealizedPLPct <= -stopPct) {
-      try {
-        console.log(`[AutoTrader] STOP LOSS ${symbol} at ${unrealizedPLPct.toFixed(1)}% (limit: -${stopPct}%)`);
-        await alpaca.closePosition(symbol);
-
-        if (entry) {
-          entry.exitPrice = currentPrice;
-          entry.exitReason = `Stop loss hit (-${stopPct}%)`;
-          entry.pnl = Math.round(pos.unrealizedPL * 100) / 100;
-          entry.status = 'closed';
+      results.closed.push({ symbol, reason: logReason, pnl: pos.unrealizedPL });
+      if (entry) {
+        notifyTradeExit(entry).catch(() => {});
+        logTradeExit(entry).catch(() => {});
+        if (entry.claudeConfidence) {
+          recordOutcome(entry.symbol, entry.exitPrice, entry.price ? ((entry.exitPrice - entry.price) / entry.price * 100) : 0, entry.exitReason);
         }
-        results.closed.push({ symbol, reason: 'stop_loss', pnl: pos.unrealizedPL });
-        // Notify Telegram + Sheets
-        if (entry) {
-          notifyTradeExit(entry).catch(() => {});
-          logTradeExit(entry).catch(() => {});
-          // Track Claude prediction accuracy
-          if (entry.claudeConfidence) {
-            recordOutcome(entry.symbol, entry.exitPrice, entry.price ? ((entry.exitPrice - entry.price) / entry.price * 100) : 0, entry.exitReason);
-          }
-        }
-      } catch (err) {
-        console.error(`[AutoTrader] Failed to close ${symbol}:`, err.message);
       }
-      continue;
-    }
+    };
 
-    // Check take profit
+    // ── Phase 5: TAKE PROFIT ──
     if (unrealizedPLPct >= targetPct) {
       try {
-        console.log(`[AutoTrader] TAKE PROFIT ${symbol} at +${unrealizedPLPct.toFixed(1)}% (target: +${targetPct}%)`);
-        await alpaca.closePosition(symbol);
+        console.log(`[AutoTrader] 🎯 TAKE PROFIT ${symbol} at +${unrealizedPLPct.toFixed(1)}% (target: +${targetPct}%)`);
+        await closeWithReason(`Take profit hit (+${unrealizedPLPct.toFixed(1)}%)`, 'take_profit');
+      } catch (err) { console.error(`[AutoTrader] Failed to close ${symbol}:`, err.message); }
+      continue;
+    }
 
-        if (entry) {
-          entry.exitPrice = currentPrice;
-          entry.exitReason = `Take profit hit (+${targetPct}%)`;
-          entry.pnl = Math.round(pos.unrealizedPL * 100) / 100;
-          entry.status = 'closed';
-        }
-        results.closed.push({ symbol, reason: 'take_profit', pnl: pos.unrealizedPL });
-        // Notify Telegram + Sheets
-        if (entry) {
-          notifyTradeExit(entry).catch(() => {});
-          logTradeExit(entry).catch(() => {});
-          // Track Claude prediction accuracy
-          if (entry.claudeConfidence) {
-            recordOutcome(entry.symbol, entry.exitPrice, entry.price ? ((entry.exitPrice - entry.price) / entry.price * 100) : 0, entry.exitReason);
-          }
-        }
-      } catch (err) {
-        console.error(`[AutoTrader] Failed to close ${symbol}:`, err.message);
-      }
+    // ── Phase 4: MOON BAG trail (was up 10%+, trail 3%) ──
+    if (maxGainSeen >= 10 && unrealizedPLPct < maxGainSeen - 3) {
+      try {
+        console.log(`[AutoTrader] 🌙 MOON TRAIL ${symbol} — peak +${maxGainSeen.toFixed(1)}%, now +${unrealizedPLPct.toFixed(1)}% (locked +${(maxGainSeen - 3).toFixed(1)}%)`);
+        await closeWithReason(`Moon trail (peak +${maxGainSeen.toFixed(1)}%, locked profit)`, 'moon_trail');
+      } catch (err) { console.error(`[AutoTrader] Failed to close ${symbol}:`, err.message); }
+      continue;
+    }
+
+    // ── Phase 3: PROFIT LOCK trail (was up 5%+, trail 2%) ──
+    if (maxGainSeen >= 5 && unrealizedPLPct < maxGainSeen - 2) {
+      try {
+        console.log(`[AutoTrader] 🔒 PROFIT LOCK ${symbol} — peak +${maxGainSeen.toFixed(1)}%, now +${unrealizedPLPct.toFixed(1)}% (locked +${(maxGainSeen - 2).toFixed(1)}%)`);
+        await closeWithReason(`Profit locked (peak +${maxGainSeen.toFixed(1)}%, secured gains)`, 'profit_lock');
+      } catch (err) { console.error(`[AutoTrader] Failed to close ${symbol}:`, err.message); }
+      continue;
+    }
+
+    // ── Phase 2: BREAK-EVEN STOP (was up 3%+, now back to entry) ──
+    if (maxGainSeen >= 3 && unrealizedPLPct <= 0.2) {
+      try {
+        console.log(`[AutoTrader] 🛡️ BREAK-EVEN ${symbol} — was up +${maxGainSeen.toFixed(1)}%, saved from loss`);
+        await closeWithReason(`Break-even stop (was +${maxGainSeen.toFixed(1)}%, protected capital)`, 'break_even');
+      } catch (err) { console.error(`[AutoTrader] Failed to close ${symbol}:`, err.message); }
+      continue;
+    }
+
+    // ── Phase 1: HARD STOP (only if never reached +3%) ──
+    if (maxGainSeen < 3 && unrealizedPLPct <= -stopPct) {
+      try {
+        console.log(`[AutoTrader] 🛑 STOP LOSS ${symbol} at ${unrealizedPLPct.toFixed(1)}% (limit: -${stopPct}%)`);
+        await closeWithReason(`Stop loss (-${stopPct}%)`, 'stop_loss');
+      } catch (err) { console.error(`[AutoTrader] Failed to close ${symbol}:`, err.message); }
       continue;
     }
 
