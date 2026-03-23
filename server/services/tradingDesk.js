@@ -383,7 +383,10 @@ export function analyzeGem(gem) {
     }
   }
 
-  return { verdicts, consensus, buyCount, avgConviction, calibration: calibrationContext };
+  // Flag for Claude AI review if promising enough
+  const needsClaudeReview = consensus === 'Buy' || consensus === 'Strong Buy';
+
+  return { verdicts, consensus, buyCount, avgConviction, calibration: calibrationContext, needsClaudeReview };
 }
 
 /**

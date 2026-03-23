@@ -384,6 +384,119 @@ function registerCommands() {
 
     send(msg.chat.id, lines.join('\n'));
   });
+
+  // ════════════════════════════════════════════════
+  // CLAUDE AI COMMANDS
+  // ════════════════════════════════════════════════
+
+  // /ask <question> — ask Claude anything about the market or a stock
+  bot.onText(/\/ask (.+)/, async (msg, match) => {
+    const question = match[1].trim();
+    if (!question) return send(msg.chat.id, 'Usage: /ask <your question>');
+
+    send(msg.chat.id, '\uD83E\uDDE0 Thinking...');
+
+    try {
+      // Build portfolio context for Claude
+      let portfolioCtx = '';
+      try {
+        const alpaca = await import('./alpaca.js');
+        if (alpaca.isConfigured()) {
+          const acc = await alpaca.getAccount();
+          const positions = await alpaca.getPositions();
+          portfolioCtx = `Portfolio: $${acc.equity} equity, ${positions.length} positions. `;
+          if (positions.length > 0) {
+            portfolioCtx += 'Holdings: ' + positions.map(p =>
+              `${p.symbol} (${p.unrealizedPLPercent >= 0 ? '+' : ''}${p.unrealizedPLPercent}%)`
+            ).join(', ') + '. ';
+          }
+        }
+      } catch {}
+
+      // Add scan context
+      const gems = scanCacheRef.gems?.slice(0, 5) || [];
+      if (gems.length > 0) {
+        portfolioCtx += 'Top gems: ' + gems.map(g => `${g.symbol}(score ${g.gemScore})`).join(', ') + '. ';
+      }
+
+      const { askClaude } = await import('./claudeBrain.js');
+      const answer = await askClaude(question, portfolioCtx);
+      send(msg.chat.id, `\uD83E\uDDE0 *Claude:*\n\n${answer}`);
+    } catch (err) {
+      send(msg.chat.id, `Error: ${err.message}`);
+    }
+  });
+
+  // /briefing — latest hourly market analysis
+  bot.onText(/\/briefing/, async (msg) => {
+    try {
+      const { getMarketContext, getDailySpend } = await import('./claudeBrain.js');
+      const ctx = getMarketContext();
+      const spend = getDailySpend();
+
+      if (!ctx) {
+        return send(msg.chat.id, '\uD83E\uDDE0 No market briefing yet. First briefing runs at :05 during market hours.');
+      }
+
+      const regimeIcon = ctx.regime === 'RISK_ON' ? '\uD83D\uDFE2' :
+                         ctx.regime === 'RISK_OFF' ? '\uD83D\uDD34' : '\uD83D\uDFE1';
+
+      const lines = [
+        `\uD83E\uDDE0 *Market Briefing*`,
+        '',
+        `${regimeIcon} *${ctx.regime}*`,
+        ctx.summary,
+        '',
+        ctx.hotSectors?.length > 0 ? `\uD83D\uDD25 Hot: ${ctx.hotSectors.join(', ')}` : '',
+        ctx.coldSectors?.length > 0 ? `\u2744\uFE0F Cold: ${ctx.coldSectors.join(', ')}` : '',
+        '',
+        `\uD83D\uDCA1 ${ctx.advice}`,
+        `\uD83D\uDCB0 Position size: ${Math.round((ctx.positionSizeMultiplier || 1) * 100)}%`,
+        '',
+        `\u23F1 ${new Date(ctx.timestamp).toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit' })} ET`,
+        `AI budget: ${spend.spentCents.toFixed(1)}\u00A2 / ${spend.budgetCents}\u00A2`,
+      ].filter(Boolean);
+
+      send(msg.chat.id, lines.join('\n'));
+    } catch (err) {
+      send(msg.chat.id, `Error: ${err.message}`);
+    }
+  });
+
+  // /brain — Claude's accuracy stats + current state
+  bot.onText(/\/brain/, async (msg) => {
+    try {
+      const { isClaudeConfigured, getDailySpend, getMarketContext } = await import('./claudeBrain.js');
+      const { getClaudeAccuracy } = await import('./claudeTracker.js');
+
+      if (!isClaudeConfigured()) {
+        return send(msg.chat.id, '\u26A0\uFE0F Claude AI not configured. Add ANTHROPIC_API_KEY to .env.');
+      }
+
+      const acc = getClaudeAccuracy();
+      const spend = getDailySpend();
+      const ctx = getMarketContext();
+
+      const lines = [
+        '\uD83E\uDDE0 *Claude Brain Status*',
+        '',
+        `\uD83D\uDFE2 AI Active \u00B7 Budget: ${spend.spentCents.toFixed(1)}\u00A2/${spend.budgetCents}\u00A2 today`,
+        ctx ? `\uD83C\uDF0D Market: ${ctx.regime}` : '\uD83C\uDF0D No briefing yet',
+        '',
+        '*Accuracy*',
+        `Total calls: ${acc.totalCalls} \u00B7 Settled: ${acc.totalSettled}`,
+        acc.totalSettled > 0 ? `Win rate: *${acc.winRate}%* \u00B7 Avg return: ${acc.avgReturn >= 0 ? '+' : ''}${acc.avgReturn}%` : 'No settled trades yet',
+        acc.highConfCount > 0 ? `High-conf (\u22657): ${acc.highConfWinRate}% WR (${acc.highConfCount} calls)` : '',
+        acc.totalSettled > 0 ? `Avg confidence: wins ${acc.avgConfWin} vs losses ${acc.avgConfLoss}` : '',
+        acc.bestCall ? `\uD83C\uDFC6 Best: ${acc.bestCall.symbol} +${acc.bestCall.pct}% (conf ${acc.bestCall.confidence})` : '',
+        acc.worstCall ? `\uD83D\uDCA5 Worst: ${acc.worstCall.symbol} ${acc.worstCall.pct}% (conf ${acc.worstCall.confidence})` : '',
+      ].filter(Boolean);
+
+      send(msg.chat.id, lines.join('\n'));
+    } catch (err) {
+      send(msg.chat.id, `Error: ${err.message}`);
+    }
+  });
 }
 
 // ── Notifications ──
@@ -526,6 +639,17 @@ export async function notifyBuyAlerts(stocks) {
         histLine = `\uD83E\uDDEA ${cal.winRate}% historical WR \u00B7 ${cal.cagr >= 0 ? '+' : ''}${cal.cagr}% CAGR${pfStr}${upgradeTag}`;
       }
 
+      // Claude AI thesis line (if Claude analyzed this stock)
+      let claudeLine = '';
+      if (s.claude) {
+        const cl = s.claude;
+        const confDots = '\u25CF'.repeat(Math.min(cl.confidence, 10));
+        const overrideNote = s.claudeOverride === 'upgraded' ? ' \u2b06\uFE0F AI-upgraded' :
+                             s.claudeOverride === 'rejected' ? ' \u274C AI-rejected' : '';
+        claudeLine = `\uD83E\uDDE0 *Claude:* "${cl.thesis}"
+${confDots} ${cl.confidence}/10 \u00B7 Risk: ${cl.riskLevel}${overrideNote}`;
+      }
+
       const lines = [
         header,
         '',
@@ -535,6 +659,7 @@ export async function notifyBuyAlerts(stocks) {
         `\uD83D\uDCCA ${s.buyCount || 0}/5 agents \u00B7 Score ${s.gemScore || 0} \u00B7 ${s.consensus}`,
         histLine,
         topSignals ? `\uD83D\uDD0D ${topSignals}` : '',
+        claudeLine,
         '',
         s.source === 'penny' ? '\uD83E\uDE99 Penny stock \u2014 small position, high risk' : '\uD83D\uDC8E Quality setup',
       ].filter(Boolean);

@@ -17,6 +17,7 @@ import { randomUUID } from 'crypto';
 import * as alpaca from './alpaca.js';
 import { notifyNewTrade, notifyTradeExit } from './telegram.js';
 import { logNewTrade, logTradeExit } from './sheetsLogger.js';
+import { recordOutcome } from './claudeTracker.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CONFIG_FILE = path.join(__dirname, '..', 'data', 'autoTradeConfig.json');
@@ -151,9 +152,24 @@ export async function processSignals(analyzedStocks) {
       results.skipped.push({ symbol, reason: 'Already holding' });
       continue;
     }
+    // ── Claude AI gate: if Claude analyzed this stock, require confidence >= 6 ──
+    const claude = stock.claude;
+    if (claude && claude.action === 'SKIP') {
+      results.skipped.push({ symbol, reason: `Claude rejected (conf ${claude.confidence}/10)` });
+      continue;
+    }
+    if (claude && claude.confidence < 6) {
+      results.skipped.push({ symbol, reason: `Claude low confidence (${claude.confidence}/10)` });
+      continue;
+    }
+
     // Budget check — don't exceed max budget (budget is the only limit on positions)
     const currentlyInvested = totalInvested + results.bought.reduce((s, b) => s + b.amount, 0);
-    const amount = consensus === 'Strong Buy' ? config.strongBuyAmount : config.buyAmount;
+    // Claude can suggest position size as % of budget; fall back to default amounts
+    const claudeSizeAmount = claude?.suggestedSizePct
+      ? Math.round(config.maxBudget * (claude.suggestedSizePct / 100))
+      : null;
+    const amount = claudeSizeAmount || (consensus === 'Strong Buy' ? config.strongBuyAmount : config.buyAmount);
     if (currentlyInvested + amount > config.maxBudget) {
       results.skipped.push({ symbol, reason: `Budget limit ($${config.maxBudget})` });
       continue;
@@ -189,6 +205,10 @@ export async function processSignals(analyzedStocks) {
         timeInForce: 'day',
       });
 
+      // Use Claude's targets if available, otherwise agent defaults
+      const finalStopPct = claude?.stopPct || Math.round(avgStopPct * 10) / 10;
+      const finalTargetPct = claude?.targetPct || Math.round(avgTargetPct * 10) / 10;
+
       const tradeEntry = {
         id: randomUUID(),
         symbol,
@@ -204,8 +224,12 @@ export async function processSignals(analyzedStocks) {
         source: stock.source || 'gem',
         orderId: order.id,
         status: order.status,
-        stopPct: Math.round(avgStopPct * 10) / 10,
-        targetPct: Math.round(avgTargetPct * 10) / 10,
+        stopPct: finalStopPct,
+        targetPct: finalTargetPct,
+        // Claude AI context
+        claudeConfidence: claude?.confidence || null,
+        claudeThesis: claude?.thesis || null,
+        claudeRiskLevel: claude?.riskLevel || null,
         exitPrice: null,
         exitReason: null,
         pnl: null,
@@ -280,6 +304,10 @@ export async function checkExitSignals() {
         if (entry) {
           notifyTradeExit(entry).catch(() => {});
           logTradeExit(entry).catch(() => {});
+          // Track Claude prediction accuracy
+          if (entry.claudeConfidence) {
+            recordOutcome(entry.symbol, entry.exitPrice, entry.price ? ((entry.exitPrice - entry.price) / entry.price * 100) : 0, entry.exitReason);
+          }
         }
       } catch (err) {
         console.error(`[AutoTrader] Failed to close ${symbol}:`, err.message);
@@ -304,6 +332,10 @@ export async function checkExitSignals() {
         if (entry) {
           notifyTradeExit(entry).catch(() => {});
           logTradeExit(entry).catch(() => {});
+          // Track Claude prediction accuracy
+          if (entry.claudeConfidence) {
+            recordOutcome(entry.symbol, entry.exitPrice, entry.price ? ((entry.exitPrice - entry.price) / entry.price * 100) : 0, entry.exitReason);
+          }
         }
       } catch (err) {
         console.error(`[AutoTrader] Failed to close ${symbol}:`, err.message);
@@ -328,6 +360,10 @@ export async function checkExitSignals() {
         if (entry) {
           notifyTradeExit(entry).catch(() => {});
           logTradeExit(entry).catch(() => {});
+          // Track Claude prediction accuracy
+          if (entry.claudeConfidence) {
+            recordOutcome(entry.symbol, entry.exitPrice, entry.price ? ((entry.exitPrice - entry.price) / entry.price * 100) : 0, entry.exitReason);
+          }
         }
       } catch (err) {
         console.error(`[AutoTrader] Failed to close ${symbol}:`, err.message);

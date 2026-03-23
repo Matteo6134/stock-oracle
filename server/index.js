@@ -14,6 +14,8 @@ import { scanPennyStocks } from './services/pennyScanner.js';
 import { processSignals, checkExitSignals } from './services/autoTrader.js';
 import { initTelegramBot, setScanCache, notifyBuyAlerts } from './services/telegram.js';
 import { runCalibration, getCalibration } from './services/strategyCalibrator.js';
+import { analyzeStock, getMarketBriefing, isClaudeConfigured, getMarketContext } from './services/claudeBrain.js';
+import { logPrediction } from './services/claudeTracker.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -188,6 +190,36 @@ if (!process.env.VERCEL) {
       scanCache.allAnalyzed = allAnalyzed;
       scanCache.lastScanTime = new Date().toISOString();
 
+      // ── Claude AI Brain: deep analysis on promising stocks ──
+      // Claude validates/enriches Buy + Strong Buy setups, can upgrade or reject
+      if (isClaudeConfigured() && allAnalyzed.length > 0) {
+        const candidates = allAnalyzed.filter(s => s.needsClaudeReview);
+        if (candidates.length > 0) {
+          console.log(`[Claude] Analyzing ${candidates.length} candidates...`);
+          for (const stock of candidates.slice(0, 10)) { // max 10 per cycle
+            try {
+              const verdict = await analyzeStock(stock);
+              if (verdict) {
+                stock.claude = verdict;
+                logPrediction(stock.symbol, verdict, stock);
+                // Claude can reject a trade
+                if (verdict.action === 'SKIP') {
+                  stock.consensus = 'No Trade';
+                  stock.claudeOverride = 'rejected';
+                }
+                // Claude can upgrade Buy → Strong Buy on high confidence
+                if (verdict.action === 'BUY' && verdict.confidence >= 8 && stock.consensus === 'Buy') {
+                  stock.consensus = 'Strong Buy';
+                  stock.claudeOverride = 'upgraded';
+                }
+              }
+            } catch (err) {
+              console.error(`[Claude] ${stock.symbol} error:`, err.message);
+            }
+          }
+        }
+      }
+
       // ── Proactive Telegram buy alerts (independent of auto-trading) ──
       // Fires for every new strong setup so user can buy manually before it moves
       if (allAnalyzed.length > 0) {
@@ -330,6 +362,29 @@ if (!process.env.VERCEL) {
     cron.schedule('0 2 * * 0', () => {
       runCalibration().catch(err => console.error('[Calibrator] Weekly run failed:', err.message));
     }, { timezone: 'America/New_York' });
+
+    // ── Claude hourly market briefing (weekdays, 8 AM - 4 PM ET) ──
+    if (isClaudeConfigured()) {
+      cron.schedule('5 8-16 * * 1-5', async () => {
+        try {
+          // Gather market data for the briefing
+          const spyData = await yahooFinance.getQuoteBatch(['SPY', 'QQQ', 'IWM']);
+          const marketData = {
+            spy: spyData.find(q => q.symbol === 'SPY'),
+            qqq: spyData.find(q => q.symbol === 'QQQ'),
+            iwm: spyData.find(q => q.symbol === 'IWM'),
+            movers: scanCache.movers?.slice(0, 5) || [],
+            topGems: scanCache.gems?.slice(0, 3)?.map(g => ({ symbol: g.symbol, gemScore: g.gemScore, consensus: g.consensus })) || [],
+          };
+          await getMarketBriefing(marketData);
+        } catch (err) {
+          console.error('[Claude] Briefing error:', err.message);
+        }
+      }, { timezone: 'America/New_York' });
+      console.log('[Claude] AI brain active — hourly briefings + per-stock analysis enabled');
+    } else {
+      console.log('[Claude] No ANTHROPIC_API_KEY — running rule-based only');
+    }
 
     // Warm up gem + penny cache 15s after start so first page load is fast
     setTimeout(async () => {

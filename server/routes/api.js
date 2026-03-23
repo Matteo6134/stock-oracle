@@ -20,6 +20,8 @@ import { scanPennyStocks } from '../services/pennyScanner.js';
 import * as alpaca from '../services/alpaca.js';
 import { getAutoTradeConfig, updateAutoTradeConfig, getAutoTradeLog } from '../services/autoTrader.js';
 import { runHistoricalBacktest } from '../services/historicalBacktest.js';
+import { isClaudeConfigured, getMarketContext, getDailySpend, askClaude } from '../services/claudeBrain.js';
+import { getClaudeAccuracy, getClaudeHistory } from '../services/claudeTracker.js';
 
 const router = express.Router();
 
@@ -1977,6 +1979,41 @@ router.post('/watchlist/remove', (req, res) => {
   const { symbol } = req.body;
   if (!symbol) return res.status(400).json({ error: 'symbol required' });
   res.json(removeFromWatchlist(symbol));
+});
+
+// ── Claude AI Brain ──
+router.get('/claude/status', (req, res) => {
+  res.json({
+    configured: isClaudeConfigured(),
+    marketContext: getMarketContext(),
+    spend: getDailySpend(),
+    accuracy: getClaudeAccuracy(),
+  });
+});
+
+router.get('/claude/briefing', (req, res) => {
+  const ctx = getMarketContext();
+  if (!ctx) return res.json({ error: 'No briefing yet' });
+  res.json(ctx);
+});
+
+router.post('/claude/ask', async (req, res) => {
+  const { question, context } = req.body || {};
+  if (!question) return res.status(400).json({ error: 'question required' });
+  try {
+    const answer = await askClaude(question, context || '');
+    res.json({ answer });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get('/claude/accuracy', (req, res) => {
+  res.json(getClaudeAccuracy());
+});
+
+router.get('/claude/history', (req, res) => {
+  res.json(getClaudeHistory());
 });
 
 // ── Historical Backtest ──
