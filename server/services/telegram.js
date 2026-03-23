@@ -497,6 +497,110 @@ function registerCommands() {
       send(msg.chat.id, `Error: ${err.message}`);
     }
   });
+
+  // ════════════════════════════════════════════════
+  // POLYMARKET COMMANDS
+  // ════════════════════════════════════════════════
+
+  // /poly — portfolio + goal tracker
+  bot.onText(/\/poly/, async (msg) => {
+    try {
+      const { getPortfolio } = await import('./polySimulator.js');
+      const p = getPortfolio();
+
+      const goalBar = '\u2588'.repeat(Math.min(20, Math.round(p.goalPct / 5))) + '\u2591'.repeat(Math.max(0, 20 - Math.round(p.goalPct / 5)));
+
+      const lines = [
+        '\uD83C\uDFAF *Polymarket Oracle*',
+        '',
+        `\uD83D\uDCB0 Portfolio: *$${p.totalValue.toLocaleString()}*`,
+        `${p.pnl >= 0 ? '\uD83D\uDFE2' : '\uD83D\uDD34'} P&L: ${p.pnl >= 0 ? '+' : ''}$${p.pnl.toLocaleString()} (${p.pnlPct >= 0 ? '+' : ''}${p.pnlPct}%)`,
+        `\uD83D\uDCCA ${p.tradeCount} bets \u00B7 ${p.winRate}% WR \u00B7 ${p.multiplier}x`,
+        '',
+        `\uD83C\uDFC1 *Goal: $${(p.goal / 1000).toFixed(0)}K*`,
+        `[${goalBar}] ${p.goalPct.toFixed(1)}%`,
+        '',
+        p.openPositions.length > 0 ? '*Open Positions:*' : 'No open positions',
+      ];
+
+      p.openPositions.slice(0, 5).forEach(pos => {
+        const unrealPnl = (pos.currentPrice - pos.entryPrice) * pos.shares;
+        lines.push(`${pos.outcome === 'Yes' ? '\uD83D\uDFE2' : '\uD83D\uDD34'} ${pos.question.slice(0, 35)}...`);
+        lines.push(`   ${pos.outcome} at ${Math.round(pos.entryPrice * 100)}\u00A2 \u2192 ${Math.round(pos.currentPrice * 100)}\u00A2 ($${pos.amount})`);
+      });
+
+      send(msg.chat.id, lines.join('\n'));
+    } catch (err) {
+      send(msg.chat.id, `Error: ${err.message}`);
+    }
+  });
+
+  // /bet — force Claude to scan Polymarket and suggest bets
+  bot.onText(/\/bet/, async (msg) => {
+    send(msg.chat.id, '\uD83E\uDDE0 Scanning Polymarket for edge...');
+    try {
+      const { getTopMarkets } = await import('./polymarket.js');
+      const { findBestBets } = await import('./polyBrain.js');
+
+      const markets = await getTopMarkets(15);
+      const picks = await findBestBets(markets);
+
+      if (picks.length === 0) {
+        return send(msg.chat.id, '\u26AA No edge found right now. Markets are fairly priced. Check back later.');
+      }
+
+      for (const pick of picks.slice(0, 3)) {
+        const actionIcon = pick.action === 'BET_YES' ? '\uD83D\uDFE2 YES' : '\uD83D\uDD34 NO';
+        const confDots = '\u25CF'.repeat(Math.min(pick.confidence, 10));
+        const lines = [
+          `\uD83C\uDFAF *${pick.action === 'BET_YES' ? 'BET YES' : 'BET NO'}*`,
+          '',
+          `"${pick.question.slice(0, 80)}"`,
+          '',
+          `\uD83D\uDCB0 Market: ${Math.round(pick.marketYesPrice * 100)}\u00A2 Yes / ${Math.round(pick.marketNoPrice * 100)}\u00A2 No`,
+          `\uD83E\uDDE0 Claude: ${Math.round(pick.realProbability * 100)}% real probability`,
+          `\uD83D\uDCC8 Edge: *${pick.edge > 0 ? '+' : ''}${pick.edge}%*`,
+          `${confDots} Confidence: ${pick.confidence}/10`,
+          '',
+          `\uD83D\uDCDD ${pick.thesis}`,
+          '',
+          `\uD83D\uDCB5 Suggested: ${pick.suggestedSizePct}% of bankroll`,
+        ];
+        await send(msg.chat.id, lines.join('\n'));
+        await new Promise(r => setTimeout(r, 500));
+      }
+    } catch (err) {
+      send(msg.chat.id, `Error: ${err.message}`);
+    }
+  });
+
+  // /goal — progress toward $400K
+  bot.onText(/\/goal/, async (msg) => {
+    try {
+      const { getPortfolio } = await import('./polySimulator.js');
+      const p = getPortfolio();
+
+      const needed = p.goal - p.totalValue;
+      const multiplierNeeded = needed / p.totalValue;
+      const betsNeeded = Math.ceil(Math.log(p.goal / p.totalValue) / Math.log(1.15)); // assuming 15% avg win
+
+      const lines = [
+        '\uD83C\uDFC1 *$400K Goal Tracker*',
+        '',
+        `\uD83D\uDCB0 Current: *$${p.totalValue.toLocaleString()}*`,
+        `\uD83C\uDFAF Need: *$${Math.round(needed).toLocaleString()}* more`,
+        `\uD83D\uDE80 Multiplier needed: ${multiplierNeeded.toFixed(0)}x`,
+        `\uD83C\uDFB2 ~${betsNeeded} winning bets at 15% avg`,
+        '',
+        `\uD83D\uDCCA Win rate: ${p.winRate}% (${p.wins}W/${p.losses}L)`,
+        `\uD83D\uDCC8 Current multiplier: ${p.multiplier}x from $1,400`,
+      ];
+
+      send(msg.chat.id, lines.join('\n'));
+    } catch (err) {
+      send(msg.chat.id, `Error: ${err.message}`);
+    }
+  });
 }
 
 // ── Notifications ──

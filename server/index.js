@@ -16,6 +16,9 @@ import { initTelegramBot, setScanCache, notifyBuyAlerts } from './services/teleg
 import { runCalibration, getCalibration } from './services/strategyCalibrator.js';
 import { analyzeStock, getMarketBriefing, isClaudeConfigured, getMarketContext } from './services/claudeBrain.js';
 import { logPrediction } from './services/claudeTracker.js';
+import { getTopMarkets } from './services/polymarket.js';
+import { findBestBets } from './services/polyBrain.js';
+import { getPortfolio, placeBet, calculateKellyBet } from './services/polySimulator.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -382,6 +385,40 @@ if (!process.env.VERCEL) {
         }
       }, { timezone: 'America/New_York' });
       console.log('[Claude] AI brain active — hourly briefings + per-stock analysis enabled');
+
+      // ── Polymarket Oracle: scan every 30 min, auto-bet on high-edge markets ──
+      cron.schedule('*/30 * * * *', async () => {
+        try {
+          const markets = await getTopMarkets(15);
+          if (markets.length === 0) return;
+          const picks = await findBestBets(markets);
+          if (picks.length === 0) return;
+
+          const portfolio = getPortfolio();
+          // Auto-bet on high-confidence picks (conf ≥ 8, edge ≥ 15%)
+          for (const pick of picks.slice(0, 3)) {
+            if (pick.confidence < 8 || Math.abs(pick.edge) < 15) continue;
+            const outcome = pick.action === 'BET_YES' ? 'Yes' : 'No';
+            const price = pick.action === 'BET_YES' ? pick.marketYesPrice : pick.marketNoPrice;
+            const amount = calculateKellyBet(portfolio.balance, price, pick.realProbability, 20);
+            if (amount < 5 || amount > portfolio.balance) continue;
+
+            placeBet({
+              marketId: pick.marketId,
+              question: pick.question,
+              outcome,
+              price,
+              amount,
+              claudeConfidence: pick.confidence,
+              claudeThesis: pick.thesis,
+              claudeProb: pick.realProbability,
+            });
+          }
+        } catch (err) {
+          console.error('[PolyCron] Scan error:', err.message);
+        }
+      });
+      console.log('[PolyOracle] Polymarket scanner active — every 30 min');
     } else {
       console.log('[Claude] No ANTHROPIC_API_KEY — running rule-based only');
     }

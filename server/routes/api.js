@@ -22,6 +22,9 @@ import { getAutoTradeConfig, updateAutoTradeConfig, getAutoTradeLog } from '../s
 import { runHistoricalBacktest } from '../services/historicalBacktest.js';
 import { isClaudeConfigured, getMarketContext, getDailySpend, askClaude } from '../services/claudeBrain.js';
 import { getClaudeAccuracy, getClaudeHistory } from '../services/claudeTracker.js';
+import { getTopMarkets } from '../services/polymarket.js';
+import { getPortfolio, placeBet, getTradeHistory as getPolyHistory, calculateKellyBet, resetPortfolio } from '../services/polySimulator.js';
+import { analyzeMarket, findBestBets } from '../services/polyBrain.js';
 
 const router = express.Router();
 
@@ -2014,6 +2017,48 @@ router.get('/claude/accuracy', (req, res) => {
 
 router.get('/claude/history', (req, res) => {
   res.json(getClaudeHistory());
+});
+
+// ── Polymarket Oracle ──
+router.get('/poly/markets', async (req, res) => {
+  try {
+    const markets = await getTopMarkets(parseInt(req.query.limit) || 20);
+    res.json({ markets });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get('/poly/portfolio', (req, res) => {
+  res.json(getPortfolio());
+});
+
+router.get('/poly/history', (req, res) => {
+  res.json(getPolyHistory(parseInt(req.query.limit) || 50));
+});
+
+router.post('/poly/bet', (req, res) => {
+  const { marketId, question, outcome, price, amount, claudeConfidence, claudeThesis, claudeProb } = req.body || {};
+  if (!marketId || !outcome || !price || !amount) {
+    return res.status(400).json({ error: 'Missing required fields: marketId, outcome, price, amount' });
+  }
+  const result = placeBet({ marketId, question, outcome, price, amount, claudeConfidence, claudeThesis, claudeProb });
+  res.json(result);
+});
+
+router.get('/poly/brain', async (req, res) => {
+  try {
+    const markets = await getTopMarkets(15);
+    const bets = await findBestBets(markets);
+    res.json({ picks: bets, portfolio: getPortfolio() });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.post('/poly/reset', (req, res) => {
+  resetPortfolio();
+  res.json({ success: true, portfolio: getPortfolio() });
 });
 
 // ── Historical Backtest ──

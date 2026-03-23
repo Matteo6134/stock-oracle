@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Routes, Route, NavLink, useLocation, matchPath } from 'react-router-dom'
-import { LayoutDashboard, TrendingUp, PieChart, CalendarDays, History as HistoryIcon, DollarSign, Zap, Crosshair, Menu, X, Bookmark, Diamond, Users, Rocket, FlaskConical } from 'lucide-react'
+import { LayoutDashboard, TrendingUp, PieChart, CalendarDays, History as HistoryIcon, DollarSign, Zap, Crosshair, Menu, X, Bookmark, Diamond, Users, Rocket, FlaskConical, Target, Globe, ArrowLeftRight } from 'lucide-react'
 import ErrorBoundary from './components/ErrorBoundary'
 import { ToastProvider } from './components/Toast'
 import LandscapeSplit from './components/LandscapeSplit'
@@ -18,6 +18,9 @@ import WishlistPage from './pages/WishlistPage'
 import GemBacktestPage from './pages/GemBacktestPage'
 import PennyStocksPage from './pages/PennyStocksPage'
 import HistoricalBacktestPage from './pages/HistoricalBacktestPage'
+import OracleLanding from './pages/OracleLanding'
+import PolyDashboard from './pages/PolyDashboard'
+import PolyMarkets from './pages/PolyMarkets'
 import packageJson from '../package.json'
 import { isNotificationSupported, isNotificationEnabled, requestNotificationPermission, disableNotifications } from './lib/notifications'
 import { checkSmartAlerts } from './lib/tradeAlerts'
@@ -25,7 +28,7 @@ import { checkWishlistAlerts } from './lib/wishlistAlerts'
 import { syncWatchlistToServer } from './lib/wishlist'
 import { useSSE } from './hooks/useSSE'
 
-const navItems = [
+const stockNavItems = [
   { to: '/', icon: LayoutDashboard, label: 'Home' },
   { to: '/gems', icon: Diamond, label: 'Gem Finder' },
   { to: '/buy-tomorrow', icon: Crosshair, label: 'Buy Tomorrow' },
@@ -40,6 +43,11 @@ const navItems = [
   { to: '/sectors', icon: PieChart, label: 'Sectors' },
 ]
 
+const polyNavItems = [
+  { to: '/poly', icon: Target, label: 'Dashboard' },
+  { to: '/poly/markets', icon: Globe, label: 'Markets' },
+]
+
 // Routes where the sidebar toggle should be hidden
 const detailPatterns = ['/stock/:symbol', '/sectors/:sectorName']
 
@@ -49,6 +57,15 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [notifEnabled, setNotifEnabled] = useState(isNotificationEnabled())
   const { connected: sseConnected, gemsAlert, moversAlert } = useSSE()
+  const [mode, setMode] = useState(() => localStorage.getItem('oracle_mode') || null) // 'stock' | 'poly' | null
+
+  const selectMode = (m) => {
+    localStorage.setItem('oracle_mode', m)
+    setMode(m)
+  }
+
+  const navItems = mode === 'poly' ? polyNavItems : stockNavItems
+  const isPolyMode = mode === 'poly'
 
   // Close sidebar on route change
   useEffect(() => {
@@ -143,6 +160,11 @@ export default function App() {
     }
   }, [notifEnabled])
 
+  // Show landing page if no mode selected
+  if (!mode) {
+    return <OracleLanding onSelect={selectMode} />
+  }
+
   return (
     <ToastProvider>
     <div className="min-h-screen bg-oracle-bg">
@@ -179,7 +201,7 @@ export default function App() {
       >
         {/* Sidebar header */}
         <div className="flex items-center justify-between p-5 pb-3">
-          <span className="text-oracle-text font-bold text-base">Stock Oracle</span>
+          <span className="text-oracle-text font-bold text-base">{isPolyMode ? 'Poly Oracle' : 'Stock Oracle'}</span>
           <button
             onClick={() => setSidebarOpen(false)}
             className="p-1.5 rounded-xl text-oracle-muted hover:text-oracle-text hover:bg-white/10 transition-all"
@@ -210,6 +232,17 @@ export default function App() {
               <span>{label}</span>
             </NavLink>
           ))}
+        </div>
+
+        {/* Mode switch */}
+        <div className="mx-3 mb-2">
+          <button
+            onClick={() => { selectMode(isPolyMode ? 'stock' : 'poly'); setSidebarOpen(false) }}
+            className="w-full flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium bg-purple-500/10 text-purple-400 hover:bg-purple-500/20 border border-purple-500/20 transition-all"
+          >
+            <ArrowLeftRight size={14} />
+            Switch to {isPolyMode ? 'Stock Oracle' : 'Poly Oracle'}
+          </button>
         </div>
 
         {/* Sidebar footer */}
@@ -258,6 +291,8 @@ export default function App() {
             <Route path="/trading-desk" element={<GemBacktestPage />} />
             <Route path="/history" element={<BacktesterPage />} />
             <Route path="/backtest" element={<HistoricalBacktestPage />} />
+            <Route path="/poly" element={<PolyDashboard />} />
+            <Route path="/poly/markets" element={<PolyMarkets />} />
           </Routes>
         </ErrorBoundary>
       </main>
