@@ -13,6 +13,7 @@ import * as yahooFinance from './services/yahooFinance.js';
 import { scanPennyStocks } from './services/pennyScanner.js';
 import { processSignals, checkExitSignals } from './services/autoTrader.js';
 import { initTelegramBot, setScanCache, notifyBuyAlerts } from './services/telegram.js';
+import { runCalibration, getCalibration } from './services/strategyCalibrator.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -313,6 +314,22 @@ if (!process.env.VERCEL) {
     // Initialize Telegram bot + share scan cache
     setScanCache(scanCache);
     initTelegramBot();
+
+    // Run strategy calibration 30s after startup (non-blocking background task)
+    // Uses backtest engine to score each strategy historically → feeds agent conviction
+    const existingCal = getCalibration();
+    if (!existingCal) {
+      setTimeout(() => {
+        runCalibration().catch(err => console.error('[Calibrator] Startup run failed:', err.message));
+      }, 30000);
+    } else {
+      console.log(`[Calibrator] Using cached calibration from ${existingCal.lastCalibrated}`);
+    }
+
+    // Re-calibrate every Sunday at 2 AM ET (fresh weekly data)
+    cron.schedule('0 2 * * 0', () => {
+      runCalibration().catch(err => console.error('[Calibrator] Weekly run failed:', err.message));
+    }, { timezone: 'America/New_York' });
 
     // Warm up gem + penny cache 15s after start so first page load is fast
     setTimeout(async () => {

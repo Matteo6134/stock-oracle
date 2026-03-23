@@ -9,6 +9,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { getCalibration, STYLE_TO_STRATEGY } from './strategyCalibrator.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const AGENT_CONFIG_FILE = path.join(__dirname, '..', 'data', 'agentConfig.json');
@@ -344,7 +345,45 @@ export function analyzeGem(gem) {
     ? Math.round(activeVerdicts.filter(v => v.action === 'BUY').reduce((s, v) => s + v.conviction, 0) / buyCount * 10) / 10
     : 0;
 
-  return { verdicts, consensus, buyCount, avgConviction };
+  // ── Calibration feedback: backtest data upgrades consensus & conviction ──
+  // If the signal strategy has a proven >60% historical win rate, promote the trade.
+  let calibrationContext = null;
+  const calibration = getCalibration();
+
+  if (calibration && buyCount > 0) {
+    const buyVerdicts = activeVerdicts.filter(v => v.action === 'BUY');
+
+    // Find the best-performing strategy among the bullish agents
+    let bestWinRate = 0;
+    let bestStrategy = null;
+    for (const v of buyVerdicts) {
+      const strat = STYLE_TO_STRATEGY[v.style];
+      if (strat && calibration[strat] && calibration[strat].winRate > bestWinRate) {
+        bestWinRate = calibration[strat].winRate;
+        bestStrategy = strat;
+      }
+    }
+
+    if (bestStrategy) {
+      const cal = calibration[bestStrategy];
+      calibrationContext = {
+        strategy:     bestStrategy,
+        winRate:      cal.winRate,
+        cagr:         cal.cagr,
+        profitFactor: cal.profitFactor,
+        upgraded:     false,
+      };
+
+      // Upgrade "Buy" → "Strong Buy" when strategy is historically strong (≥60% WR)
+      // and profit factor is solid (≥1.4) — backtest-validated promotion
+      if (cal.winRate >= 60 && cal.profitFactor >= 1.4 && consensus === 'Buy') {
+        consensus = 'Strong Buy';
+        calibrationContext.upgraded = true;
+      }
+    }
+  }
+
+  return { verdicts, consensus, buyCount, avgConviction, calibration: calibrationContext };
 }
 
 /**

@@ -517,6 +517,15 @@ export async function notifyBuyAlerts(stocks) {
         .map(sig => sigLabels[sig] || sig)
         .join(' \u00B7 ');
 
+      // Historical backtest context line (from strategy calibrator)
+      let histLine = '';
+      if (s.calibration) {
+        const cal = s.calibration;
+        const pfStr = cal.profitFactor ? ` \u00B7 PF ${cal.profitFactor}` : '';
+        const upgradeTag = cal.upgraded ? ' \u2b06\uFE0F backtest-upgraded' : '';
+        histLine = `\uD83E\uDDEA ${cal.winRate}% historical WR \u00B7 ${cal.cagr >= 0 ? '+' : ''}${cal.cagr}% CAGR${pfStr}${upgradeTag}`;
+      }
+
       const lines = [
         header,
         '',
@@ -524,6 +533,7 @@ export async function notifyBuyAlerts(stocks) {
         `\uD83C\uDFAF Target: +${avgTarget.toFixed(0)}% \u2192 ${tpPrice}`,
         `\uD83D\uDED1 Stop: -${avgStop.toFixed(0)}% \u2192 ${slPrice}`,
         `\uD83D\uDCCA ${s.buyCount || 0}/5 agents \u00B7 Score ${s.gemScore || 0} \u00B7 ${s.consensus}`,
+        histLine,
         topSignals ? `\uD83D\uDD0D ${topSignals}` : '',
         '',
         s.source === 'penny' ? '\uD83E\uDE99 Penny stock \u2014 small position, high risk' : '\uD83D\uDC8E Quality setup',
