@@ -19,6 +19,7 @@ import { getOrderFlow } from '../services/orderFlow.js';
 import { scanPennyStocks } from '../services/pennyScanner.js';
 import * as alpaca from '../services/alpaca.js';
 import { getAutoTradeConfig, updateAutoTradeConfig, getAutoTradeLog } from '../services/autoTrader.js';
+import { runHistoricalBacktest } from '../services/historicalBacktest.js';
 
 const router = express.Router();
 
@@ -1976,6 +1977,31 @@ router.post('/watchlist/remove', (req, res) => {
   const { symbol } = req.body;
   if (!symbol) return res.status(400).json({ error: 'symbol required' });
   res.json(removeFromWatchlist(symbol));
+});
+
+// ── Historical Backtest ──
+router.get('/historical-backtest', async (req, res) => {
+  const { symbol, years, holdDays, strategy } = req.query;
+  if (!symbol) return res.status(400).json({ error: 'symbol required' });
+
+  const yrs = Math.min(Math.max(parseInt(years) || 5, 1), 30);
+  const hold = Math.min(Math.max(parseInt(holdDays) || 5, 1), 30);
+  const strat = ['volume_surge', 'momentum', 'mean_reversion', 'gem_finder'].includes(strategy)
+    ? strategy : 'gem_finder';
+
+  // Cache key: includes all params (backtests are expensive)
+  const cacheKey = `hbt:${symbol.toUpperCase()}:${yrs}:${hold}:${strat}`;
+  const cached = getCached(cacheKey, 10 * 60 * 1000); // 10 min cache
+  if (cached) return res.json(cached);
+
+  try {
+    const result = await runHistoricalBacktest({ symbol, years: yrs, holdDays: hold, strategy: strat });
+    setCache(cacheKey, result);
+    res.json(result);
+  } catch (err) {
+    console.error('[HistoricalBacktest]', err.message);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 export default router;

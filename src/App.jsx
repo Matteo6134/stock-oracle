@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Routes, Route, NavLink, useLocation, matchPath } from 'react-router-dom'
-import { LayoutDashboard, TrendingUp, PieChart, CalendarDays, History as HistoryIcon, DollarSign, Zap, Crosshair, Menu, X, Bookmark, Diamond, Users, Rocket } from 'lucide-react'
+import { LayoutDashboard, TrendingUp, PieChart, CalendarDays, History as HistoryIcon, DollarSign, Zap, Crosshair, Menu, X, Bookmark, Diamond, Users, Rocket, FlaskConical } from 'lucide-react'
 import ErrorBoundary from './components/ErrorBoundary'
 import { ToastProvider } from './components/Toast'
 import LandscapeSplit from './components/LandscapeSplit'
@@ -17,6 +17,7 @@ import BuyTomorrowPage from './pages/BuyTomorrowPage'
 import WishlistPage from './pages/WishlistPage'
 import GemBacktestPage from './pages/GemBacktestPage'
 import PennyStocksPage from './pages/PennyStocksPage'
+import HistoricalBacktestPage from './pages/HistoricalBacktestPage'
 import packageJson from '../package.json'
 import { isNotificationSupported, isNotificationEnabled, requestNotificationPermission, disableNotifications } from './lib/notifications'
 import { checkSmartAlerts } from './lib/tradeAlerts'
@@ -35,6 +36,7 @@ const navItems = [
   { to: '/trading-desk', icon: Users, label: 'Trading Desk' },
   { to: '/trade', icon: DollarSign, label: 'Trade' },
   { to: '/history', icon: HistoryIcon, label: 'History' },
+  { to: '/backtest', icon: FlaskConical, label: 'Backtest' },
   { to: '/sectors', icon: PieChart, label: 'Sectors' },
 ]
 
@@ -255,6 +257,7 @@ export default function App() {
             <Route path="/trade" element={<AlpacaTradingPage />} />
             <Route path="/trading-desk" element={<GemBacktestPage />} />
             <Route path="/history" element={<BacktesterPage />} />
+            <Route path="/backtest" element={<HistoricalBacktestPage />} />
           </Routes>
         </ErrorBoundary>
       </main>
