@@ -836,10 +836,10 @@ function passesQualityFilter(stock, marketRegime) {
   const marketCap = q.marketCap || 0;
   const price = stock.price || q.regularMarketPrice || 0;
 
-  // 1. Minimum liquidity — avoid penny stocks and illiquid names
-  if (price < 2) return false;              // Min $2 — include penny runners
-  if (volume < 300000) return false;         // Minimum 300K daily volume
-  if (marketCap > 0 && marketCap < 20e6) return false;   // Min $20M market cap
+  // 1. Minimum liquidity — avoid extremely illiquid junk
+  if (price < 1.0) return false;             // Min $1 — capture penny gems
+  if (volume < 100000) return false;         // Minimum 100K daily volume
+  if (marketCap > 0 && marketCap < 5e6) return false;   // Min $5M market cap (relaxed from 20M)
 
   // 2. Don't recommend stocks we tell users NOT to buy
   if (stock.entrySignal === 'too_late') return false;

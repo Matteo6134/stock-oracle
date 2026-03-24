@@ -20,7 +20,7 @@
  * Gem Score = weighted combination → higher = more explosive potential
  */
 
-import { getQuoteBatch, getHistoricalData, getEarningsCalendar } from './yahooFinance.js';
+import { getQuoteBatch, getHistoricalData, getEarningsCalendar, getTrendingStocks, getDailyGainers } from './yahooFinance.js';
 import { getShortSqueezeSetups, getBreakoutSetups, STOCK_UNIVERSE } from './premarketScanner.js';
 import { classifySector, getSectorTrends } from './sectorAnalysis.js';
 import { getOrderFlow } from './orderFlow.js';
@@ -196,13 +196,27 @@ async function _scan() {
     const unique = [...new Set(allSymbols)];
 
     // Fetch data in parallel
-    const [quotes, sectorTrends, earningsCal, squeezeData, breakoutData] = await Promise.all([
+    const [quotes, sectorTrends, earningsCal, squeezeData, breakoutData, trending, gainers] = await Promise.all([
       fetchAllQuotes(unique),
       getSectorTrends().catch(() => []),
       getEarningsCalendar().catch(() => []),
       getShortSqueezeSetups(unique.slice(0, 80)).catch(() => []),
       getBreakoutSetups(unique.slice(0, 80)).catch(() => []),
+      getTrendingStocks().catch(() => []),
+      getDailyGainers().catch(() => []),
     ]);
+
+    // Add trending and gainer stocks to the universe for this scan
+    const dynamicSymbols = [
+      ...trending.map(t => t.symbol),
+      ...gainers.map(g => g.symbol)
+    ].filter(s => !!s);
+    
+    if (dynamicSymbols.length > 0) {
+      console.log(`[GemFinder] Adding ${dynamicSymbols.length} trending/gainer stocks to the scan universe...`);
+      const dynamicQuotes = await fetchAllQuotes(dynamicSymbols);
+      Object.assign(quotes, dynamicQuotes);
+    }
 
     // Build lookups
     const sectorMap = {};
@@ -229,9 +243,9 @@ async function _scan() {
     const candidateSymbols = [];
     for (const [symbol, quote] of Object.entries(quotes)) {
       if (!quote || !quote.regularMarketPrice) continue;
-      if (quote.regularMarketPrice < 2) continue;
+      if (quote.regularMarketPrice < 1.0) continue;
       const vol = quote.regularMarketVolume || 0;
-      if (vol < 200000) continue;
+      if (vol < 100000) continue;
       const avgVol = quote.averageDailyVolume10Day || quote.averageDailyVolume3Month || vol;
       const volRatio = avgVol > 0 ? vol / avgVol : 1;
       // Get history for anything with above-average volume or in squeeze/breakout lists
@@ -265,8 +279,8 @@ async function _scan() {
 
     for (const [symbol, quote] of Object.entries(quotes)) {
       if (!quote || !quote.regularMarketPrice) continue;
-      if (quote.regularMarketPrice < 2) continue;       // Min $5 — skip penny stock noise
-      if ((quote.regularMarketVolume || 0) < 200000) continue; // Min 200K daily vol
+      if (quote.regularMarketPrice < 1.0) continue;       // Min $1.00 — capture penny gems
+      if ((quote.regularMarketVolume || 0) < 100000) continue; // Min 100K daily vol
 
       const signals = [];
       let setupScore = 0;

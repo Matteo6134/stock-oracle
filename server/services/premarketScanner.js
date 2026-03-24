@@ -227,8 +227,8 @@ export async function scanPremarketMovers(earningsCalendar = []) {
         const absGap = Math.abs(gapPct);
         const hasSignal = absGap >= 5 || (volumeRatio > 3 && absGap > 2);
         if (!hasSignal) continue;
-        // Min price $5 to skip penny stocks
-        if (currentPrice < 2) continue;
+        // Min price $1 to skip deep-penny junk but catch runners
+        if (currentPrice < 1.0) continue;
 
         const entry = {
           symbol,

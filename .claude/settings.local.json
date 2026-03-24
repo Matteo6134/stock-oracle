@@ -70,7 +70,25 @@
       "Bash(node -c server/index.js)",
       "Bash(node -c server/services/telegram.js)",
       "Bash(node -c server/services/kalshiArb.js)",
-      "Bash(node -c server/services/stockIntel.js)"
+      "Bash(node -c server/services/stockIntel.js)",
+      "Bash(node -c src/pages/PolyDashboard.jsx)",
+      "Bash(node -c server/services/newsEdge.js)",
+      "Bash(node -c server/services/polyMomentum.js)",
+      "Bash(node -c server/services/yahooFinance.js)",
+      "Bash(node -c server/services/autoTrader.js)",
+      "Bash(curl -s --max-time 10 https://web-production-7dbdc.up.railway.app/health)",
+      "Bash(curl -s --max-time 10 https://web-production-7dbdc.up.railway.app/api/predictions)",
+      "Bash(curl -sv --max-time 10 https://web-production-7dbdc.up.railway.app/api/predictions)",
+      "Bash(node -c server/services/claudeBrain.js)",
+      "WebFetch(domain:api.stocktwits.com)",
+      "WebFetch(domain:hacker-news.firebaseio.com)",
+      "WebFetch(domain:api-docs.stocktwits.com)",
+      "WebFetch(domain:apewisdom.io)",
+      "Bash(curl -s --max-time 10 \"https://apewisdom.io/api/v1.0/filter/all-stocks\")",
+      "mcp__plugin_context7_context7__resolve-library-id",
+      "mcp__plugin_context7_context7__query-docs",
+      "Bash(node -c server/services/db.js)",
+      "Bash(node -c server/services/claudeTracker.js)"
     ]
   }
 }
