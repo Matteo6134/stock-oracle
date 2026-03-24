@@ -484,7 +484,13 @@ export function findCorrelatedArbitrage(markets) {
  * We look for: market price 5-20%, low volume, Claude thinks real prob is much lower.
  */
 export function findOverpricedLongshots(markets) {
+  const now = new Date();
   return markets.filter(m => {
+    // Skip markets resolving > 60 days out
+    if (m.endDate) {
+      const daysLeft = (new Date(m.endDate) - now) / 86400000;
+      if (daysLeft > 60 || daysLeft < 0) return false;
+    }
     // Yes side is a longshot (5-20%)
     const isLongshotYes = m.yesPrice >= 0.05 && m.yesPrice <= 0.20;
     // No side is a longshot (80-95% yes = 5-20% no)
@@ -798,9 +804,27 @@ export function detectWhaleActivity(markets, prevMarkets) {
 export async function findBestBets(markets) {
   const allBets = [];
 
+  // ── Pre-filter: remove garbage markets ──
+  // 1. Skip markets that resolve too far out (>90 days = dead money)
+  // 2. Skip near-impossible outcomes (price < 5¢ or > 95¢ — no real edge there)
+  // 3. Prefer markets resolving in 1-30 days for fast capital turnover
+  const now = new Date();
+  const filteredMarkets = markets.filter(m => {
+    // Must have an end date
+    if (m.endDate) {
+      const daysLeft = Math.round((new Date(m.endDate) - now) / (1000 * 60 * 60 * 24));
+      if (daysLeft > 90) return false;  // Too far out — money sits dead
+      if (daysLeft < 0) return false;   // Already expired
+      m._daysLeft = daysLeft;           // Attach for later use
+    }
+    return true;
+  });
+
   // ── Strategy 1: Claude edge detection on top markets ──
-  const midRangeMarkets = markets
-    .filter(m => m.yesPrice >= 0.10 && m.yesPrice <= 0.90 && m.volume >= 50000)
+  // Mid-range prices (15-85%) on markets with decent volume and <90 day resolution
+  const midRangeMarkets = filteredMarkets
+    .filter(m => m.yesPrice >= 0.15 && m.yesPrice <= 0.85 && m.volume >= 50000)
+    .sort((a, b) => (a._daysLeft || 999) - (b._daysLeft || 999)) // Prefer sooner resolution
     .slice(0, 12);
 
   for (const market of midRangeMarkets) {

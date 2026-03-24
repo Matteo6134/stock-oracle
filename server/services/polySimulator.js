@@ -100,7 +100,7 @@ export function getPortfolio() {
  * @param {string} params.claudeThesis - Claude's reasoning
  * @param {number} params.claudeProb - Claude's estimated real probability
  */
-export function placeBet({ marketId, question, outcome, price, amount, claudeConfidence, claudeThesis, claudeProb, category, strategy }) {
+export function placeBet({ marketId, question, outcome, price, amount, claudeConfidence, claudeThesis, claudeProb, category, strategy, daysLeft }) {
   const p = loadPortfolio();
 
   if (amount > p.balance) {
@@ -131,6 +131,7 @@ export function placeBet({ marketId, question, outcome, price, amount, claudeCon
     claudeProb: claudeProb || 0.5,
     category: category || 'Other',
     strategy: strategy || 'edge_detection',
+    daysLeft: daysLeft || null,
     timestamp: new Date().toISOString(),
     status: 'open',
     pnl: null,

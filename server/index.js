@@ -506,6 +506,7 @@ if (!process.env.VERCEL) {
               claudeProb: pick.realProbability || 0.5,
               category: pick.category,
               strategy: pick.strategy,
+              daysLeft: pick.daysLeft || pick._daysLeft || null,
             });
 
             // Send Telegram alert for each auto-bet
@@ -522,13 +523,20 @@ if (!process.env.VERCEL) {
                 whale_follow: '\uD83D\uDC33 Whale',
               };
               const stratLabel = stratLabels[pick.strategy] || pick.strategy;
+              const dl = pick.daysLeft || pick._daysLeft;
+              const dlStr = dl != null ? `\u23F0 Resolves in ~${Math.round(dl)} days` : '';
+              const potentialWin = outcome === 'Yes'
+                ? Math.round((amount / price) - amount)
+                : Math.round((amount / (1 - price)) - amount);
               const msg = [
                 `\uD83E\uDDE0 *AUTO-BET* [${stratLabel}]`,
                 '',
                 `${pick.action === 'BET_YES' ? '\uD83D\uDFE2' : '\uD83D\uDD34'} *${outcome}* \u2014 "${(pick.question || '').replace(/^\[(ARB|CHAIN|WHALE)\] /, '').slice(0, 60)}"`,
-                `\uD83D\uDCB5 *$${Math.round(amount)}* at ${Math.round(price * 100)}\u00A2 \u00B7 Edge: ${pick.edge}% \u00B7 Conf: ${pick.confidence}/10`,
+                `\uD83D\uDCB5 *$${Math.round(amount)}* at ${Math.round(price * 100)}\u00A2 \u2192 Win: +$${potentialWin}`,
+                `\uD83D\uDCC8 Edge: ${pick.edge}% \u00B7 Conf: ${pick.confidence}/10`,
+                dlStr,
                 `\uD83D\uDCDD ${(pick.thesis || '').slice(0, 120)}`,
-              ].join('\n');
+              ].filter(Boolean).join('\n');
               notifyNewTrade(msg).catch(() => {});
             }
           }

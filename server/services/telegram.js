@@ -544,9 +544,12 @@ function registerCommands() {
       ];
 
       p.openPositions.slice(0, 5).forEach(pos => {
-        const unrealPnl = (pos.currentPrice - pos.entryPrice) * pos.shares;
-        lines.push(`${pos.outcome === 'Yes' ? '\uD83D\uDFE2' : '\uD83D\uDD34'} ${pos.question.slice(0, 35)}...`);
-        lines.push(`   ${pos.outcome} at ${Math.round(pos.entryPrice * 100)}\u00A2 \u2192 ${Math.round(pos.currentPrice * 100)}\u00A2 ($${pos.amount})`);
+        const potentialWin = pos.outcome === 'Yes'
+          ? Math.round((pos.amount / pos.entryPrice) - pos.amount)
+          : Math.round((pos.amount / (1 - pos.entryPrice)) - pos.amount);
+        const dlStr = pos.daysLeft ? ` \u00B7 ~${Math.round(pos.daysLeft)}d` : '';
+        lines.push(`${pos.outcome === 'Yes' ? '\uD83D\uDFE2' : '\uD83D\uDD34'} ${(pos.question || '').slice(0, 40)}`);
+        lines.push(`   $${pos.amount} at ${Math.round(pos.entryPrice * 100)}\u00A2 \u2192 Win +$${potentialWin}${dlStr}`);
       });
 
       send(msg.chat.id, lines.join('\n'));
