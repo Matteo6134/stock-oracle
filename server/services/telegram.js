@@ -106,6 +106,7 @@ export function initTelegramBot() {
       { command: 'bet', description: 'See Claude Polymarket analysis' },
       { command: 'goal', description: 'Progress toward $400K goal' },
       { command: 'phase', description: 'Growth phase & strategy limits' },
+      { command: 'social', description: 'Reddit trending stocks' },
       { command: 'momentum', description: 'Markets with big price moves' },
       { command: 'clear', description: 'Clear chat history' },
     ]).catch(err => console.error('[Telegram] setMyCommands error:', err.message));
@@ -133,6 +134,7 @@ function registerCommands() {
       '/next \u2014 before the bell picks',
       '/gems \u2014 top quality stocks',
       '/pennies \u2014 best penny stocks <$5',
+      '/social \u2014 Reddit trending stocks',
       '/watchlist \u2014 your saved stocks',
       '/scan \u2014 everything right now',
     ].join('\n'));
@@ -313,6 +315,39 @@ function registerCommands() {
       lines.push(`\n\u23F1 Updated ${t} ET`);
     }
     send(msg.chat.id, lines.join('\n'));
+  });
+
+  // /social — Reddit trending stocks (via ApeWisdom)
+  bot.onText(/\/social/, async (msg) => {
+    try {
+      const { getRedditTrending, getSurgingStocks } = await import('./socialSentiment.js');
+      const trending = await getRedditTrending();
+      const surging = await getSurgingStocks();
+
+      if (trending.length === 0) {
+        return send(msg.chat.id, 'No social data yet. Try again in a minute.');
+      }
+
+      const lines = ['\uD83D\uDCF1 *Reddit Trending Stocks*', ''];
+
+      // Top 10 by mentions
+      trending.slice(0, 10).forEach(t => {
+        const arrow = t.trending ? '\uD83D\uDD3C' : '\u25AA'; // 🔼 or ▪
+        const delta = t.mentionsDelta !== null ? ` (${t.mentionsDelta > 0 ? '+' : ''}${t.mentionsDelta}%)` : '';
+        lines.push(`${arrow} *${t.ticker}* \u2014 ${t.mentions} mentions${delta}`);
+      });
+
+      if (surging.length > 0) {
+        lines.push('', '\uD83D\uDD25 *Surging* (mentions up 50%+)');
+        surging.slice(0, 5).forEach(s => {
+          lines.push(`\uD83D\uDE80 *${s.ticker}* +${s.mentionsDelta}% mentions (${s.mentions} total)`);
+        });
+      }
+
+      send(msg.chat.id, lines.join('\n'));
+    } catch (err) {
+      send(msg.chat.id, 'Social data error: ' + err.message);
+    }
   });
 
   // /next — what the bot will buy on Alpaca at market open

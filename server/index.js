@@ -21,6 +21,7 @@ import { findBestBets } from './services/polyBrain.js';
 import { getPortfolio, placeBet, calculateKellyBet, shouldBet, getCategoryMultiplier } from './services/polySimulator.js';
 import { getAllIntelligence, getMarketRegime, getSectorRotation } from './services/stockIntel.js';
 import { startNewsMonitor, matchNewsToMarkets } from './services/newsEdge.js';
+import { getRedditTrending, getSurgingStocks } from './services/socialSentiment.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -269,6 +270,39 @@ if (!process.env.VERCEL) {
         console.log(`[StockIntel] Regime: ${intel.regime?.regime || '?'}, Sectors: ${intel.sectors?.hottest?.join(',') || '?'}, Insiders: ${intel.insiders?.length || 0}, Short alerts: ${intel.shortInterest?.length || 0}, Pairs: ${intel.pairs?.length || 0}`);
       } catch (err) {
         console.error('[StockIntel] Error:', err.message);
+      }
+
+      // ── Social Sentiment: ApeWisdom Reddit mentions ──
+      try {
+        const trending = await getRedditTrending();
+        if (trending.length > 0) {
+          const trendingMap = new Map(trending.map(t => [t.ticker, t]));
+          let socialMatches = 0;
+          for (const stock of allAnalyzed) {
+            const social = trendingMap.get(stock.symbol);
+            if (social) {
+              stock.redditMentions = social.mentions;
+              stock.redditRank = social.rank;
+              stock.redditTrending = social.trending;
+              stock.socialSurging = social.mentionsDelta > 50;
+              if (social.mentions >= 20) {
+                stock.signals = [...(stock.signals || []), 'reddit_trending'];
+              }
+              if (social.mentionsDelta > 100) {
+                stock.signals = [...(stock.signals || []), 'social_surge'];
+              }
+              socialMatches++;
+            }
+          }
+          // Also check for surging stocks not in our scan — potential opportunities
+          const surging = await getSurgingStocks();
+          scanCache.socialSurging = surging.slice(0, 10);
+          if (socialMatches > 0 || surging.length > 0) {
+            console.log(`[Social] ${socialMatches} stocks overlap with Reddit, ${surging.length} surging on social`);
+          }
+        }
+      } catch (err) {
+        // Silent — social is bonus data, not critical
       }
 
       // Update scan cache
