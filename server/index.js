@@ -18,8 +18,9 @@ import { analyzeStock, getMarketBriefing, isClaudeConfigured, getMarketContext }
 import { logPrediction } from './services/claudeTracker.js';
 import { getTopMarkets } from './services/polymarket.js';
 import { findBestBets } from './services/polyBrain.js';
-import { getPortfolio, placeBet, calculateKellyBet } from './services/polySimulator.js';
+import { getPortfolio, placeBet, calculateKellyBet, shouldBet, getCategoryMultiplier } from './services/polySimulator.js';
 import { getAllIntelligence, getMarketRegime, getSectorRotation } from './services/stockIntel.js';
+import { startNewsMonitor, matchNewsToMarkets } from './services/newsEdge.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -481,6 +482,14 @@ if (!process.env.VERCEL) {
 
             if (pick.confidence < minConf || Math.abs(pick.edge) < minEdge) continue;
 
+            // Growth phase gate — skip strategies not allowed in current phase
+            const phaseCheck = shouldBet(pick, portfolio.balance);
+            if (!phaseCheck.allowed) continue;
+
+            // Category accuracy gate — reduce or block bets on bad categories
+            const catMult = getCategoryMultiplier(pick.category);
+            if (catMult === 0) continue;
+
             const outcome = pick.action === 'BET_YES' ? 'Yes' : 'No';
             const price = pick.action === 'BET_YES'
               ? (pick.marketYesPrice || 0.5)
@@ -553,6 +562,74 @@ if (!process.env.VERCEL) {
         }
       });
       console.log('[PolyOracle] 11-strategy scanner active — every 15 min');
+
+      // ── News Speed Edge: breaking news triggers immediate poly scan ──
+      startNewsMonitor(async (newsItem) => {
+        try {
+          console.log(`[NewsEdge] BREAKING: ${newsItem.title} (${newsItem.source})`);
+          const markets = await getTopMarkets(30);
+          if (markets.length === 0) return;
+
+          const matches = matchNewsToMarkets(newsItem, markets);
+          if (matches.length === 0) {
+            console.log('[NewsEdge] No matching markets for this headline');
+            return;
+          }
+
+          console.log(`[NewsEdge] ${matches.length} markets affected — running Claude analysis...`);
+          const affectedMarkets = matches.map(m => m.market);
+          const picks = await findBestBets(affectedMarkets);
+          if (picks.length === 0) { console.log('[NewsEdge] No edge found on affected markets'); return; }
+
+          const portfolio = getPortfolio();
+          for (const pick of picks.slice(0, 3)) {
+            // Growth phase check
+            const phaseCheck = shouldBet(pick, portfolio.balance);
+            if (!phaseCheck.allowed) { console.log(`[NewsEdge] Skipped: ${phaseCheck.reason}`); continue; }
+
+            const outcome = pick.action === 'BET_YES' ? 'Yes' : 'No';
+            const price = pick.action === 'BET_YES'
+              ? (pick.marketYesPrice || 0.5)
+              : (pick.marketNoPrice || 0.5);
+            if (price <= 0 || price >= 1) continue;
+
+            const amount = calculateKellyBet(portfolio.balance, price, pick.realProbability || 0.5, 15);
+            if (amount < 5 || amount > portfolio.balance) continue;
+
+            const betResult = placeBet({
+              marketId: pick.marketId,
+              question: pick.question || pick.thesis?.slice(0, 100),
+              outcome, price, amount,
+              claudeConfidence: pick.confidence,
+              claudeThesis: `[NEWS] ${newsItem.title.slice(0, 80)} — ${(pick.thesis || '').slice(0, 200)}`,
+              claudeProb: pick.realProbability || 0.5,
+              category: pick.category,
+              strategy: pick.strategy,
+              daysLeft: pick.daysLeft || null,
+            });
+
+            if (betResult.success) {
+              const potentialWin = outcome === 'Yes'
+                ? Math.round((amount / price) - amount)
+                : Math.round((amount / (1 - price)) - amount);
+              const msg = [
+                `\u26A1 *BREAKING NEWS BET*`,
+                '',
+                `\uD83D\uDCF0 ${newsItem.title.slice(0, 80)}`,
+                `${pick.action === 'BET_YES' ? '\uD83D\uDFE2' : '\uD83D\uDD34'} *${outcome}* — "${(pick.question || '').slice(0, 60)}"`,
+                `\uD83D\uDCB5 *$${Math.round(amount)}* at ${Math.round(price * 100)}\u00A2 \u2192 Win: +$${potentialWin}`,
+                `\uD83D\uDCC8 Edge: ${pick.edge}% \u00B7 Conf: ${pick.confidence}/10`,
+                `\uD83D\uDCDD ${(pick.thesis || '').slice(0, 120)}`,
+              ].filter(Boolean).join('\n');
+              notifyNewTrade(msg).catch(() => {});
+            }
+          }
+        } catch (err) {
+          console.error('[NewsEdge] Callback error:', err.message);
+        }
+      });
+      console.log('[NewsEdge] Breaking news monitor active');
+
     } else {
       console.log('[Claude] No ANTHROPIC_API_KEY — running rule-based only');
     }

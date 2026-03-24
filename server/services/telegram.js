@@ -93,6 +93,7 @@ export function initTelegramBot() {
       { command: 'poly', description: 'Polymarket portfolio & picks' },
       { command: 'bet', description: 'See Claude Polymarket analysis' },
       { command: 'goal', description: 'Progress toward $400K goal' },
+      { command: 'phase', description: 'Growth phase & strategy limits' },
       { command: 'clear', description: 'Clear chat history' },
     ]).catch(err => console.error('[Telegram] setMyCommands error:', err.message));
 
@@ -513,6 +514,21 @@ function registerCommands() {
         acc.worstCall ? `\uD83D\uDCA5 Worst: ${acc.worstCall.symbol} ${acc.worstCall.pct}% (conf ${acc.worstCall.confidence})` : '',
       ].filter(Boolean);
 
+      // Add Polymarket category accuracy
+      try {
+        const { getCategoryAccuracy } = await import('./polySimulator.js');
+        const cats = getCategoryAccuracy();
+        const catEntries = Object.entries(cats).filter(([, s]) => s.total >= 1);
+        if (catEntries.length > 0) {
+          lines.push('', '*Poly Category Accuracy:*');
+          const sorted = catEntries.sort((a, b) => b[1].winRate - a[1].winRate);
+          for (const [cat, s] of sorted.slice(0, 6)) {
+            const icon = s.winRate >= 60 ? '\uD83D\uDFE2' : s.winRate >= 40 ? '\uD83D\uDFE1' : '\uD83D\uDD34';
+            lines.push(`  ${icon} ${cat}: ${s.winRate}% (${s.wins}/${s.total})`);
+          }
+        }
+      } catch {}
+
       send(msg.chat.id, lines.join('\n'));
     } catch (err) {
       send(msg.chat.id, `Error: ${err.message}`);
@@ -729,6 +745,48 @@ function registerCommands() {
     }
   });
 
+  // /phase — current growth phase and strategy limits
+  bot.onText(/\/phase/, async (msg) => {
+    try {
+      const { getPortfolio, getGrowthPhase, getCategoryAccuracy } = await import('./polySimulator.js');
+      const p = getPortfolio();
+      const phase = p.growthPhase;
+
+      const phaseIcons = { foundation: '\uD83C\uDFD7\uFE0F', growth: '\uD83C\uDF31', acceleration: '\uD83D\uDE80', moonshot: '\uD83C\uDF19' };
+      const icon = phaseIcons[phase.name] || '\uD83D\uDCCA';
+      const progressBar = '\u2588'.repeat(Math.round(phase.progress / 5)) + '\u2591'.repeat(20 - Math.round(phase.progress / 5));
+
+      const lines = [
+        `${icon} *Growth Phase: ${phase.name.toUpperCase()}*`,
+        '',
+        `\uD83D\uDCB0 Balance: *$${p.totalValue.toLocaleString()}*`,
+        `[${progressBar}] ${phase.progress}%`,
+        `Next phase at: $${phase.maxBalance.toLocaleString()}`,
+        '',
+        `\uD83C\uDFAF Max bet: ${phase.maxBetPct}% of balance`,
+        `\uD83E\uDDE0 Min confidence: ${phase.minConfidence}/10`,
+        `\uD83D\uDCCB Strategies: ${phase.strategies.join(', ')}`,
+      ];
+
+      // Category accuracy
+      const cats = p.categoryAccuracy || {};
+      const catEntries = Object.entries(cats).filter(([, s]) => s.total >= 1);
+      if (catEntries.length > 0) {
+        lines.push('', '*Category Win Rates:*');
+        const sorted = catEntries.sort((a, b) => b[1].winRate - a[1].winRate);
+        for (const [cat, s] of sorted) {
+          const mult = s.winRate >= 70 ? '2.0x' : s.winRate >= 60 ? '1.5x' : s.winRate >= 50 ? '1.0x' : s.winRate >= 30 ? '0.5x' : '0x';
+          const wrIcon = s.winRate >= 60 ? '\uD83D\uDFE2' : s.winRate >= 40 ? '\uD83D\uDFE1' : '\uD83D\uDD34';
+          lines.push(`  ${wrIcon} ${cat}: ${s.winRate}% (${s.wins}/${s.total}) \u00B7 ${mult} \u00B7 P&L: ${s.totalPnl >= 0 ? '+' : ''}$${s.totalPnl}`);
+        }
+      }
+
+      send(msg.chat.id, lines.join('\n'));
+    } catch (err) {
+      send(msg.chat.id, `Error: ${err.message}`);
+    }
+  });
+
   // /market — full market intelligence dashboard
   bot.onText(/\/market/, async (msg) => {
     send(msg.chat.id, '\uD83D\uDCCA *Scanning market intelligence...*');
@@ -803,7 +861,7 @@ function registerCommands() {
         '',
         '\uD83D\uDCCA /portfolio \u00B7 /gems \u00B7 /pennies',
         '\uD83E\uDDE0 /ask \u00B7 /briefing \u00B7 /brain',
-        '\uD83C\uDFAF /poly \u00B7 /bet \u00B7 /goal',
+        '\uD83C\uDFAF /poly \u00B7 /bet \u00B7 /goal \u00B7 /phase',
         '\uD83D\uDCC8 /next \u00B7 /scan \u00B7 /market',
       ].join('\n'), { parse_mode: 'Markdown' });
     } catch (err) {

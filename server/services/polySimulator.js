@@ -22,6 +22,100 @@ const PORTFOLIO_FILE = path.join(DATA_DIR, 'polyPortfolio.json');
 const STARTING_BALANCE = 1400;
 const GOAL = 400000;
 
+// ── Growth Phase System ──
+// As balance grows, unlock more aggressive strategies and bet sizes
+const GROWTH_PHASES = [
+  { name: 'foundation', minBalance: 0, maxBalance: 3000, maxBetPct: 8, minConfidence: 8, strategies: ['safe_bet', 'edge_detection'] },
+  { name: 'growth', minBalance: 3000, maxBalance: 15000, maxBetPct: 12, minConfidence: 7, strategies: ['safe_bet', 'edge_detection', 'arbitrage', 'whale_follow'] },
+  { name: 'acceleration', minBalance: 15000, maxBalance: 100000, maxBetPct: 15, minConfidence: 7, strategies: ['all'] },
+  { name: 'moonshot', minBalance: 100000, maxBalance: 400000, maxBetPct: 20, minConfidence: 6, strategies: ['all'] },
+];
+
+/**
+ * Get the current growth phase based on balance.
+ */
+export function getGrowthPhase(balance) {
+  for (let i = GROWTH_PHASES.length - 1; i >= 0; i--) {
+    if (balance >= GROWTH_PHASES[i].minBalance) {
+      const phase = GROWTH_PHASES[i];
+      const progress = phase.maxBalance > phase.minBalance
+        ? Math.min(100, Math.round(((balance - phase.minBalance) / (phase.maxBalance - phase.minBalance)) * 100))
+        : 100;
+      return { ...phase, progress };
+    }
+  }
+  return { ...GROWTH_PHASES[0], progress: 0 };
+}
+
+/**
+ * Check if a pick's strategy and confidence match the current phase requirements.
+ * Returns { allowed, reason } — use before placing a bet.
+ */
+export function shouldBet(pick, balance) {
+  const phase = getGrowthPhase(balance);
+
+  // Check strategy allowed
+  const stratAllowed = phase.strategies.includes('all') || phase.strategies.includes(pick.strategy);
+  if (!stratAllowed) {
+    return { allowed: false, reason: `Strategy "${pick.strategy}" not allowed in ${phase.name} phase` };
+  }
+
+  // Check confidence meets phase minimum
+  const confidence = pick.confidence || pick.claudeConfidence || 0;
+  if (confidence < phase.minConfidence) {
+    return { allowed: false, reason: `Confidence ${confidence} below ${phase.name} minimum (${phase.minConfidence})` };
+  }
+
+  return { allowed: true, reason: 'ok', phase };
+}
+
+// ── Category Accuracy Tracking (persisted in portfolio) ──
+
+/**
+ * Get category accuracy stats from portfolio.
+ */
+export function getCategoryAccuracy() {
+  const p = loadPortfolio();
+  return p.categoryAccuracy || {};
+}
+
+/**
+ * Get a bet size multiplier based on category win rate.
+ * winRate >= 70% -> 2.0x (bet double)
+ * winRate >= 60% -> 1.5x
+ * winRate >= 50% -> 1.0x (normal)
+ * winRate < 50% -> 0.5x (bet half)
+ * winRate < 30% -> 0x (don't bet this category at all)
+ */
+export function getCategoryMultiplier(category) {
+  const p = loadPortfolio();
+  const stats = (p.categoryAccuracy || {})[normalizeCat(category)];
+  if (!stats || stats.total < 3) return 1.0; // Not enough data
+  const wr = stats.winRate;
+  if (wr >= 70) return 2.0;
+  if (wr >= 60) return 1.5;
+  if (wr >= 50) return 1.0;
+  if (wr >= 30) return 0.5;
+  return 0; // Don't bet this category
+}
+
+function normalizeCat(cat) {
+  return (cat || 'other').toLowerCase().replace(/[^a-z0-9]/g, '_');
+}
+
+function updateCategoryAccuracy(portfolio, category, won, pnl) {
+  if (!portfolio.categoryAccuracy) portfolio.categoryAccuracy = {};
+  const cat = normalizeCat(category);
+  if (!portfolio.categoryAccuracy[cat]) {
+    portfolio.categoryAccuracy[cat] = { total: 0, wins: 0, losses: 0, winRate: 0, totalPnl: 0 };
+  }
+  const s = portfolio.categoryAccuracy[cat];
+  s.total++;
+  if (won) { s.wins++; } else { s.losses++; }
+  s.totalPnl = Math.round((s.totalPnl + (pnl || 0)) * 100) / 100;
+  s.winRate = s.total > 0 ? Math.round((s.wins / s.total) * 100) : 0;
+}
+
 function ensureDir() {
   if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 }
@@ -68,6 +162,8 @@ export function getPortfolio() {
   const losses = p.history.filter(h => h.status === 'lost').length;
   const winRate = (wins + losses) > 0 ? Math.round((wins / (wins + losses)) * 100) : 0;
 
+  const phase = getGrowthPhase(totalValue);
+
   return {
     balance: Math.round(p.balance * 100) / 100,
     positionValue: Math.round(positionValue * 100) / 100,
@@ -84,6 +180,8 @@ export function getPortfolio() {
     wins,
     losses,
     startDate: p.startDate,
+    growthPhase: phase,
+    categoryAccuracy: p.categoryAccuracy || {},
   };
 }
 
@@ -113,7 +211,25 @@ export function placeBet({ marketId, question, outcome, price, amount, claudeCon
     return { success: false, error: 'Invalid price (must be 0-1)' };
   }
 
-  const shares = Math.round((amount / price) * 100) / 100; // shares = amount / price per share
+  // ── Growth phase enforcement ──
+  const phase = getGrowthPhase(p.balance);
+  const stratAllowed = phase.strategies.includes('all') || phase.strategies.includes(strategy || 'edge_detection');
+  if (!stratAllowed) {
+    return { success: false, error: `Strategy "${strategy}" blocked in ${phase.name} phase` };
+  }
+
+  // Cap bet size to phase maximum
+  const phaseMaxAmount = Math.round(p.balance * (phase.maxBetPct / 100) * 100) / 100;
+  const cappedAmount = Math.min(amount, phaseMaxAmount);
+
+  // ── Category multiplier ──
+  const catMultiplier = getCategoryMultiplier(category);
+  if (catMultiplier === 0) {
+    return { success: false, error: `Category "${category}" blocked — win rate below 30%` };
+  }
+  const finalAmount = Math.max(1, Math.round(cappedAmount * catMultiplier * 100) / 100);
+
+  const shares = Math.round((finalAmount / price) * 100) / 100; // shares = amount / price per share
   const edge = (claudeProb || 0.5) - price;
 
   const position = {
@@ -124,7 +240,7 @@ export function placeBet({ marketId, question, outcome, price, amount, claudeCon
     shares,
     entryPrice: price,
     currentPrice: price,
-    amount: Math.round(amount * 100) / 100,
+    amount: Math.round(finalAmount * 100) / 100,
     edge: Math.round(edge * 1000) / 10, // as percentage
     claudeConfidence: claudeConfidence || 0,
     claudeThesis: String(claudeThesis || '').slice(0, 500),
@@ -137,11 +253,11 @@ export function placeBet({ marketId, question, outcome, price, amount, claudeCon
     pnl: null,
   };
 
-  p.balance -= amount;
+  p.balance -= finalAmount;
   p.positions.push(position);
   savePortfolio(p);
 
-  console.log(`[PolySim] BET ${outcome} on "${question.slice(0, 40)}..." — $${amount} at ${price} (edge ${position.edge}%, conf ${claudeConfidence})`);
+  console.log(`[PolySim] BET ${outcome} on "${question.slice(0, 40)}..." — $${finalAmount} at ${price} (edge ${position.edge}%, conf ${claudeConfidence}, phase ${phase.name}, catMult ${catMultiplier}x)`);
 
   return { success: true, position };
 }
@@ -191,9 +307,13 @@ export function settleBet(positionId, won) {
   pos.settledAt = new Date().toISOString();
   p.history.push({ ...pos });
   p.positions = p.positions.filter(pp => pp.id !== positionId);
+
+  // Track category accuracy in portfolio (persisted)
+  updateCategoryAccuracy(p, pos.category, won, pos.pnl);
+
   savePortfolio(p);
 
-  // Track category accuracy for strategy learning
+  // Track category accuracy for strategy learning (in-memory, polyBrain)
   recordCategoryResult(pos.category, won, pos.edge);
 
   console.log(`[PolySim] SETTLED ${pos.question.slice(0, 30)}... → ${won ? 'WON' : 'LOST'} (${pos.pnl >= 0 ? '+' : ''}$${pos.pnl})`);
