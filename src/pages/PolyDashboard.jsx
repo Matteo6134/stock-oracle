@@ -31,9 +31,56 @@ function GoalTracker({ portfolio }) {
   );
 }
 
+const STRATEGY_CHIPS = {
+  edge_detection: { label: 'Edge', icon: '🔍', color: 'bg-blue-500/15 text-blue-400' },
+  arbitrage: { label: 'Arb', icon: '🔄', color: 'bg-yellow-500/15 text-yellow-400' },
+  cross_platform_arb: { label: 'Cross-Arb', icon: '🌐', color: 'bg-yellow-500/15 text-yellow-400' },
+  cross_platform_edge: { label: 'Cross-Edge', icon: '🌐', color: 'bg-cyan-500/15 text-cyan-400' },
+  longshot_sell: { label: 'Longshot', icon: '🎰', color: 'bg-pink-500/15 text-pink-400' },
+  safe_bet: { label: 'Safe', icon: '🛡', color: 'bg-green-500/15 text-green-400' },
+  conditional_chain: { label: 'Chain', icon: '🔗', color: 'bg-orange-500/15 text-orange-400' },
+  whale_follow: { label: 'Whale', icon: '🐳', color: 'bg-indigo-500/15 text-indigo-400' },
+};
+
+const QUALITY_GATES = {
+  safe_bet: { minConf: 7, minEdge: 3 },
+  arbitrage: { minConf: 6, minEdge: 5 },
+  cross_platform_arb: { minConf: 6, minEdge: 5 },
+  cross_platform_edge: { minConf: 7, minEdge: 8 },
+  conditional_chain: { minConf: 8, minEdge: 12 },
+  whale_follow: { minConf: 7, minEdge: 3 },
+  longshot_sell: { minConf: 8, minEdge: 15 },
+  edge_detection: { minConf: 8, minEdge: 12 },
+};
+
+function StrategyChip({ strategy }) {
+  const s = STRATEGY_CHIPS[strategy] || { label: strategy, icon: '🎯', color: 'bg-purple-500/15 text-purple-400' };
+  return (
+    <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${s.color}`}>
+      {s.icon} {s.label}
+    </span>
+  );
+}
+
+function WouldBetChip({ pick }) {
+  const t = QUALITY_GATES[pick.strategy] || QUALITY_GATES.edge_detection;
+  const passes = (pick.confidence || 0) >= t.minConf && Math.abs(pick.edge || 0) >= t.minEdge;
+
+  if (passes) {
+    return <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-green-500/15 text-green-400">✅ Bought</span>;
+  }
+  const reasons = [];
+  if ((pick.confidence || 0) < t.minConf) reasons.push(`conf ${pick.confidence}/${t.minConf}`);
+  if (Math.abs(pick.edge || 0) < t.minEdge) reasons.push(`edge ${Math.abs(pick.edge||0)}%/${t.minEdge}%`);
+  return (
+    <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-red-500/10 text-red-400" title={reasons.join(', ')}>
+      ❌ Skipped
+    </span>
+  );
+}
+
 function PositionCard({ pos }) {
   const unrealPnl = (pos.currentPrice - pos.entryPrice) * pos.shares;
-  const unrealPct = pos.entryPrice > 0 ? ((pos.currentPrice - pos.entryPrice) / pos.entryPrice * 100) : 0;
   const isUp = unrealPnl >= 0;
 
   return (
@@ -41,10 +88,11 @@ function PositionCard({ pos }) {
       <div className="flex items-start justify-between gap-2 mb-1">
         <div className="flex-1 min-w-0">
           <div className="text-oracle-text text-xs font-semibold leading-tight">{pos.question}</div>
-          <div className="flex items-center gap-2 mt-1">
+          <div className="flex items-center gap-2 mt-1 flex-wrap">
             <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${pos.outcome === 'Yes' ? 'bg-oracle-green/15 text-oracle-green' : 'bg-oracle-red/15 text-oracle-red'}`}>
               {pos.outcome}
             </span>
+            <StrategyChip strategy={pos.strategy} />
             <span className="text-oracle-muted text-[10px]">{Math.round(pos.entryPrice * 100)}¢ → {Math.round(pos.currentPrice * 100)}¢</span>
           </div>
         </div>
@@ -57,7 +105,7 @@ function PositionCard({ pos }) {
       </div>
       {pos.claudeThesis && (
         <div className="text-[10px] text-oracle-muted/70 mt-1 leading-tight">
-          🧠 {pos.claudeThesis.slice(0, 100)}...
+          🧠 {pos.claudeThesis.slice(0, 150)}
         </div>
       )}
     </div>
@@ -66,25 +114,60 @@ function PositionCard({ pos }) {
 
 function PickCard({ pick }) {
   const isYes = pick.action === 'BET_YES';
-  const edgeColor = Math.abs(pick.edge) >= 20 ? 'text-oracle-green' : 'text-oracle-yellow';
+  const edgeColor = Math.abs(pick.edge || 0) >= 20 ? 'text-oracle-green' : Math.abs(pick.edge || 0) >= 10 ? 'text-oracle-yellow' : 'text-oracle-muted';
+  const yesP = pick.marketYesPrice != null ? Math.round(pick.marketYesPrice * 100) : null;
+  const realP = pick.realProbability != null ? Math.round(pick.realProbability * 100) : null;
 
   return (
     <div className="glass-card p-3">
+      {/* Top row: question + YES/NO chip */}
       <div className="flex items-start justify-between gap-2 mb-1.5">
         <div className="flex-1 min-w-0">
-          <div className="text-oracle-text text-xs font-semibold leading-tight">{pick.question?.slice(0, 70)}</div>
+          <div className="text-oracle-text text-xs font-semibold leading-tight">
+            {(pick.question || '').replace(/^\[(ARB|CHAIN|WHALE)\] /, '').slice(0, 70)}
+          </div>
         </div>
         <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold shrink-0 ${isYes ? 'bg-oracle-green/15 text-oracle-green' : 'bg-oracle-red/15 text-oracle-red'}`}>
-          {isYes ? 'BET YES' : 'BET NO'}
+          {isYes ? 'YES' : 'NO'}
         </span>
       </div>
-      <div className="flex items-center gap-3 text-[10px] mb-1.5">
-        <span className="text-oracle-muted">Market: {Math.round(pick.marketYesPrice * 100)}¢</span>
-        <span className="text-purple-400">Claude: {Math.round(pick.realProbability * 100)}%</span>
-        <span className={`font-bold ${edgeColor}`}>Edge: {pick.edge > 0 ? '+' : ''}{pick.edge}%</span>
-        <span className="text-oracle-muted">{'●'.repeat(Math.min(pick.confidence, 10))} {pick.confidence}/10</span>
+
+      {/* Chips row: strategy + verdict */}
+      <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
+        <StrategyChip strategy={pick.strategy} />
+        <WouldBetChip pick={pick} />
+        {pick.ensemble && (
+          <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${pick.ensemble.agreement === 'STRONG' ? 'bg-green-500/15 text-green-400' : pick.ensemble.agreement === 'MODERATE' ? 'bg-yellow-500/15 text-yellow-400' : 'bg-red-500/10 text-red-400'}`}>
+            🤝 {pick.ensemble.agreement}
+          </span>
+        )}
       </div>
-      <div className="text-[10px] text-oracle-muted/70 leading-tight">🧠 {pick.thesis?.slice(0, 120)}</div>
+
+      {/* Stats row */}
+      <div className="flex items-center gap-3 text-[10px] mb-1.5 flex-wrap">
+        {yesP != null && <span className="text-oracle-muted">Market: {yesP}¢</span>}
+        {realP != null && <span className="text-purple-400">Claude: {realP}%</span>}
+        <span className={`font-bold ${edgeColor}`}>Edge: {(pick.edge || 0) > 0 ? '+' : ''}{pick.edge || 0}%</span>
+        <span className="text-oracle-muted">Conf: {pick.confidence || 0}/10</span>
+        {pick.strategy === 'safe_bet' && pick.returnPct && (
+          <span className="text-green-400 font-bold">Return: +{pick.returnPct}%</span>
+        )}
+        {pick.strategy === 'whale_follow' && pick.volumeDelta && (
+          <span className="text-indigo-400 font-bold">Vol: +${(pick.volumeDelta || 0).toLocaleString()}</span>
+        )}
+      </div>
+
+      {/* Claude's reasoning */}
+      {pick.thesis && (
+        <div className="text-[10px] text-oracle-muted/70 leading-tight mt-1">
+          🧠 <span className="italic">{pick.thesis.slice(0, 150)}</span>
+        </div>
+      )}
+      {pick.ensemble?.gemini?.reasoning && (
+        <div className="text-[10px] text-cyan-400/50 leading-tight mt-0.5">
+          🔮 Gemini: {pick.ensemble.gemini.reasoning.slice(0, 100)}
+        </div>
+      )}
     </div>
   );
 }
