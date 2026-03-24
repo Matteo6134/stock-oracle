@@ -72,9 +72,15 @@ export function initTelegramBot() {
       }
     });
 
-    const cfg = loadConfig();
-    if (cfg.chatId) chatId = cfg.chatId;
-    console.log(`[Telegram] Bot online${chatId ? ` (chat: ${chatId})` : ''}`);
+    // Load chatId — prefer env var (survives Railway redeploys) then file fallback
+    if (process.env.TELEGRAM_CHAT_ID) {
+      chatId = parseInt(process.env.TELEGRAM_CHAT_ID, 10);
+      console.log(`[Telegram] ChatId from env: ${chatId}`);
+    } else {
+      const cfg = loadConfig();
+      if (cfg.chatId) chatId = cfg.chatId;
+    }
+    console.log(`[Telegram] Bot online${chatId ? ` (chat: ${chatId})` : ' — send /start to register'}`);
 
     // Set persistent command menu so user sees all commands when tapping "/"
     bot.setMyCommands([
@@ -112,6 +118,7 @@ function registerCommands() {
   bot.onText(/\/start/, (msg) => {
     chatId = msg.chat.id;
     saveConfig({ chatId });
+    console.log(`[Telegram] ⚠️ ChatId registered: ${chatId} — add TELEGRAM_CHAT_ID=${chatId} to Railway env vars for persistence`);
     send(chatId, [
       '\uD83D\uDD2E *Stock Oracle*',
       '',
