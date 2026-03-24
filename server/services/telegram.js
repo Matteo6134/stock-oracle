@@ -611,32 +611,98 @@ function registerCommands() {
 
         if (pick.strategy === 'safe_bet') {
           lines.push(
-            `\uD83D\uDEE1 Return: *+${pick.returnPct}%* in ${pick.daysLeft} days`,
-            `\uD83D\uDCC8 Annualized: *${pick.annualizedReturn}%*`,
+            `\uD83D\uDEE1 Return: *+${pick.returnPct || 0}%* in ${pick.daysLeft || '?'} days`,
+            `\uD83D\uDCC8 Annualized: *${pick.annualizedReturn || 0}%*`,
             `[${confBar}] Confidence: ${pick.confidence}/10`,
           );
-        } else if (pick.strategy === 'arbitrage') {
+        } else if (pick.strategy === 'arbitrage' || pick.strategy === 'cross_platform_arb') {
           lines.push(
-            `\uD83D\uDD04 Arbitrage edge: *${pick.edge}%*`,
+            `\uD83D\uDD04 Arb edge: *+${pick.edge || 0}%* risk-free`,
             `[${confBar}] Confidence: ${pick.confidence}/10`,
-            `\uD83D\uDCDD ${pick.thesis}`,
+            `\uD83D\uDCDD ${pick.thesis || ''}`,
+          );
+        } else if (pick.strategy === 'whale_follow') {
+          lines.push(
+            `\uD83D\uDC33 Volume spike: *$${(pick.volumeDelta || 0).toLocaleString()}*`,
+            `\uD83D\uDCC8 Price move: *${pick.priceDelta || 0}%*`,
+            `[${confBar}] Confidence: ${pick.confidence}/10`,
+            `\uD83D\uDCDD ${pick.thesis || ''}`,
+          );
+        } else if (pick.strategy === 'conditional_chain') {
+          lines.push(
+            `\uD83D\uDD17 Chain from: ${(pick.anchor || '').slice(0, 50)}`,
+            `\uD83D\uDCC8 Edge: *+${pick.edge || 0}%*`,
+            `[${confBar}] Confidence: ${pick.confidence}/10`,
+            `\uD83D\uDCDD ${pick.thesis || ''}`,
           );
         } else {
+          // Edge detection, longshot, cross_platform_edge
+          const yesP = pick.marketYesPrice != null ? Math.round(pick.marketYesPrice * 100) : '?';
+          const noP = pick.marketNoPrice != null ? Math.round(pick.marketNoPrice * 100) : '?';
+          const realP = pick.realProbability != null ? Math.round(pick.realProbability * 100) : '?';
           lines.push(
-            `\uD83D\uDCB0 Market: ${Math.round((pick.marketYesPrice || 0) * 100)}\u00A2 Yes / ${Math.round((pick.marketNoPrice || 0) * 100)}\u00A2 No`,
-            `\uD83E\uDDE0 Claude: ${Math.round((pick.realProbability || 0) * 100)}% real`,
-            `\uD83D\uDCC8 Edge: *${pick.edge > 0 ? '+' : ''}${pick.edge}%*`,
+            `\uD83D\uDCB0 Market: ${yesP}\u00A2 Yes / ${noP}\u00A2 No`,
+            `\uD83E\uDDE0 Claude: ${realP}% real`,
+            `\uD83D\uDCC8 Edge: *${(pick.edge || 0) > 0 ? '+' : ''}${pick.edge || 0}%*`,
             `[${confBar}] Confidence: ${pick.confidence}/10`,
-            '',
-            `\uD83D\uDCDD ${pick.thesis}`,
           );
+          // Show ensemble info if available
+          if (pick.ensemble) {
+            const agr = pick.ensemble.agreement === 'STRONG' ? '\u2705' : pick.ensemble.agreement === 'MODERATE' ? '\uD83D\uDFE1' : '\uD83D\uDD34';
+            lines.push(`${agr} Ensemble: Claude ${Math.round(pick.ensemble.claude.prob * 100)}% / Gemini ${Math.round(pick.ensemble.gemini.prob * 100)}% (${pick.ensemble.agreement})`);
+          }
+          lines.push('', `\uD83D\uDCDD ${pick.thesis || ''}`);
         }
 
-        lines.push('', `\uD83D\uDCB5 Size: ${pick.suggestedSizePct}% of bankroll`);
+        lines.push('', `\uD83D\uDCB5 Size: ${pick.suggestedSizePct || 5}% of bankroll`);
         if (pick.isBestBet) lines.push('\n\u2B50 *BEST BET*');
 
         await send(msg.chat.id, lines.join('\n'));
         await new Promise(r => setTimeout(r, 500));
+      }
+
+      // ── Auto-place top bets into simulator ──
+      try {
+        const { getPortfolio, placeBet, calculateKellyBet } = await import('./polySimulator.js');
+        const portfolio = getPortfolio();
+        let placed = 0;
+
+        for (const pick of picks.slice(0, 3)) {
+          if (pick.confidence < 7 || Math.abs(pick.edge || 0) < 8) continue;
+
+          const outcome = pick.action === 'BET_YES' ? 'Yes' : 'No';
+          const price = pick.action === 'BET_YES'
+            ? (pick.marketYesPrice || 0.5)
+            : (pick.marketNoPrice || 0.5);
+
+          if (price <= 0.01 || price >= 0.99) continue;
+
+          const maxPct = pick.strategy === 'safe_bet' ? 30 : pick.strategy === 'arbitrage' || pick.strategy === 'cross_platform_arb' ? 15 : 20;
+          const amount = calculateKellyBet(portfolio.balance, price, pick.realProbability || (pick.action === 'BET_YES' ? 0.7 : 0.3), maxPct);
+          if (amount < 5 || amount > portfolio.balance) continue;
+
+          const result = placeBet({
+            marketId: pick.marketId || pick.question,
+            question: (pick.question || '').replace(/^\[(ARB|CHAIN|WHALE)\] /, ''),
+            outcome,
+            price,
+            amount: Math.round(amount * 100) / 100,
+            claudeConfidence: pick.confidence,
+            claudeThesis: (pick.thesis || '').slice(0, 300),
+            claudeProb: pick.realProbability || 0.5,
+            category: pick.category || 'Other',
+            strategy: pick.strategy || 'edge_detection',
+          });
+
+          if (result.success) placed++;
+        }
+
+        if (placed > 0) {
+          const p = getPortfolio();
+          send(msg.chat.id, `\n\u2705 *Placed ${placed} bets*\n\uD83D\uDCB0 Balance: $${p.balance.toFixed(2)} \u00B7 ${p.openPositions.length} positions open`);
+        }
+      } catch (betErr) {
+        console.error('[Telegram] Auto-bet error:', betErr.message);
       }
     } catch (err) {
       send(msg.chat.id, `Error: ${err.message}`);
