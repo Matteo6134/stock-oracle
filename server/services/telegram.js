@@ -554,9 +554,9 @@ function registerCommands() {
     }
   });
 
-  // /bet — force Claude to scan Polymarket with ALL strategies
+  // /bet — see what Claude's brain is thinking (read-only — cron places real bets)
   bot.onText(/\/bet/, async (msg) => {
-    send(msg.chat.id, '\uD83E\uDDE0 *Scanning Polymarket — 6 strategies active...*\n\n\uD83D\uDD0D Edge Detection\n\uD83D\uDD04 Arbitrage\n\uD83C\uDFB0 Longshot Sell\n\uD83D\uDEE1 Safe Bets\n\uD83D\uDCF0 News Speed\n\uD83D\uDCCA Category Accuracy');
+    send(msg.chat.id, '\uD83E\uDDE0 *Claude is scanning...*\nThis shows what I see. I place bets *autonomously* every 30 min \u2014 only when the math is right.');
     try {
       const { getTopMarkets } = await import('./polymarket.js');
       const { findBestBets, getStrategyStatus } = await import('./polyBrain.js');
@@ -655,55 +655,42 @@ function registerCommands() {
         }
 
         lines.push('', `\uD83D\uDCB5 Size: ${pick.suggestedSizePct || 5}% of bankroll`);
-        if (pick.isBestBet) lines.push('\n\u2B50 *BEST BET*');
+
+        // Clear verdict: would the brain actually bet on this?
+        const thresholds = {
+          safe_bet: { minConf: 7, minEdge: 3 },
+          arbitrage: { minConf: 6, minEdge: 5 },
+          cross_platform_arb: { minConf: 6, minEdge: 5 },
+          cross_platform_edge: { minConf: 7, minEdge: 8 },
+          conditional_chain: { minConf: 8, minEdge: 12 },
+          whale_follow: { minConf: 7, minEdge: 3 },
+          longshot_sell: { minConf: 8, minEdge: 15 },
+          edge_detection: { minConf: 8, minEdge: 12 },
+        };
+        const t = thresholds[pick.strategy] || thresholds.edge_detection;
+        const wouldBet = pick.confidence >= t.minConf && Math.abs(pick.edge || 0) >= t.minEdge;
+
+        if (wouldBet) {
+          lines.push('\n\u2705 *WOULD BET* \u2014 passes quality gate');
+        } else {
+          const reasons = [];
+          if (pick.confidence < t.minConf) reasons.push(`conf ${pick.confidence} < ${t.minConf}`);
+          if (Math.abs(pick.edge || 0) < t.minEdge) reasons.push(`edge ${Math.abs(pick.edge||0)}% < ${t.minEdge}%`);
+          lines.push(`\n\u274C *WOULD NOT BET* \u2014 ${reasons.join(', ')}`);
+        }
+        if (pick.isBestBet) lines.push('\u2B50 *BEST OPPORTUNITY*');
 
         await send(msg.chat.id, lines.join('\n'));
         await new Promise(r => setTimeout(r, 500));
       }
 
-      // ── Auto-place top bets into simulator ──
+      // Show current portfolio status
       try {
-        const { getPortfolio, placeBet, calculateKellyBet } = await import('./polySimulator.js');
-        const portfolio = getPortfolio();
-        let placed = 0;
+        const { getPortfolio } = await import('./polySimulator.js');
+        const p = getPortfolio();
+        send(msg.chat.id, `\n\uD83D\uDCBC Portfolio: *$${p.totalValue.toFixed(2)}* \u00B7 ${p.openPositions.length} open \u00B7 ${p.winRate}% WR\n\u23F0 Auto-bets run every 30 min. I only bet when edge + confidence are strong enough.`);
+      } catch {}
 
-        for (const pick of picks.slice(0, 3)) {
-          if (pick.confidence < 7 || Math.abs(pick.edge || 0) < 8) continue;
-
-          const outcome = pick.action === 'BET_YES' ? 'Yes' : 'No';
-          const price = pick.action === 'BET_YES'
-            ? (pick.marketYesPrice || 0.5)
-            : (pick.marketNoPrice || 0.5);
-
-          if (price <= 0.01 || price >= 0.99) continue;
-
-          const maxPct = pick.strategy === 'safe_bet' ? 30 : pick.strategy === 'arbitrage' || pick.strategy === 'cross_platform_arb' ? 15 : 20;
-          const amount = calculateKellyBet(portfolio.balance, price, pick.realProbability || (pick.action === 'BET_YES' ? 0.7 : 0.3), maxPct);
-          if (amount < 5 || amount > portfolio.balance) continue;
-
-          const result = placeBet({
-            marketId: pick.marketId || pick.question,
-            question: (pick.question || '').replace(/^\[(ARB|CHAIN|WHALE)\] /, ''),
-            outcome,
-            price,
-            amount: Math.round(amount * 100) / 100,
-            claudeConfidence: pick.confidence,
-            claudeThesis: (pick.thesis || '').slice(0, 300),
-            claudeProb: pick.realProbability || 0.5,
-            category: pick.category || 'Other',
-            strategy: pick.strategy || 'edge_detection',
-          });
-
-          if (result.success) placed++;
-        }
-
-        if (placed > 0) {
-          const p = getPortfolio();
-          send(msg.chat.id, `\n\u2705 *Placed ${placed} bets*\n\uD83D\uDCB0 Balance: $${p.balance.toFixed(2)} \u00B7 ${p.openPositions.length} positions open`);
-        }
-      } catch (betErr) {
-        console.error('[Telegram] Auto-bet error:', betErr.message);
-      }
     } catch (err) {
       send(msg.chat.id, `Error: ${err.message}`);
     }

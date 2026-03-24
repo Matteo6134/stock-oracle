@@ -398,19 +398,27 @@ if (!process.env.VERCEL) {
           console.log(`[PolyCron] ${picks.length} opportunities found`);
           const portfolio = getPortfolio();
 
-          // Auto-bet rules per strategy
+          // Auto-bet rules — each strategy has its own quality gate
+          // Claude ONLY bets when the math is right. Not every scan = a bet.
+          let betsPlaced = 0;
           for (const pick of picks.slice(0, 5)) {
-            // Different thresholds per strategy
             let minConf, minEdge, maxSizePct;
             switch (pick.strategy) {
               case 'safe_bet':
-                minConf = 7; minEdge = 3; maxSizePct = 30; break;
+                minConf = 7; minEdge = 3; maxSizePct = 30; break;     // Safe: low bar but guaranteed
               case 'arbitrage':
-                minConf = 6; minEdge = 5; maxSizePct = 15; break;
+              case 'cross_platform_arb':
+                minConf = 6; minEdge = 5; maxSizePct = 15; break;     // Arb: near risk-free
+              case 'cross_platform_edge':
+                minConf = 7; minEdge = 8; maxSizePct = 12; break;     // Cross-plat price gap
+              case 'conditional_chain':
+                minConf = 8; minEdge = 12; maxSizePct = 10; break;    // Chain: needs high confidence
+              case 'whale_follow':
+                minConf = 7; minEdge = 3; maxSizePct = 8; break;      // Whale: follow small
               case 'longshot_sell':
-                minConf = 8; minEdge = 15; maxSizePct = 10; break;
+                minConf = 8; minEdge = 15; maxSizePct = 10; break;    // Longshot: high bar
               default: // edge_detection
-                minConf = 8; minEdge = 12; maxSizePct = 20; break;
+                minConf = 8; minEdge = 12; maxSizePct = 20; break;    // Edge: standard bar
             }
 
             if (pick.confidence < minConf || Math.abs(pick.edge) < minEdge) continue;
@@ -444,15 +452,35 @@ if (!process.env.VERCEL) {
 
             // Send Telegram alert for each auto-bet
             if (betResult.success) {
-              const stratLabel = { edge_detection: 'Edge', arbitrage: 'Arb', longshot_sell: 'Longshot', safe_bet: 'Safe' }[pick.strategy] || pick.strategy;
+              betsPlaced++;
+              const stratLabels = {
+                edge_detection: '\uD83D\uDD0D Edge',
+                arbitrage: '\uD83D\uDD04 Arb',
+                cross_platform_arb: '\uD83C\uDF10 Cross-Arb',
+                cross_platform_edge: '\uD83C\uDF10 Cross-Edge',
+                longshot_sell: '\uD83C\uDFB0 Longshot',
+                safe_bet: '\uD83D\uDEE1 Safe',
+                conditional_chain: '\uD83D\uDD17 Chain',
+                whale_follow: '\uD83D\uDC33 Whale',
+              };
+              const stratLabel = stratLabels[pick.strategy] || pick.strategy;
               const msg = [
-                `\uD83C\uDFAF *AUTO-BET: ${outcome.toUpperCase()}* [${stratLabel}]`,
-                `"${(pick.question || '').slice(0, 60)}"`,
-                `\uD83D\uDCB5 $${amount} at ${Math.round(price * 100)}\u00A2 \u00B7 Edge ${pick.edge}%`,
-                `\uD83E\uDDE0 ${pick.thesis?.slice(0, 100) || ''}`,
+                `\uD83E\uDDE0 *AUTO-BET* [${stratLabel}]`,
+                '',
+                `${pick.action === 'BET_YES' ? '\uD83D\uDFE2' : '\uD83D\uDD34'} *${outcome}* \u2014 "${(pick.question || '').replace(/^\[(ARB|CHAIN|WHALE)\] /, '').slice(0, 60)}"`,
+                `\uD83D\uDCB5 *$${Math.round(amount)}* at ${Math.round(price * 100)}\u00A2 \u00B7 Edge: ${pick.edge}% \u00B7 Conf: ${pick.confidence}/10`,
+                `\uD83D\uDCDD ${(pick.thesis || '').slice(0, 120)}`,
               ].join('\n');
               notifyNewTrade(msg).catch(() => {});
             }
+          }
+
+          // Report scan result — even if no bets placed
+          if (betsPlaced === 0 && picks.length > 0) {
+            console.log(`[PolyCron] Found ${picks.length} opportunities but none passed quality gates`);
+          } else if (betsPlaced > 0) {
+            const p = getPortfolio();
+            console.log(`[PolyCron] Placed ${betsPlaced} bets. Balance: $${p.balance.toFixed(2)}, ${p.openPositions.length} positions`);
           }
         } catch (err) {
           console.error('[PolyCron] Scan error:', err.message);
