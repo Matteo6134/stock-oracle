@@ -398,34 +398,15 @@ export function findCorrelatedArbitrage(markets) {
     eventGroups.get(key).push(m);
   }
 
-  // Within each event group, check if prices are consistent
+  // Within each event group, check for REAL inconsistencies only
   for (const [event, group] of eventGroups) {
     if (group.length < 2) continue;
 
-    // Sum of all Yes prices in a mutually exclusive group should ≈ 1.0
-    const totalYes = group.reduce((sum, m) => sum + m.yesPrice, 0);
-
-    // If total > 1.10 → overpriced (sell opportunities)
-    // If total < 0.90 → underpriced (buy opportunities)
-    if (totalYes > 1.10) {
-      opportunities.push({
-        type: 'overpriced_group',
-        event,
-        markets: group.map(m => ({ question: m.question, yesPrice: m.yesPrice, id: m.id })),
-        totalYes: Math.round(totalYes * 100) / 100,
-        edge: Math.round((totalYes - 1) * 100),
-        thesis: `Mutually exclusive outcomes sum to ${Math.round(totalYes * 100)}% (should be ~100%). Selling the most overpriced outcome is +EV.`,
-      });
-    } else if (totalYes < 0.85) {
-      opportunities.push({
-        type: 'underpriced_group',
-        event,
-        markets: group.map(m => ({ question: m.question, yesPrice: m.yesPrice, id: m.id })),
-        totalYes: Math.round(totalYes * 100) / 100,
-        edge: Math.round((1 - totalYes) * 100),
-        thesis: `Mutually exclusive outcomes sum to only ${Math.round(totalYes * 100)}% (should be ~100%). Buying the cheapest outcome is +EV.`,
-      });
-    }
+    // NOTE: We intentionally do NOT do "sum < 100% → buy cheapest" anymore.
+    // Groups with many candidates (elections) naturally sum to <100% due to vigorish.
+    // Buying 1¢ longshots (LeBron for president) is NOT +EV — it's throwing money away.
+    //
+    // We only look for REAL inconsistencies: implied probability violations.
 
     // Cross-market implied probability check
     // If "X wins primary" = 40% but "X wins general" = 50%, that's inconsistent
@@ -838,23 +819,27 @@ export async function findBestBets(markets) {
     }
   }
 
-  // ── Strategy 2: Correlated market arbitrage ──
+  // ── Strategy 2: Implied inconsistency arbitrage ──
+  // Only real logical inconsistencies (e.g. "election price > nomination price")
+  // NO more "buy cheapest in a group" — that was buying LeBron for president at 1¢
   const arbOpps = findCorrelatedArbitrage(markets);
-  for (const arb of arbOpps.slice(0, 3)) {
-    // Use the actual event name + most overpriced market as question
-    const bestMarket = arb.markets.reduce((a, b) => (b.yesPrice > a.yesPrice ? b : a), arb.markets[0]);
+  const impliedArbs = arbOpps.filter(a => a.type === 'implied_inconsistency');
+  for (const arb of impliedArbs.slice(0, 3)) {
+    // The dependent market is overpriced — sell it (BET_NO)
+    const dependent = arb.markets.find(m => m.role === 'dependent') || arb.markets[1];
+    const prerequisite = arb.markets.find(m => m.role === 'prerequisite') || arb.markets[0];
     allBets.push({
-      marketId: bestMarket?.id || arb.markets[0]?.id,
-      question: bestMarket?.question || `[ARB] ${arb.event}`,
-      action: arb.type === 'overpriced_group' ? 'BET_NO' : 'BET_YES',
-      marketYesPrice: bestMarket?.yesPrice || 0.5,
-      marketNoPrice: bestMarket?.noPrice || 0.5,
-      realProbability: arb.type === 'overpriced_group' ? 0.3 : 0.7,
+      marketId: dependent?.id || arb.markets[0]?.id,
+      question: dependent?.question || prerequisite?.question,
+      action: 'BET_NO', // Sell the overpriced dependent
+      marketYesPrice: dependent?.yesPrice || 0.5,
+      marketNoPrice: 1 - (dependent?.yesPrice || 0.5),
+      realProbability: prerequisite?.yesPrice || 0.5, // Can't be higher than prerequisite
       edge: arb.edge,
-      confidence: Math.min(9, 5 + Math.floor(arb.edge / 5)),
+      confidence: Math.min(9, 6 + Math.floor(arb.edge / 5)),
       thesis: arb.thesis,
       strategy: 'arbitrage',
-      suggestedSizePct: Math.min(15, arb.edge / 2),
+      suggestedSizePct: Math.min(10, arb.edge / 3),
       score: arb.edge * 7,
       arbDetails: arb,
       analyzedAt: new Date().toISOString(),

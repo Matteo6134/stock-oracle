@@ -115,8 +115,10 @@ function PositionCard({ pos }) {
 function PickCard({ pick }) {
   const isYes = pick.action === 'BET_YES';
   const edgeColor = Math.abs(pick.edge || 0) >= 20 ? 'text-oracle-green' : Math.abs(pick.edge || 0) >= 10 ? 'text-oracle-yellow' : 'text-oracle-muted';
-  const yesP = pick.marketYesPrice != null ? Math.round(pick.marketYesPrice * 100) : null;
-  const realP = pick.realProbability != null ? Math.round(pick.realProbability * 100) : null;
+  const rawYes = pick.marketYesPrice;
+  const rawReal = pick.realProbability;
+  const yesP = (rawYes != null && !isNaN(rawYes) && isFinite(rawYes)) ? Math.round(rawYes * 100) : null;
+  const realP = (rawReal != null && !isNaN(rawReal) && isFinite(rawReal)) ? Math.round(rawReal * 100) : null;
 
   return (
     <div className="glass-card p-3">
