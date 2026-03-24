@@ -52,7 +52,13 @@ function getTargetInfo(stock) {
 
 function send(id, text) {
   if (!bot) return;
-  bot.sendMessage(id, text, { parse_mode: 'Markdown', disable_web_page_preview: true }).catch(() => {});
+  // Try Markdown first, fallback to plain text if parse fails
+  bot.sendMessage(id, text, { parse_mode: 'Markdown', disable_web_page_preview: true })
+    .catch(() => {
+      // Strip markdown and send as plain text
+      const plain = text.replace(/\*/g, '').replace(/_/g, '');
+      bot.sendMessage(id, plain, { disable_web_page_preview: true }).catch(() => {});
+    });
 }
 
 export function initTelegramBot() {
@@ -1095,7 +1101,10 @@ ${confDots} ${cl.confidence}/10 \u00B7 Risk: ${cl.riskLevel}${overrideNote}`;
         s.source === 'penny' ? '\uD83E\uDE99 Penny stock \u2014 small position, high risk' : '\uD83D\uDC8E Quality setup',
       ].filter(Boolean);
 
-      await bot.sendMessage(chatId, lines.join('\n'), { parse_mode: 'Markdown' });
+      const msg = lines.join('\n');
+      await bot.sendMessage(chatId, msg, { parse_mode: 'Markdown' }).catch(() =>
+        bot.sendMessage(chatId, msg.replace(/\*/g, '').replace(/_/g, ''), { disable_web_page_preview: true }).catch(() => {})
+      );
 
       // Mark as alerted
       alertedStocks.set(s.symbol, { ts: now, gemScore: s.gemScore || 0 });

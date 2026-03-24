@@ -10,17 +10,22 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { getCalibration } from './strategyCalibrator.js';
 import { getClaudeAccuracy } from './claudeTracker.js';
 
 // ── Config ──
 const API_KEY = process.env.ANTHROPIC_API_KEY;
+const GEMINI_KEY = process.env.GEMINI_API_KEY;
 const DAILY_BUDGET_CENTS = parseInt(process.env.CLAUDE_DAILY_BUDGET_CENTS || '50', 10);
 const MODEL_ANALYSIS = process.env.CLAUDE_MODEL_ANALYSIS || 'claude-haiku-4-5-20251001';
 const MODEL_BRIEFING = process.env.CLAUDE_MODEL_BRIEFING || 'claude-sonnet-4-6';
 
-// ── Client (lazy init) ──
+// ── Clients (lazy init) ──
 let client = null;
+let geminiClient = null;
+let useGeminiFallback = false; // Auto-switch when Claude credits exhausted
+
 function getClient() {
   if (!client && API_KEY) {
     client = new Anthropic({ apiKey: API_KEY });
@@ -28,8 +33,63 @@ function getClient() {
   return client;
 }
 
+function getGeminiClient() {
+  if (!geminiClient && GEMINI_KEY) {
+    geminiClient = new GoogleGenerativeAI(GEMINI_KEY);
+  }
+  return geminiClient;
+}
+
 export function isClaudeConfigured() {
-  return !!API_KEY;
+  return !!(API_KEY || GEMINI_KEY); // Either works
+}
+
+/**
+ * Call AI — tries Claude first, falls back to Gemini if credits exhausted
+ */
+async function callAI(systemPrompt, userPrompt, maxTokens = 400, model = MODEL_ANALYSIS) {
+  // Try Claude first (unless we know it's out of credits)
+  if (!useGeminiFallback && API_KEY) {
+    const c = getClient();
+    if (c) {
+      try {
+        const response = await c.messages.create({
+          model,
+          max_tokens: maxTokens,
+          system: systemPrompt,
+          messages: [{ role: 'user', content: userPrompt }],
+        });
+        const text = response.content?.[0]?.text || '';
+        trackCost(response.usage?.input_tokens || 0, response.usage?.output_tokens || 0, model);
+        return { text, provider: 'claude' };
+      } catch (err) {
+        if (err.message?.includes('credit balance') || err.status === 400) {
+          console.warn('[AI Brain] Claude credits exhausted, switching to Gemini fallback');
+          useGeminiFallback = true;
+        } else {
+          console.error('[AI Brain] Claude error:', err.message);
+        }
+      }
+    }
+  }
+
+  // Gemini fallback
+  const g = getGeminiClient();
+  if (g) {
+    try {
+      const gemModel = g.getGenerativeModel({ model: 'gemini-2.0-flash' });
+      const result = await gemModel.generateContent({
+        contents: [{ role: 'user', parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }] }],
+        generationConfig: { maxOutputTokens: maxTokens, temperature: 0.3 },
+      });
+      const text = result.response?.text() || '';
+      return { text, provider: 'gemini' };
+    } catch (err) {
+      console.error('[AI Brain] Gemini error:', err.message);
+    }
+  }
+
+  return null; // Both failed
 }
 
 // ── Cost tracking ──
@@ -165,9 +225,6 @@ export async function analyzeStock(stock) {
   const cached = analysisCache.get(stock.symbol);
   if (cached && Date.now() - cached.ts < ANALYSIS_CACHE_TTL) return cached.result;
 
-  const c = getClient();
-  if (!c) return null;
-
   const marketLine = currentMarketContext
     ? `\nMARKET CONTEXT: ${currentMarketContext.regime} — ${currentMarketContext.summary}`
     : '';
@@ -194,15 +251,10 @@ Respond with JSON:
 }`;
 
   try {
-    const response = await c.messages.create({
-      model: MODEL_ANALYSIS,
-      max_tokens: 400,
-      system: STOCK_SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: userPrompt }],
-    });
+    const aiResult = await callAI(STOCK_SYSTEM_PROMPT, userPrompt, 400, MODEL_ANALYSIS);
+    if (!aiResult) return null;
 
-    const text = response.content[0]?.text || '';
-    trackCost(response.usage?.input_tokens || 0, response.usage?.output_tokens || 0, MODEL_ANALYSIS);
+    const text = aiResult.text;
 
     // Parse JSON from response (handle possible markdown wrapping)
     const jsonStr = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
@@ -239,9 +291,6 @@ const BRIEFING_SYSTEM = `You are a senior market strategist providing a concise 
 export async function getMarketBriefing(marketData) {
   if (!isClaudeConfigured() || !canSpend()) return currentMarketContext;
 
-  const c = getClient();
-  if (!c) return currentMarketContext;
-
   const calibration = getCalibration();
   const calLine = calibration
     ? `Strategy calibration: ${Object.entries(calibration).filter(([k]) => k !== 'lastCalibrated').map(([s, d]) => `${s}=${d.winRate}%WR`).join(', ')}`
@@ -262,15 +311,10 @@ Respond with JSON:
 }`;
 
   try {
-    const response = await c.messages.create({
-      model: MODEL_BRIEFING,
-      max_tokens: 300,
-      system: BRIEFING_SYSTEM,
-      messages: [{ role: 'user', content: prompt }],
-    });
+    const aiResult = await callAI(BRIEFING_SYSTEM, prompt, 300, MODEL_BRIEFING);
+    if (!aiResult) return currentMarketContext;
 
-    const text = response.content[0]?.text || '';
-    trackCost(response.usage?.input_tokens || 0, response.usage?.output_tokens || 0, MODEL_BRIEFING);
+    const text = aiResult.text;
 
     const jsonStr = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     const result = JSON.parse(jsonStr);
@@ -315,14 +359,11 @@ export async function askClaude(question, portfolioContext) {
   }
   askRateLimit.count++;
 
-  const c = getClient();
-  if (!c) return 'Claude AI client not available.';
-
   const marketLine = currentMarketContext
     ? `Market: ${currentMarketContext.regime} — ${currentMarketContext.summary}\nAdvice: ${currentMarketContext.advice}`
     : 'No market briefing available yet.';
 
-  const system = `You are Claude, the AI trading brain powering Stock Oracle. You help the user make money trading stocks. You have access to real-time market data, 5 rule-based trading agents, and historical backtest data. Be direct, specific, and actionable. Keep answers concise (2-4 sentences max). If you don't have enough data, say so.`;
+  const system = `You are the AI trading brain powering Stock Oracle. You help the user make money trading stocks. You have access to real-time market data, 5 rule-based trading agents, and historical backtest data. Be direct, specific, and actionable. Keep answers concise (2-4 sentences max). If you don't have enough data, say so.`;
 
   const prompt = `${marketLine}
 
@@ -331,17 +372,11 @@ ${portfolioContext || 'No portfolio data available.'}
 User question: ${question}`;
 
   try {
-    const response = await c.messages.create({
-      model: MODEL_BRIEFING,
-      max_tokens: 500,
-      system,
-      messages: [{ role: 'user', content: prompt }],
-    });
-
-    trackCost(response.usage?.input_tokens || 0, response.usage?.output_tokens || 0, MODEL_BRIEFING);
-    return response.content[0]?.text || 'No response.';
+    const aiResult = await callAI(system, prompt, 500, MODEL_BRIEFING);
+    if (!aiResult) return 'AI not available right now. Try again later.';
+    return aiResult.text || 'No response.';
   } catch (err) {
-    console.error('[ClaudeBrain] ask error:', err.message);
+    console.error('[AI Brain] ask error:', err.message);
     return `Error: ${err.message}`;
   }
 }

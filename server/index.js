@@ -33,6 +33,23 @@ process.on('unhandledRejection', (err) => {
   console.error('[FATAL] Unhandled rejection:', err?.message || err);
 });
 
+// ── Scan mutex: prevent overlapping cron jobs from piling up ──
+let gemScanRunning = false;
+let polyScanRunning = false;
+
+// ── Memory monitor: log usage every 5 min, GC hint if high ──
+setInterval(() => {
+  const mem = process.memoryUsage();
+  const heapMB = Math.round(mem.heapUsed / 1024 / 1024);
+  const rssMB = Math.round(mem.rss / 1024 / 1024);
+  if (rssMB > 400) {
+    console.warn(`[Memory] HIGH: RSS ${rssMB}MB, Heap ${heapMB}MB — forcing GC`);
+    if (global.gc) global.gc();
+  } else {
+    console.log(`[Memory] RSS ${rssMB}MB, Heap ${heapMB}MB`);
+  }
+}, 5 * 60 * 1000);
+
 const app = express();
 const PORT = process.env.PORT || 4000;
 
@@ -146,6 +163,12 @@ if (!process.env.VERCEL) {
     const hour = et.getHours();
     const day = et.getDay();
     if (day < 1 || day > 5 || hour < 8 || hour > 18) return;
+
+    if (gemScanRunning) {
+      console.log('[Cron] Gem scan already running, skipping');
+      return;
+    }
+    gemScanRunning = true;
 
     try {
       console.log('[Cron] Running gem + penny scan...');
@@ -294,11 +317,12 @@ if (!process.env.VERCEL) {
       if (allAnalyzed.length > 0) {
         console.log(`[AutoTrader] Processing ${allAnalyzed.length} stocks for auto-trading...`);
         const tradeResult = await processSignals(allAnalyzed);
-        if (tradeResult.skipped) {
+        if (tradeResult.skipped === true) {
+          // Early return — auto-trading disabled or market closed
           console.log(`[AutoTrader] Skipped: ${tradeResult.reason}`);
         } else {
           console.log(`[AutoTrader] Results: ${tradeResult.bought?.length || 0} bought, ${tradeResult.skipped?.length || 0} filtered, ${tradeResult.errors?.length || 0} errors`);
-          if (tradeResult.skipped?.length > 0) {
+          if (Array.isArray(tradeResult.skipped) && tradeResult.skipped.length > 0) {
             console.log(`[AutoTrader] Skip reasons:`, tradeResult.skipped.slice(0, 5).map(s => `${s.symbol}: ${s.reason}`).join(' | '));
           }
         }
@@ -312,6 +336,8 @@ if (!process.env.VERCEL) {
       }
     } catch (err) {
       console.error('[Cron] Gem scan error:', err.message);
+    } finally {
+      gemScanRunning = false;
     }
   });
 
@@ -456,6 +482,11 @@ if (!process.env.VERCEL) {
 
       // ── Polymarket Oracle: 13-strategy scan every 15 min, auto-bet ──
       cron.schedule('*/15 * * * *', async () => {
+        if (polyScanRunning) {
+          console.log('[PolyCron] Already running, skipping');
+          return;
+        }
+        polyScanRunning = true;
         try {
           console.log('[PolyCron] Running 13-strategy scan...');
           const markets = await getTopMarkets(30);
@@ -594,6 +625,8 @@ if (!process.env.VERCEL) {
           }
         } catch (err) {
           console.error('[PolyCron] Scan error:', err.message);
+        } finally {
+          polyScanRunning = false;
         }
       });
       console.log('[PolyOracle] 11-strategy scanner active — every 15 min');
