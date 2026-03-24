@@ -25,7 +25,7 @@ const TRADES_FILE = path.join(__dirname, '..', 'data', 'agentTrades.json');
 
 // ── Config ──
 const DEFAULT_CONFIG = {
-  enabled: false,
+  enabled: true,             // Auto-trading ON by default — Claude is in charge
   maxBudget: 1000,           // Total max $ invested at any time — this is the ONLY limit
   strongBuyAmount: 200,      // $ per Strong Buy trade (conservative)
   buyAmount: 100,            // $ per Buy trade
@@ -35,17 +35,28 @@ const DEFAULT_CONFIG = {
   trailingStopPct: 3,        // After +5% gain, trail by 3%
   scanPennies: true,
   scanGems: true,
-  minGemScore: 60,           // Only high-quality setups
-  minConviction: 4,          // Agents must be very confident
-  requireOrderFlow: true,    // Must have insider/options/institutional signal
-  onlyStrongBuy: true,       // Only trade "Strong Buy" consensus (3+ agents)
-  maxStockPrice: 5,          // Only trade stocks under $5 (penny territory)
+  minGemScore: 45,           // Reasonable threshold (was 60 — too strict, nothing passed)
+  minConviction: 3,          // 3/5 agents agree (was 4 — too strict)
+  requireOrderFlow: false,   // Don't require order flow — Yahoo can't provide this on Railway
+  onlyStrongBuy: false,      // Trade "Buy" AND "Strong Buy" (was true — too strict)
+  maxStockPrice: 50,         // Trade stocks up to $50 (was $5 — missed most gems)
 };
 
+// Reset old restrictive configs on first load
+let configMigrated = false;
 export function getAutoTradeConfig() {
   try {
     if (fs.existsSync(CONFIG_FILE)) {
-      return { ...DEFAULT_CONFIG, ...JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8')) };
+      const saved = JSON.parse(fs.readFileSync(CONFIG_FILE, 'utf8'));
+      // One-time migration: if old config had requireOrderFlow=true, reset to new defaults
+      if (!configMigrated && saved.requireOrderFlow === true) {
+        console.log('[AutoTrader] Migrating old restrictive config to new defaults');
+        fs.writeFileSync(CONFIG_FILE, JSON.stringify(DEFAULT_CONFIG, null, 2), 'utf8');
+        configMigrated = true;
+        return { ...DEFAULT_CONFIG };
+      }
+      configMigrated = true;
+      return { ...DEFAULT_CONFIG, ...saved };
     }
   } catch { /* use defaults */ }
   return { ...DEFAULT_CONFIG };

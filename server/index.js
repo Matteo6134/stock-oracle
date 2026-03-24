@@ -292,7 +292,16 @@ if (!process.env.VERCEL) {
 
       // Auto-trader: execute trades for strong consensus picks
       if (allAnalyzed.length > 0) {
+        console.log(`[AutoTrader] Processing ${allAnalyzed.length} stocks for auto-trading...`);
         const tradeResult = await processSignals(allAnalyzed);
+        if (tradeResult.skipped) {
+          console.log(`[AutoTrader] Skipped: ${tradeResult.reason}`);
+        } else {
+          console.log(`[AutoTrader] Results: ${tradeResult.bought?.length || 0} bought, ${tradeResult.skipped?.length || 0} filtered, ${tradeResult.errors?.length || 0} errors`);
+          if (tradeResult.skipped?.length > 0) {
+            console.log(`[AutoTrader] Skip reasons:`, tradeResult.skipped.slice(0, 5).map(s => `${s.symbol}: ${s.reason}`).join(' | '));
+          }
+        }
         if (tradeResult.bought?.length > 0) {
           broadcastSSE({
             type: 'auto_trade',
@@ -459,10 +468,24 @@ if (!process.env.VERCEL) {
           } catch (err) {
             console.error('[PolyCron] Momentum record error:', err.message);
           }
-          const picks = await findBestBets(markets);
+          const rawPicks = await findBestBets(markets);
+          // Filter out garbage: NaN prices, NaN edges, missing questions
+          const picks = rawPicks.filter(p => {
+            if (!p.question || p.question.startsWith('[ARB]') || p.question.startsWith('[WHALE]')) {
+              // Clean up question prefix
+              if (p.question) p.question = p.question.replace(/^\[(ARB|WHALE|CHAIN)\]\s*/, '');
+            }
+            if (isNaN(p.edge) || isNaN(p.confidence)) return false;
+            if (isNaN(p.marketYesPrice) && isNaN(p.marketNoPrice)) return false;
+            // Fix missing price fields
+            if (!p.marketYesPrice && p.marketNoPrice) p.marketYesPrice = 1 - p.marketNoPrice;
+            if (!p.marketNoPrice && p.marketYesPrice) p.marketNoPrice = 1 - p.marketYesPrice;
+            if (!p.realProbability) p.realProbability = p.action === 'BET_YES' ? 0.7 : 0.3;
+            return true;
+          });
           if (picks.length === 0) { console.log('[PolyCron] No edge found'); return; }
 
-          console.log(`[PolyCron] ${picks.length} opportunities found`);
+          console.log(`[PolyCron] ${picks.length} valid opportunities (${rawPicks.length} raw)`);
           const portfolio = getPortfolio();
 
           // Auto-bet rules — each strategy has its own quality gate
