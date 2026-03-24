@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Routes, Route, NavLink, useLocation, matchPath } from 'react-router-dom'
-import { LayoutDashboard, TrendingUp, PieChart, CalendarDays, History as HistoryIcon, DollarSign, Zap, Crosshair, Menu, X, Bookmark, Diamond, Users, Rocket, FlaskConical, Target, Globe, ArrowLeftRight } from 'lucide-react'
+import { LayoutDashboard, DollarSign, Menu, X, Bookmark, Diamond, Rocket, Target, Globe, ArrowLeftRight } from 'lucide-react'
 import ErrorBoundary from './components/ErrorBoundary'
 import { ToastProvider } from './components/Toast'
 import LandscapeSplit from './components/LandscapeSplit'
@@ -28,19 +28,13 @@ import { checkWishlistAlerts } from './lib/wishlistAlerts'
 import { syncWatchlistToServer } from './lib/wishlist'
 import { useSSE } from './hooks/useSSE'
 
+// Simplified navigation — only the pages that matter
 const stockNavItems = [
   { to: '/', icon: LayoutDashboard, label: 'Home' },
-  { to: '/gems', icon: Diamond, label: 'Gem Finder' },
-  { to: '/buy-tomorrow', icon: Crosshair, label: 'Buy Tomorrow' },
-  { to: '/wishlist', icon: Bookmark, label: 'My Watchlist' },
+  { to: '/gems', icon: Diamond, label: 'Gems' },
   { to: '/penny-stocks', icon: Rocket, label: 'Penny Stocks' },
-  { to: '/movers', icon: Zap, label: 'Movers' },
-  { to: '/trending', icon: TrendingUp, label: 'Trending' },
-  { to: '/trading-desk', icon: Users, label: 'Trading Desk' },
   { to: '/trade', icon: DollarSign, label: 'Trade' },
-  { to: '/history', icon: HistoryIcon, label: 'History' },
-  { to: '/backtest', icon: FlaskConical, label: 'Backtest' },
-  { to: '/sectors', icon: PieChart, label: 'Sectors' },
+  { to: '/wishlist', icon: Bookmark, label: 'Watchlist' },
 ]
 
 const polyNavItems = [

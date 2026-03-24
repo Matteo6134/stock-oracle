@@ -118,60 +118,37 @@ function PositionCard({ pos }) {
 
 function PickCard({ pick }) {
   const isYes = pick.action === 'BET_YES';
-  const edgeColor = Math.abs(pick.edge || 0) >= 20 ? 'text-oracle-green' : Math.abs(pick.edge || 0) >= 10 ? 'text-oracle-yellow' : 'text-oracle-muted';
-  const rawYes = pick.marketYesPrice;
-  const rawReal = pick.realProbability;
-  const yesP = (rawYes != null && !isNaN(rawYes) && isFinite(rawYes)) ? Math.round(rawYes * 100) : null;
-  const realP = (rawReal != null && !isNaN(rawReal) && isFinite(rawReal)) ? Math.round(rawReal * 100) : null;
+  const edge = Math.abs(pick.edge || 0);
+  const edgeColor = edge >= 20 ? 'text-oracle-green' : edge >= 10 ? 'text-oracle-yellow' : 'text-oracle-muted';
+  const conf = pick.confidence || 0;
+  const question = (pick.question || '').replace(/^\[(ARB|CHAIN|WHALE)\]\s*/, '').slice(0, 80);
+
+  // Determine if this was actually bought
+  const t = QUALITY_GATES[pick.strategy] || QUALITY_GATES.edge_detection;
+  const bought = conf >= t.minConf && edge >= t.minEdge;
 
   return (
-    <div className="glass-card p-3">
-      {/* Top row: question + YES/NO chip */}
-      <div className="flex items-start justify-between gap-2 mb-1.5">
-        <div className="flex-1 min-w-0">
-          <div className="text-oracle-text text-xs font-semibold leading-tight">
-            {(pick.question || '').replace(/^\[(ARB|CHAIN|WHALE)\] /, '').slice(0, 70)}
-          </div>
-        </div>
-        <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold shrink-0 ${isYes ? 'bg-oracle-green/15 text-oracle-green' : 'bg-oracle-red/15 text-oracle-red'}`}>
+    <div className={`glass-card p-3 border-l-3 ${bought ? 'border-l-oracle-green' : 'border-l-oracle-border'}`}>
+      {/* Question */}
+      <div className="text-oracle-text text-xs font-semibold leading-tight mb-2">{question}</div>
+
+      {/* Simple stats row */}
+      <div className="flex items-center gap-2 flex-wrap">
+        <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold ${isYes ? 'bg-oracle-green/15 text-oracle-green' : 'bg-oracle-red/15 text-oracle-red'}`}>
           {isYes ? 'YES' : 'NO'}
         </span>
+        <span className={`text-[10px] font-bold ${edgeColor}`}>+{edge}% edge</span>
+        <span className="text-[10px] text-oracle-muted">{conf}/10</span>
+        {bought
+          ? <span className="text-[9px] font-bold text-oracle-green">✅ Invested</span>
+          : <span className="text-[9px] font-bold text-oracle-muted">⏳ Watching</span>
+        }
       </div>
 
-      {/* Chips row: strategy + verdict */}
-      <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
-        <StrategyChip strategy={pick.strategy} />
-        <WouldBetChip pick={pick} />
-        {pick.ensemble && (
-          <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${pick.ensemble.agreement === 'STRONG' ? 'bg-green-500/15 text-green-400' : pick.ensemble.agreement === 'MODERATE' ? 'bg-yellow-500/15 text-yellow-400' : 'bg-red-500/10 text-red-400'}`}>
-            🤝 {pick.ensemble.agreement}
-          </span>
-        )}
-      </div>
-
-      {/* Stats row */}
-      <div className="flex items-center gap-3 text-[10px] mb-1.5 flex-wrap">
-        {yesP != null && <span className="text-oracle-muted">Market: {yesP}¢</span>}
-        {realP != null && <span className="text-purple-400">Claude: {realP}%</span>}
-        <span className={`font-bold ${edgeColor}`}>Edge: {(pick.edge || 0) > 0 ? '+' : ''}{pick.edge || 0}%</span>
-        <span className="text-oracle-muted">Conf: {pick.confidence || 0}/10</span>
-        {pick.strategy === 'safe_bet' && pick.returnPct && (
-          <span className="text-green-400 font-bold">Return: +{pick.returnPct}%</span>
-        )}
-        {pick.strategy === 'whale_follow' && pick.volumeDelta && (
-          <span className="text-indigo-400 font-bold">Vol: +${(pick.volumeDelta || 0).toLocaleString()}</span>
-        )}
-      </div>
-
-      {/* Claude's reasoning */}
+      {/* Short thesis */}
       {pick.thesis && (
-        <div className="text-[10px] text-oracle-muted/70 leading-tight mt-1">
-          🧠 <span className="italic">{pick.thesis.slice(0, 150)}</span>
-        </div>
-      )}
-      {pick.ensemble?.gemini?.reasoning && (
-        <div className="text-[10px] text-cyan-400/50 leading-tight mt-0.5">
-          🔮 Gemini: {pick.ensemble.gemini.reasoning.slice(0, 100)}
+        <div className="text-[10px] text-oracle-muted/70 leading-tight mt-2">
+          🧠 {pick.thesis.slice(0, 120)}
         </div>
       )}
     </div>
@@ -269,7 +246,7 @@ export default function PolyDashboard() {
         <div className="glass-card p-6 mb-4 text-center">
           <Brain size={32} className="text-oracle-muted/30 mx-auto mb-2" />
           <p className="text-oracle-muted text-sm">No edge found yet</p>
-          <p className="text-oracle-muted/60 text-xs mt-1">Claude scans every 30 min for mispriced markets</p>
+          <p className="text-oracle-muted/60 text-xs mt-1">Claude scans every 15 min for mispriced markets</p>
         </div>
       )}
 
@@ -291,7 +268,7 @@ export default function PolyDashboard() {
       {/* Info */}
       <div className="glass-card p-3 border border-purple-500/10">
         <p className="text-[9px] text-oracle-muted/50 leading-relaxed">
-          🎯 Simulation mode — virtual $1,400 portfolio. Claude finds markets where the crowd is wrong (edge ≥10%), bets using Kelly criterion sizing. Auto-bets on confidence ≥8 picks every 30 min.
+          🎯 Simulation mode — virtual $1,400 portfolio. Claude finds markets where the crowd is wrong (edge ≥10%), bets using Kelly criterion sizing. Auto-bets on confidence ≥8 picks every 15 min.
         </p>
       </div>
     </div>
