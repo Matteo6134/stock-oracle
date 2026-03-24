@@ -1049,9 +1049,17 @@ async function scoreSymbols(symbols, earningsCalendar, opts = { light: false, vi
 // /api/predictions — Today's top 10 picks
 // ══════════════════════════════════════════
 router.get('/predictions', async (req, res, next) => {
+  // Hard timeout — if predictions take too long, return scan cache or empty
+  const timeout = setTimeout(() => {
+    if (!res.headersSent) {
+      console.warn('[Predictions] Timed out after 15s, returning scan cache');
+      res.json({ predictions: [], source: 'timeout', timestamp: new Date().toISOString(), message: 'Data loading, try again in 30s' });
+    }
+  }, 15000);
+
   try {
     const cached = getCached('predictions');
-    if (cached) return res.json(cached);
+    if (cached) { clearTimeout(timeout); return res.json(cached); }
 
     console.log('[Predictions] Generating forward-looking predictions...');
 
@@ -1065,9 +1073,7 @@ router.get('/predictions', async (req, res, next) => {
     const trendingSymbols = trendingStocks.map(t => t.symbol || t);
     const majorStocks = [
       'AAPL', 'MSFT', 'GOOGL', 'AMZN', 'TSLA', 'META', 'NVDA', 'AMD',
-      'JPM', 'BAC', 'V', 'NFLX', 'DIS', 'PFE', 'LLY', 'UNH',
-      'ADBE', 'CRM', 'ORCL', 'COIN', 'PLTR', 'UBER', 'SQ', 'SHOP',
-      'SNOW', 'ABNB', 'PYPL', 'INTC', 'MU', 'QCOM'
+      'COIN', 'PLTR', 'SQ', 'SHOP'
     ];
 
     const symbolSet = new Set();
@@ -1089,7 +1095,7 @@ router.get('/predictions', async (req, res, next) => {
     } catch (err) {
       console.warn('[Predictions] Pre-market scanner failed, continuing without:', err.message);
     }
-    const symbols = Array.from(symbolSet).slice(0, 50);
+    const symbols = Array.from(symbolSet).slice(0, 25); // Keep small for fast response
 
     const scored = await scoreSymbols(symbols, earningsCalendar, { vix: marketRegime.vix || 0 });
 
@@ -1203,9 +1209,11 @@ router.get('/predictions', async (req, res, next) => {
     console.log(`[Predictions] Done: ${predictions.length} picks | Market: ${marketRegime.regime?.toUpperCase()} | VIX: ${marketRegime.vix || 'N/A'} (${marketRegime.vixLevel}) (${earningsSymbols.length} earnings found)`);
     saveDailyPicks('trending', predictions);
     setCache('predictions', result);
-    res.json(result);
+    clearTimeout(timeout);
+    if (!res.headersSent) res.json(result);
   } catch (err) {
-    next(err);
+    clearTimeout(timeout);
+    if (!res.headersSent) next(err);
   }
 });
 
