@@ -55,6 +55,9 @@ function canSpend() {
 const analysisCache = new Map();
 const CACHE_TTL = 30 * 60 * 1000;
 
+// Previous scan data for whale detection (volume deltas)
+let _prevScanMarkets = [];
+
 // ── Category accuracy tracking (persists in memory, resets on restart) ──
 // category → { bets: number, wins: number, totalEdge: number }
 const categoryStats = new Map();
@@ -608,6 +611,180 @@ Respond with JSON:
 }
 
 // ══════════════════════════════════════════════════════════════
+// STRATEGY 6: CONDITIONAL PROBABILITY CHAINS
+// ══════════════════════════════════════════════════════════════
+
+/**
+ * Find downstream markets affected by a high-confidence bet.
+ *
+ * If Claude is very confident about Market A, what other markets
+ * does that imply? Bet those BEFORE the market catches up.
+ *
+ * Example: If Claude thinks "Fed cuts rates in June" = 80% (market says 55%),
+ * then "S&P hits 6000 by July" probably underpriced too.
+ *
+ * @param {Array} allAnalyzed - Markets already analyzed with Claude verdicts
+ * @param {Array} allMarkets - All available markets
+ */
+export async function findConditionalChains(allAnalyzed, allMarkets) {
+  if (!isClaudeConfigured() || !canSpend()) return [];
+
+  // Only chain from high-confidence picks (conf >= 8)
+  const anchors = allAnalyzed.filter(a =>
+    a.action !== 'SKIP' && a.confidence >= 8 && Math.abs(a.edge) >= 15
+  );
+
+  if (anchors.length === 0) return [];
+
+  const c = getClient();
+  if (!c) return [];
+
+  // Build a list of all market questions for Claude to match against
+  const otherMarkets = allMarkets
+    .filter(m => !anchors.some(a => a.marketId === m.id))
+    .slice(0, 20)
+    .map(m => `- "${m.question}" @ ${Math.round(m.yesPrice * 100)}%`);
+
+  if (otherMarkets.length === 0) return [];
+
+  const anchorStr = anchors.slice(0, 3).map(a =>
+    `- "${a.question}" → Claude says ${Math.round(a.realProbability * 100)}% (market ${Math.round(a.marketYesPrice * 100)}%), ${a.action}`
+  ).join('\n');
+
+  const prompt = `You made high-confidence bets on these markets:
+${anchorStr}
+
+IF your bets are correct, which of these OTHER markets are now mispriced as a downstream consequence?
+
+Available markets:
+${otherMarkets.join('\n')}
+
+For each affected market, explain the causal chain and estimate the new fair probability.
+
+Respond with JSON:
+{
+  "chains": [
+    {
+      "anchor": "the market you bet on",
+      "downstream": "the affected market question (exact text from list)",
+      "causalChain": "If A happens then B because...",
+      "newFairProb": 0.XX,
+      "confidence": 1-10
+    }
+  ]
+}
+
+Only include chains where you're confident (>= 7) and the repricing is significant (>10% move). Max 3 chains.`;
+
+  try {
+    const response = await c.messages.create({
+      model: MODEL,
+      max_tokens: 600,
+      system: 'You are a prediction market strategist. Find causal chains between events — when one outcome becomes likely, what downstream markets should reprice? Be precise and only suggest chains with strong causal links.',
+      messages: [{ role: 'user', content: prompt }],
+    });
+
+    const text = response.content[0]?.text || '';
+    polySpendCents += ((response.usage?.input_tokens || 0) * 300 + (response.usage?.output_tokens || 0) * 1500) / 1_000_000;
+
+    const jsonStr = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    const parsed = JSON.parse(jsonStr);
+
+    const results = [];
+    for (const chain of (parsed.chains || [])) {
+      // Find the matching downstream market
+      const match = allMarkets.find(m =>
+        m.question && chain.downstream &&
+        m.question.toLowerCase().includes(chain.downstream.toLowerCase().slice(0, 30))
+      );
+      if (!match) continue;
+
+      const newProb = Math.min(1, Math.max(0, parseFloat(chain.newFairProb) || 0.5));
+      const edge = Math.round(Math.abs(newProb - match.yesPrice) * 1000) / 10;
+
+      if (edge < 8) continue; // Not enough edge
+
+      results.push({
+        marketId: match.id,
+        question: `[CHAIN] ${match.question}`,
+        marketYesPrice: match.yesPrice,
+        marketNoPrice: match.noPrice,
+        realProbability: newProb,
+        edge,
+        action: newProb > match.yesPrice ? 'BET_YES' : 'BET_NO',
+        confidence: Math.min(10, Math.max(1, parseInt(chain.confidence) || 6)),
+        thesis: `Conditional chain: ${chain.causalChain}`,
+        strategy: 'conditional_chain',
+        anchor: chain.anchor,
+        suggestedSizePct: Math.min(10, edge / 3), // Conservative on chains
+        analyzedAt: new Date().toISOString(),
+      });
+    }
+
+    console.log(`[PolyBrain] Found ${results.length} conditional chains from ${anchors.length} anchors`);
+    return results;
+  } catch (err) {
+    console.error('[PolyBrain] Conditional chains error:', err.message);
+    return [];
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+// STRATEGY 7: WHALE COPY-TRADING
+// ══════════════════════════════════════════════════════════════
+
+/**
+ * Monitor Polymarket leaderboard for big moves by top traders.
+ *
+ * Uses Polymarket's public activity data to detect when whales
+ * make large bets. If a top-20 trader bets big, follow within minutes.
+ *
+ * Since Polymarket doesn't have a direct whale API, we use
+ * volume spikes as a proxy: sudden large volume on a mid-range
+ * market = someone big just entered.
+ *
+ * @param {Array} markets - Current markets with volume data
+ * @param {Array} prevMarkets - Previous scan's markets (for delta)
+ */
+export function detectWhaleActivity(markets, prevMarkets) {
+  if (!prevMarkets || prevMarkets.length === 0) return [];
+
+  const prevMap = new Map(prevMarkets.map(m => [m.id, m]));
+  const signals = [];
+
+  for (const m of markets) {
+    const prev = prevMap.get(m.id);
+    if (!prev) continue;
+
+    const volumeDelta = m.volume - prev.volume;
+    const priceDelta = m.yesPrice - prev.yesPrice;
+
+    // Detect whale activity: large volume spike + significant price move
+    // A $50K+ volume increase in 30 min on a single market = likely whale
+    if (volumeDelta > 50000 && Math.abs(priceDelta) > 0.03) {
+      const direction = priceDelta > 0 ? 'YES' : 'NO';
+      signals.push({
+        marketId: m.id,
+        question: `[WHALE] ${m.question}`,
+        marketYesPrice: m.yesPrice,
+        marketNoPrice: m.noPrice,
+        action: direction === 'YES' ? 'BET_YES' : 'BET_NO',
+        edge: Math.round(Math.abs(priceDelta) * 100),
+        confidence: Math.min(8, 5 + Math.floor(volumeDelta / 100000)),
+        thesis: `Whale detected: $${Math.round(volumeDelta).toLocaleString()} volume spike + ${Math.round(priceDelta * 100)}% price move toward ${direction}. Smart money is moving.`,
+        strategy: 'whale_follow',
+        volumeDelta: Math.round(volumeDelta),
+        priceDelta: Math.round(priceDelta * 1000) / 10,
+        suggestedSizePct: Math.min(8, Math.floor(volumeDelta / 50000) * 3),
+        analyzedAt: new Date().toISOString(),
+      });
+    }
+  }
+
+  return signals.sort((a, b) => b.volumeDelta - a.volumeDelta);
+}
+
+// ══════════════════════════════════════════════════════════════
 // MASTER SCANNER — combines all strategies
 // ══════════════════════════════════════════════════════════════
 
@@ -640,9 +817,11 @@ export async function findBestBets(markets) {
   // ── Strategy 2: Correlated market arbitrage ──
   const arbOpps = findCorrelatedArbitrage(markets);
   for (const arb of arbOpps.slice(0, 3)) {
+    // Use the actual event name + most overpriced market as question
+    const bestMarket = arb.markets.reduce((a, b) => (b.yesPrice > a.yesPrice ? b : a), arb.markets[0]);
     allBets.push({
-      marketId: arb.markets[0]?.id,
-      question: arb.thesis.slice(0, 100),
+      marketId: bestMarket?.id || arb.markets[0]?.id,
+      question: `[ARB] ${arb.event}: ${bestMarket?.question || arb.event}`,
       action: arb.type === 'overpriced_group' ? 'BET_NO' : 'BET_YES',
       edge: arb.edge,
       confidence: Math.min(9, 5 + Math.floor(arb.edge / 5)),
@@ -732,6 +911,36 @@ export async function findBestBets(markets) {
     console.error('[PolyBrain] Cross-platform arb error:', err.message);
   }
 
+  // ── Strategy 6: Conditional probability chains ──
+  // (only if we have high-confidence picks from strategy 1)
+  const highConfPicks = allBets.filter(b => b.strategy === 'edge_detection' && b.confidence >= 8);
+  if (highConfPicks.length > 0) {
+    try {
+      const chains = await findConditionalChains(highConfPicks, markets);
+      for (const chain of chains.slice(0, 3)) {
+        allBets.push({
+          ...chain,
+          score: Math.abs(chain.edge) * chain.confidence * 0.7,
+        });
+      }
+    } catch (err) {
+      console.error('[PolyBrain] Conditional chains error:', err.message);
+    }
+  }
+
+  // ── Strategy 7: Whale activity detection ──
+  if (_prevScanMarkets.length > 0) {
+    const whaleSignals = detectWhaleActivity(markets, _prevScanMarkets);
+    for (const ws of whaleSignals.slice(0, 2)) {
+      allBets.push({
+        ...ws,
+        score: ws.volumeDelta / 10000 * ws.confidence,
+      });
+    }
+  }
+  // Store current markets for next scan's whale detection
+  _prevScanMarkets = markets.map(m => ({ id: m.id, yesPrice: m.yesPrice, noPrice: m.noPrice, volume: m.volume }));
+
   // Sort all opportunities by score (best first)
   allBets.sort((a, b) => (b.score || 0) - (a.score || 0));
 
@@ -739,7 +948,9 @@ export async function findBestBets(markets) {
   if (allBets.length > 0) allBets[0].isBestBet = true;
 
   const xArb = allBets.filter(b => b.strategy === 'cross_platform_arb' || b.strategy === 'cross_platform_edge').length;
-  console.log(`[PolyBrain] Found ${allBets.length} opportunities: ${allBets.filter(b => b.strategy === 'edge_detection').length} edge, ${allBets.filter(b => b.strategy === 'arbitrage').length} arb, ${xArb} cross-plat, ${allBets.filter(b => b.strategy === 'longshot_sell').length} longshot, ${allBets.filter(b => b.strategy === 'safe_bet').length} safe`);
+  const chains = allBets.filter(b => b.strategy === 'conditional_chain').length;
+  const whales = allBets.filter(b => b.strategy === 'whale_follow').length;
+  console.log(`[PolyBrain] Found ${allBets.length} opps: ${allBets.filter(b => b.strategy === 'edge_detection').length} edge, ${allBets.filter(b => b.strategy === 'arbitrage').length} arb, ${xArb} cross-plat, ${allBets.filter(b => b.strategy === 'longshot_sell').length} longshot, ${allBets.filter(b => b.strategy === 'safe_bet').length} safe, ${chains} chains, ${whales} whale`);
 
   return allBets;
 }
@@ -757,6 +968,8 @@ export function getStrategyStatus() {
       { name: 'Longshot Overpricing', desc: 'Sell overpriced low-probability bets', active: true },
       { name: 'Near-Expiry Safe Bets', desc: 'Stack near-certain outcomes', active: true },
       { name: 'Compound Reinvestment', desc: 'Pyramid growth: safe→medium→aggressive', active: true },
+      { name: 'Conditional Chains', desc: 'If A happens, bet downstream B, C, D', active: true },
+      { name: 'Whale Follow', desc: 'Detect volume spikes from big traders', active: _prevScanMarkets.length > 0 },
       { name: 'News Speed Edge', desc: 'React to breaking news fast', active: true },
       { name: 'Category Accuracy', desc: 'Bet more where proven edge', active: categoryStats.size > 0 },
     ],

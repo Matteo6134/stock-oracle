@@ -83,7 +83,17 @@
           }
         ],
         "consensus": "Speculative",
-        "outcomes": null
+        "outcomes": {
+          "1d": {
+            "close": 14.91,
+            "return": -5.45,
+            "maxGain": 1.78,
+            "maxDrawdown": -6.09
+          },
+          "3d": null,
+          "5d": null,
+          "7d": null
+        }
       },
       {
         "symbol": "IONQ",
@@ -167,7 +177,17 @@
           }
         ],
         "consensus": "Speculative",
-        "outcomes": null
+        "outcomes": {
+          "1d": {
+            "close": 31.2,
+            "return": -2.92,
+            "maxGain": 0.34,
+            "maxDrawdown": -5.1
+          },
+          "3d": null,
+          "5d": null,
+          "7d": null
+        }
       },
       {
         "symbol": "FCEL",
@@ -251,7 +271,17 @@
           }
         ],
         "consensus": "Speculative",
-        "outcomes": null
+        "outcomes": {
+          "1d": {
+            "close": 6.59,
+            "return": -0.75,
+            "maxGain": 4.52,
+            "maxDrawdown": -3.46
+          },
+          "3d": null,
+          "5d": null,
+          "7d": null
+        }
       },
       {
         "symbol": "ENVX",
@@ -335,7 +365,17 @@
           }
         ],
         "consensus": "Speculative",
-        "outcomes": null
+        "outcomes": {
+          "1d": {
+            "close": 4.86,
+            "return": -2.41,
+            "maxGain": 3.01,
+            "maxDrawdown": -3.41
+          },
+          "3d": null,
+          "5d": null,
+          "7d": null
+        }
       },
       {
         "symbol": "HOOD",
@@ -419,7 +459,17 @@
           }
         ],
         "consensus": "Speculative",
-        "outcomes": null
+        "outcomes": {
+          "1d": {
+            "close": 70.89,
+            "return": -3.14,
+            "maxGain": 0.3,
+            "maxDrawdown": -4.5
+          },
+          "3d": null,
+          "5d": null,
+          "7d": null
+        }
       },
       {
         "symbol": "TGTX",
@@ -502,7 +552,17 @@
           }
         ],
         "consensus": "No Trade",
-        "outcomes": null
+        "outcomes": {
+          "1d": {
+            "close": 30.07,
+            "return": 1.83,
+            "maxGain": 3.35,
+            "maxDrawdown": -0.27
+          },
+          "3d": null,
+          "5d": null,
+          "7d": null
+        }
       },
       {
         "symbol": "PLUG",
@@ -585,7 +645,17 @@
           }
         ],
         "consensus": "Speculative",
-        "outcomes": null
+        "outcomes": {
+          "1d": {
+            "close": 2.23,
+            "return": -3.88,
+            "maxGain": 5.6,
+            "maxDrawdown": -5.17
+          },
+          "3d": null,
+          "5d": null,
+          "7d": null
+        }
       },
       {
         "symbol": "HIMS",
@@ -668,7 +738,17 @@
           }
         ],
         "consensus": "Speculative",
-        "outcomes": null
+        "outcomes": {
+          "1d": {
+            "close": 22.02,
+            "return": -6.38,
+            "maxGain": 3.1,
+            "maxDrawdown": -7.74
+          },
+          "3d": null,
+          "5d": null,
+          "7d": null
+        }
       },
       {
         "symbol": "MDB",
@@ -752,7 +832,17 @@
           }
         ],
         "consensus": "Speculative",
-        "outcomes": null
+        "outcomes": {
+          "1d": {
+            "close": 261.16,
+            "return": -2.41,
+            "maxGain": 0.27,
+            "maxDrawdown": -3.37
+          },
+          "3d": null,
+          "5d": null,
+          "7d": null
+        }
       },
       {
         "symbol": "QUBT",
@@ -835,13 +925,614 @@
           }
         ],
         "consensus": "Speculative",
-        "outcomes": null
+        "outcomes": {
+          "1d": {
+            "close": 6.96,
+            "return": -4.92,
+            "maxGain": -1.64,
+            "maxDrawdown": -6.42
+          },
+          "3d": null,
+          "5d": null,
+          "7d": null
+        }
       }
     ],
     "stats": {
       "totalGems": 10,
       "avgGemScore": 79,
       "generatedAt": "2026-03-19T18:38:00.828Z"
+    }
+  },
+  "2026-03-23": {
+    "gems": [
+      {
+        "symbol": "ENVX",
+        "companyName": "Enovix Corporation",
+        "entryPrice": 5.04,
+        "gemScore": 83,
+        "signals": [
+          "short_squeeze_loading",
+          "bb_squeeze",
+          "oversold_bounce",
+          "bullish_options",
+          "unusual_options_volume"
+        ],
+        "signalCount": 5,
+        "setupScore": 70,
+        "timing": "buy_today_or_tomorrow",
+        "risk": "moderate",
+        "volumeRatio": 0.2,
+        "floatShares": 217224442,
+        "changePct": 3.6,
+        "verdicts": [
+          {
+            "agent": "Momentum Mike",
+            "style": "momentum",
+            "emoji": "🚀",
+            "action": "SKIP",
+            "conviction": 0,
+            "targetGain": null,
+            "timeframe": null,
+            "reasoning": "No momentum signals detected.",
+            "stopLoss": null,
+            "targetPrice": null
+          },
+          {
+            "agent": "Squeeze Sarah",
+            "style": "squeeze",
+            "emoji": "🔥",
+            "action": "BUY",
+            "conviction": 5,
+            "targetGain": "50%",
+            "timeframe": "1 days",
+            "reasoning": "short squeeze loading — 35.0% SI. Bollinger Bands squeezed tight. 8.8 days to cover — shorts are trapped. explosive potential 50% in 1 days.",
+            "stopLoss": 4.79,
+            "targetPrice": 7.56
+          },
+          {
+            "agent": "Volume Victor",
+            "style": "accumulation",
+            "emoji": "📊",
+            "action": "SKIP",
+            "conviction": 0,
+            "targetGain": null,
+            "timeframe": null,
+            "reasoning": "No accumulation or smart money signals.",
+            "stopLoss": null,
+            "targetPrice": null
+          },
+          {
+            "agent": "Catalyst Claire",
+            "style": "catalyst",
+            "emoji": "⚡",
+            "action": "SKIP",
+            "conviction": 0,
+            "targetGain": null,
+            "timeframe": null,
+            "reasoning": "No earnings catalyst tomorrow.",
+            "stopLoss": null,
+            "targetPrice": null
+          },
+          {
+            "agent": "Contrarian Carlos",
+            "style": "contrarian",
+            "emoji": "🔄",
+            "action": "WATCH",
+            "conviction": 2,
+            "targetGain": "8%",
+            "timeframe": "7 days",
+            "reasoning": "oversold bounce setup — stock down 3.6%. mean reversion play — targeting 8% in 7 days.",
+            "stopLoss": 4.54,
+            "targetPrice": 5.44
+          }
+        ],
+        "consensus": "Speculative",
+        "outcomes": null
+      },
+      {
+        "symbol": "UPST",
+        "companyName": "Upstart Holdings, Inc.",
+        "entryPrice": 27.31,
+        "gemScore": 68,
+        "signals": [
+          "short_squeeze_loading",
+          "oversold_bounce",
+          "bullish_options",
+          "institutions_accumulating"
+        ],
+        "signalCount": 4,
+        "setupScore": 51,
+        "timing": "buy_today_or_tomorrow",
+        "risk": "moderate",
+        "volumeRatio": 0.2,
+        "floatShares": 94867982,
+        "changePct": 5.12,
+        "verdicts": [
+          {
+            "agent": "Momentum Mike",
+            "style": "momentum",
+            "emoji": "🚀",
+            "action": "SKIP",
+            "conviction": 0,
+            "targetGain": null,
+            "timeframe": null,
+            "reasoning": "No momentum signals detected.",
+            "stopLoss": null,
+            "targetPrice": null
+          },
+          {
+            "agent": "Squeeze Sarah",
+            "style": "squeeze",
+            "emoji": "🔥",
+            "action": "BUY",
+            "conviction": 4,
+            "targetGain": "35%",
+            "timeframe": "1 days",
+            "reasoning": "short squeeze loading — 30.0% SI. 4.1 days to cover — shorts are trapped. explosive potential 35% in 1 days.",
+            "stopLoss": 25.94,
+            "targetPrice": 36.87
+          },
+          {
+            "agent": "Volume Victor",
+            "style": "accumulation",
+            "emoji": "📊",
+            "action": "SKIP",
+            "conviction": 0,
+            "targetGain": null,
+            "timeframe": null,
+            "reasoning": "No accumulation or smart money signals.",
+            "stopLoss": null,
+            "targetPrice": null
+          },
+          {
+            "agent": "Catalyst Claire",
+            "style": "catalyst",
+            "emoji": "⚡",
+            "action": "SKIP",
+            "conviction": 0,
+            "targetGain": null,
+            "timeframe": null,
+            "reasoning": "No earnings catalyst tomorrow.",
+            "stopLoss": null,
+            "targetPrice": null
+          },
+          {
+            "agent": "Contrarian Carlos",
+            "style": "contrarian",
+            "emoji": "🔄",
+            "action": "WATCH",
+            "conviction": 2,
+            "targetGain": "8%",
+            "timeframe": "7 days",
+            "reasoning": "oversold bounce setup — stock down 5.1%. mean reversion play — targeting 8% in 7 days.",
+            "stopLoss": 24.58,
+            "targetPrice": 29.49
+          }
+        ],
+        "consensus": "Speculative",
+        "outcomes": null
+      },
+      {
+        "symbol": "QUBT",
+        "companyName": "Quantum Computing Inc.",
+        "entryPrice": 7.08,
+        "gemScore": 68,
+        "signals": [
+          "short_squeeze_loading",
+          "bb_squeeze",
+          "oversold_bounce",
+          "bullish_options"
+        ],
+        "signalCount": 4,
+        "setupScore": 53,
+        "timing": "buy_today_or_tomorrow",
+        "risk": "moderate",
+        "volumeRatio": 0.4,
+        "floatShares": 224538254,
+        "changePct": 1.67,
+        "verdicts": [
+          {
+            "agent": "Momentum Mike",
+            "style": "momentum",
+            "emoji": "🚀",
+            "action": "SKIP",
+            "conviction": 0,
+            "targetGain": null,
+            "timeframe": null,
+            "reasoning": "No momentum signals detected.",
+            "stopLoss": null,
+            "targetPrice": null
+          },
+          {
+            "agent": "Squeeze Sarah",
+            "style": "squeeze",
+            "emoji": "🔥",
+            "action": "BUY",
+            "conviction": 5,
+            "targetGain": "35%",
+            "timeframe": "1 days",
+            "reasoning": "short squeeze loading — 28.3% SI. Bollinger Bands squeezed tight. 4.4 days to cover — shorts are trapped. explosive potential 35% in 1 days.",
+            "stopLoss": 6.73,
+            "targetPrice": 9.56
+          },
+          {
+            "agent": "Volume Victor",
+            "style": "accumulation",
+            "emoji": "📊",
+            "action": "SKIP",
+            "conviction": 0,
+            "targetGain": null,
+            "timeframe": null,
+            "reasoning": "No accumulation or smart money signals.",
+            "stopLoss": null,
+            "targetPrice": null
+          },
+          {
+            "agent": "Catalyst Claire",
+            "style": "catalyst",
+            "emoji": "⚡",
+            "action": "SKIP",
+            "conviction": 0,
+            "targetGain": null,
+            "timeframe": null,
+            "reasoning": "No earnings catalyst tomorrow.",
+            "stopLoss": null,
+            "targetPrice": null
+          },
+          {
+            "agent": "Contrarian Carlos",
+            "style": "contrarian",
+            "emoji": "🔄",
+            "action": "WATCH",
+            "conviction": 2,
+            "targetGain": "8%",
+            "timeframe": "7 days",
+            "reasoning": "oversold bounce setup — stock down 1.7%. mean reversion play — targeting 8% in 7 days.",
+            "stopLoss": 6.37,
+            "targetPrice": 7.65
+          }
+        ],
+        "consensus": "Speculative",
+        "outcomes": null
+      },
+      {
+        "symbol": "HIMS",
+        "companyName": "Hims & Hers Health, Inc.",
+        "entryPrice": 22.6,
+        "gemScore": 65,
+        "signals": [
+          "short_squeeze_loading",
+          "bb_squeeze",
+          "volume_contraction",
+          "unusual_options_volume"
+        ],
+        "signalCount": 4,
+        "setupScore": 50,
+        "timing": "buy_today_or_tomorrow",
+        "risk": "moderate",
+        "volumeRatio": 0.1,
+        "floatShares": 219561143,
+        "changePct": 2.63,
+        "verdicts": [
+          {
+            "agent": "Momentum Mike",
+            "style": "momentum",
+            "emoji": "🚀",
+            "action": "SKIP",
+            "conviction": 0,
+            "targetGain": null,
+            "timeframe": null,
+            "reasoning": "No momentum signals detected.",
+            "stopLoss": null,
+            "targetPrice": null
+          },
+          {
+            "agent": "Squeeze Sarah",
+            "style": "squeeze",
+            "emoji": "🔥",
+            "action": "BUY",
+            "conviction": 5,
+            "targetGain": "50%",
+            "timeframe": "1 days",
+            "reasoning": "short squeeze loading — 46.1% SI. Bollinger Bands squeezed tight. 2.3 days to cover — shorts are trapped. explosive potential 50% in 1 days.",
+            "stopLoss": 21.47,
+            "targetPrice": 33.9
+          },
+          {
+            "agent": "Volume Victor",
+            "style": "accumulation",
+            "emoji": "📊",
+            "action": "SKIP",
+            "conviction": 0,
+            "targetGain": null,
+            "timeframe": null,
+            "reasoning": "No accumulation or smart money signals.",
+            "stopLoss": null,
+            "targetPrice": null
+          },
+          {
+            "agent": "Catalyst Claire",
+            "style": "catalyst",
+            "emoji": "⚡",
+            "action": "SKIP",
+            "conviction": 0,
+            "targetGain": null,
+            "timeframe": null,
+            "reasoning": "No earnings catalyst tomorrow.",
+            "stopLoss": null,
+            "targetPrice": null
+          },
+          {
+            "agent": "Contrarian Carlos",
+            "style": "contrarian",
+            "emoji": "🔄",
+            "action": "SKIP",
+            "conviction": 0,
+            "targetGain": null,
+            "timeframe": null,
+            "reasoning": "No oversold bounce or sector lag signals.",
+            "stopLoss": null,
+            "targetPrice": null
+          }
+        ],
+        "consensus": "Speculative",
+        "outcomes": null
+      },
+      {
+        "symbol": "FCEL",
+        "companyName": "FuelCell Energy, Inc.",
+        "entryPrice": 6.6,
+        "gemScore": 65,
+        "signals": [
+          "bb_squeeze",
+          "oversold_bounce",
+          "bullish_options",
+          "institutions_accumulating"
+        ],
+        "signalCount": 4,
+        "setupScore": 42,
+        "timing": "watch_for_breakout",
+        "risk": "moderate",
+        "volumeRatio": 0.2,
+        "floatShares": 52977866,
+        "changePct": 0.15,
+        "verdicts": [
+          {
+            "agent": "Momentum Mike",
+            "style": "momentum",
+            "emoji": "🚀",
+            "action": "SKIP",
+            "conviction": 0,
+            "targetGain": null,
+            "timeframe": null,
+            "reasoning": "No momentum signals detected.",
+            "stopLoss": null,
+            "targetPrice": null
+          },
+          {
+            "agent": "Squeeze Sarah",
+            "style": "squeeze",
+            "emoji": "🔥",
+            "action": "BUY",
+            "conviction": 3,
+            "targetGain": "20%",
+            "timeframe": "3 days",
+            "reasoning": "Bollinger Bands squeezed tight. explosive potential 20% in 3 days.",
+            "stopLoss": 6.27,
+            "targetPrice": 7.92
+          },
+          {
+            "agent": "Volume Victor",
+            "style": "accumulation",
+            "emoji": "📊",
+            "action": "SKIP",
+            "conviction": 0,
+            "targetGain": null,
+            "timeframe": null,
+            "reasoning": "No accumulation or smart money signals.",
+            "stopLoss": null,
+            "targetPrice": null
+          },
+          {
+            "agent": "Catalyst Claire",
+            "style": "catalyst",
+            "emoji": "⚡",
+            "action": "SKIP",
+            "conviction": 0,
+            "targetGain": null,
+            "timeframe": null,
+            "reasoning": "No earnings catalyst tomorrow.",
+            "stopLoss": null,
+            "targetPrice": null
+          },
+          {
+            "agent": "Contrarian Carlos",
+            "style": "contrarian",
+            "emoji": "🔄",
+            "action": "WATCH",
+            "conviction": 2,
+            "targetGain": "8%",
+            "timeframe": "7 days",
+            "reasoning": "oversold bounce setup — stock down 0.1%. mean reversion play — targeting 8% in 7 days.",
+            "stopLoss": 5.94,
+            "targetPrice": 7.13
+          }
+        ],
+        "consensus": "Speculative",
+        "outcomes": null
+      },
+      {
+        "symbol": "IONQ",
+        "companyName": "IonQ, Inc.",
+        "entryPrice": 32.36,
+        "gemScore": 62,
+        "signals": [
+          "short_squeeze_loading",
+          "bb_squeeze",
+          "oversold_bounce",
+          "unusual_options_volume"
+        ],
+        "signalCount": 4,
+        "setupScore": 47,
+        "timing": "buy_today_or_tomorrow",
+        "risk": "moderate",
+        "volumeRatio": 0.2,
+        "floatShares": 366640756,
+        "changePct": 3.72,
+        "verdicts": [
+          {
+            "agent": "Momentum Mike",
+            "style": "momentum",
+            "emoji": "🚀",
+            "action": "SKIP",
+            "conviction": 0,
+            "targetGain": null,
+            "timeframe": null,
+            "reasoning": "No momentum signals detected.",
+            "stopLoss": null,
+            "targetPrice": null
+          },
+          {
+            "agent": "Squeeze Sarah",
+            "style": "squeeze",
+            "emoji": "🔥",
+            "action": "BUY",
+            "conviction": 5,
+            "targetGain": "35%",
+            "timeframe": "1 days",
+            "reasoning": "short squeeze loading — 23.7% SI. Bollinger Bands squeezed tight. 3.8 days to cover — shorts are trapped. explosive potential 35% in 1 days.",
+            "stopLoss": 30.74,
+            "targetPrice": 43.69
+          },
+          {
+            "agent": "Volume Victor",
+            "style": "accumulation",
+            "emoji": "📊",
+            "action": "SKIP",
+            "conviction": 0,
+            "targetGain": null,
+            "timeframe": null,
+            "reasoning": "No accumulation or smart money signals.",
+            "stopLoss": null,
+            "targetPrice": null
+          },
+          {
+            "agent": "Catalyst Claire",
+            "style": "catalyst",
+            "emoji": "⚡",
+            "action": "SKIP",
+            "conviction": 0,
+            "targetGain": null,
+            "timeframe": null,
+            "reasoning": "No earnings catalyst tomorrow.",
+            "stopLoss": null,
+            "targetPrice": null
+          },
+          {
+            "agent": "Contrarian Carlos",
+            "style": "contrarian",
+            "emoji": "🔄",
+            "action": "WATCH",
+            "conviction": 2,
+            "targetGain": "8%",
+            "timeframe": "7 days",
+            "reasoning": "oversold bounce setup — stock down 3.7%. mean reversion play — targeting 8% in 7 days.",
+            "stopLoss": 29.12,
+            "targetPrice": 34.95
+          }
+        ],
+        "consensus": "Speculative",
+        "outcomes": null
+      },
+      {
+        "symbol": "DNA",
+        "companyName": "Ginkgo Bioworks Holdings, Inc.",
+        "entryPrice": 6.69,
+        "gemScore": 62,
+        "signals": [
+          "short_squeeze_loading",
+          "bb_squeeze",
+          "oversold_bounce",
+          "unusual_options_volume"
+        ],
+        "signalCount": 4,
+        "setupScore": 42,
+        "timing": "buy_today_or_tomorrow",
+        "risk": "moderate",
+        "volumeRatio": 0.3,
+        "floatShares": 49941878,
+        "changePct": -0.37,
+        "verdicts": [
+          {
+            "agent": "Momentum Mike",
+            "style": "momentum",
+            "emoji": "🚀",
+            "action": "SKIP",
+            "conviction": 0,
+            "targetGain": null,
+            "timeframe": null,
+            "reasoning": "No momentum signals detected.",
+            "stopLoss": null,
+            "targetPrice": null
+          },
+          {
+            "agent": "Squeeze Sarah",
+            "style": "squeeze",
+            "emoji": "🔥",
+            "action": "BUY",
+            "conviction": 5,
+            "targetGain": "35%",
+            "timeframe": "1 days",
+            "reasoning": "short squeeze loading — 15.4% SI. Bollinger Bands squeezed tight. explosive potential 35% in 1 days.",
+            "stopLoss": 6.36,
+            "targetPrice": 9.03
+          },
+          {
+            "agent": "Volume Victor",
+            "style": "accumulation",
+            "emoji": "📊",
+            "action": "SKIP",
+            "conviction": 0,
+            "targetGain": null,
+            "timeframe": null,
+            "reasoning": "No accumulation or smart money signals.",
+            "stopLoss": null,
+            "targetPrice": null
+          },
+          {
+            "agent": "Catalyst Claire",
+            "style": "catalyst",
+            "emoji": "⚡",
+            "action": "SKIP",
+            "conviction": 0,
+            "targetGain": null,
+            "timeframe": null,
+            "reasoning": "No earnings catalyst tomorrow.",
+            "stopLoss": null,
+            "targetPrice": null
+          },
+          {
+            "agent": "Contrarian Carlos",
+            "style": "contrarian",
+            "emoji": "🔄",
+            "action": "BUY",
+            "conviction": 3,
+            "targetGain": "8%",
+            "timeframe": "7 days",
+            "reasoning": "oversold bounce setup — stock down -0.4%. mean reversion play — targeting 8% in 7 days.",
+            "stopLoss": 6.02,
+            "targetPrice": 7.23
+          }
+        ],
+        "consensus": "Buy",
+        "outcomes": null
+      }
+    ],
+    "stats": {
+      "totalGems": 7,
+      "avgGemScore": 68,
+      "generatedAt": "2026-03-23T14:30:25.331Z"
     }
   }
 }

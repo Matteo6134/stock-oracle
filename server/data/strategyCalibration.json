@@ -1,0 +1,46 @@
+{
+  "gem_finder": {
+    "winRate": 80,
+    "cagr": 1.7,
+    "profitFactor": 2,
+    "maxDrawdown": 0.8,
+    "totalTrades": 20,
+    "symbols": [
+      "AAPL",
+      "AMD"
+    ]
+  },
+  "volume_surge": {
+    "winRate": 67,
+    "cagr": 1.2,
+    "profitFactor": 2.29,
+    "maxDrawdown": 1.9,
+    "totalTrades": 23,
+    "symbols": [
+      "AAPL",
+      "AMD"
+    ]
+  },
+  "momentum": {
+    "winRate": 78,
+    "cagr": 0.9,
+    "profitFactor": 1.6,
+    "maxDrawdown": 1.2,
+    "totalTrades": 17,
+    "symbols": [
+      "AAPL",
+      "AMD"
+    ]
+  },
+  "mean_reversion": {
+    "winRate": 17,
+    "cagr": -0.7,
+    "profitFactor": 1.05,
+    "maxDrawdown": 2.1,
+    "totalTrades": 6,
+    "symbols": [
+      "AMD"
+    ]
+  },
+  "lastCalibrated": "2026-03-23T22:03:16.168Z"
+}

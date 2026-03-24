@@ -579,6 +579,10 @@ function registerCommands() {
         arbitrage: '\uD83D\uDD04 Arb',
         longshot_sell: '\uD83C\uDFB0 Longshot',
         safe_bet: '\uD83D\uDEE1 Safe',
+        cross_platform_arb: '\uD83C\uDF10 Cross-Plat',
+        cross_platform_edge: '\uD83C\uDF10 Cross-Edge',
+        conditional_chain: '\uD83D\uDD17 Chain',
+        whale_follow: '\uD83D\uDC33 Whale',
       };
       const stratLine = Object.entries(stratCounts).map(([k, v]) => `${stratLabels[k] || k}: ${v}`).join(' \u00B7 ');
       send(msg.chat.id, `\uD83C\uDFAF Found *${picks.length}* opportunities\n${stratLine}`);
@@ -590,6 +594,10 @@ function registerCommands() {
           arbitrage: '\uD83D\uDD04',
           longshot_sell: '\uD83C\uDFB0',
           safe_bet: '\uD83D\uDEE1',
+          cross_platform_arb: '\uD83C\uDF10',
+          cross_platform_edge: '\uD83C\uDF10',
+          conditional_chain: '\uD83D\uDD17',
+          whale_follow: '\uD83D\uDC33',
         }[pick.strategy] || '\uD83C\uDFAF';
 
         const confBar = '\u2588'.repeat(Math.min(pick.confidence, 10)) + '\u2591'.repeat(Math.max(0, 10 - pick.confidence));
