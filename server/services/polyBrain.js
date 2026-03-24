@@ -18,16 +18,29 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { getDailySpend, isClaudeConfigured } from './claudeBrain.js';
 
 const API_KEY = process.env.ANTHROPIC_API_KEY;
+const GEMINI_KEY = process.env.GEMINI_API_KEY;
 const MODEL = 'claude-sonnet-4-6';
+const GEMINI_MODEL = 'gemini-2.0-flash';
 
 let client = null;
 function getClient() {
   if (!client && API_KEY) client = new Anthropic({ apiKey: API_KEY });
   return client;
 }
+
+let geminiClient = null;
+function getGemini() {
+  if (!geminiClient && GEMINI_KEY) {
+    geminiClient = new GoogleGenerativeAI(GEMINI_KEY);
+  }
+  return geminiClient;
+}
+
+export function isGeminiConfigured() { return !!GEMINI_KEY; }
 
 // Cost tracking
 let polySpendCents = 0;
@@ -122,8 +135,110 @@ THE GOAL: Compound $1,400 to $400,000. This requires ~286x. You need consistent 
 
 Respond ONLY with valid JSON. No markdown, no explanation outside JSON.`;
 
+// ══════════════════════════════════════════════════════════════
+// MULTI-MODEL ENSEMBLE — Claude + Gemini
+// ══════════════════════════════════════════════════════════════
+
+/**
+ * Get Gemini's probability estimate for the same market.
+ * Used as a "second opinion" — when both models agree, confidence goes UP.
+ * When they disagree, we bet smaller or skip.
+ */
+async function getGeminiEstimate(market) {
+  const g = getGemini();
+  if (!g) return null;
+
+  try {
+    const model = g.getGenerativeModel({ model: GEMINI_MODEL });
+
+    const daysLeft = market.endDate
+      ? Math.max(0, Math.round((new Date(market.endDate) - new Date()) / 86400000))
+      : null;
+
+    const prompt = `You are a prediction market analyst. Estimate the REAL probability of this outcome.
+
+QUESTION: ${market.question}
+CATEGORY: ${market.category || 'Unknown'}
+CURRENT MARKET PRICE: ${Math.round(market.yesPrice * 100)}% Yes
+VOLUME: $${Math.round(market.volume).toLocaleString()}
+${daysLeft !== null ? `DAYS TO RESOLUTION: ${daysLeft}` : ''}
+
+Think step by step:
+1. What is the historical base rate?
+2. What current evidence shifts that?
+3. Your final probability estimate?
+
+Respond with ONLY valid JSON:
+{"realProbability": 0.XX, "confidence": 1-10, "reasoning": "one sentence"}`;
+
+    const result = await model.generateContent(prompt);
+    const text = result.response.text();
+    const jsonStr = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    const parsed = JSON.parse(jsonStr);
+
+    return {
+      model: 'gemini',
+      realProbability: Math.min(1, Math.max(0, parseFloat(parsed.realProbability) || 0.5)),
+      confidence: Math.min(10, Math.max(1, parseInt(parsed.confidence) || 5)),
+      reasoning: String(parsed.reasoning || '').slice(0, 200),
+    };
+  } catch (err) {
+    console.error('[PolyBrain] Gemini error:', err.message);
+    return null;
+  }
+}
+
+/**
+ * Combine Claude + Gemini estimates into ensemble prediction.
+ * When models agree → higher confidence, bigger bets.
+ * When models disagree → lower confidence, smaller bets or skip.
+ */
+function ensemblePrediction(claudeResult, geminiResult) {
+  if (!geminiResult) return claudeResult; // Gemini unavailable, use Claude alone
+
+  const claudeProb = claudeResult.realProbability;
+  const geminiProb = geminiResult.realProbability;
+  const diff = Math.abs(claudeProb - geminiProb);
+
+  // Weighted average: Claude 60%, Gemini 40% (Claude is stronger on reasoning)
+  const ensembleProb = Math.round((claudeProb * 0.6 + geminiProb * 0.4) * 1000) / 1000;
+
+  // Agreement bonus/penalty
+  let confidenceAdjust = 0;
+  if (diff < 0.05) confidenceAdjust = 2;       // Strong agreement → +2 confidence
+  else if (diff < 0.10) confidenceAdjust = 1;   // Moderate agreement → +1
+  else if (diff < 0.15) confidenceAdjust = 0;    // Mild disagreement → no change
+  else if (diff < 0.25) confidenceAdjust = -1;   // Disagreement → -1
+  else confidenceAdjust = -3;                     // Strong disagreement → -3 (likely skip)
+
+  const ensembleConf = Math.min(10, Math.max(1, claudeResult.confidence + confidenceAdjust));
+
+  // If models disagree on DIRECTION (one says >50%, other <50%), skip
+  const claudeDirection = claudeProb > 0.5 ? 'YES' : 'NO';
+  const geminiDirection = geminiProb > 0.5 ? 'YES' : 'NO';
+  const directionalDisagree = claudeDirection !== geminiDirection && diff > 0.15;
+
+  return {
+    ...claudeResult,
+    realProbability: ensembleProb,
+    confidence: directionalDisagree ? Math.min(4, ensembleConf) : ensembleConf,
+    action: directionalDisagree ? 'SKIP' : claudeResult.action,
+    ensemble: {
+      claude: { prob: claudeProb, conf: claudeResult.confidence },
+      gemini: { prob: geminiProb, conf: geminiResult.confidence, reasoning: geminiResult.reasoning },
+      agreement: diff < 0.10 ? 'STRONG' : diff < 0.20 ? 'MODERATE' : 'WEAK',
+      diff: Math.round(diff * 1000) / 10,
+      directionalDisagree,
+    },
+    thesis: claudeResult.thesis + (geminiResult.reasoning
+      ? `\n\nGemini ${diff < 0.10 ? 'agrees' : 'says'}: ${geminiResult.reasoning}`
+      : ''),
+  };
+}
+
 /**
  * Analyze a single Polymarket market for edge.
+ * Uses Claude as primary, Gemini as second opinion (ensemble).
  */
 export async function analyzeMarket(market) {
   if (!isClaudeConfigured() || !canSpend()) return null;
@@ -226,12 +341,29 @@ Respond with JSON:
     result.suggestedSizePct = Math.round(result.suggestedSizePct * catMultiplier * 10) / 10;
     result.suggestedSizePct = Math.min(25, Math.max(3, result.suggestedSizePct));
 
-    analysisCache.set(market.id, { result, ts: Date.now() });
+    // ── ENSEMBLE: Get Gemini's second opinion ──
+    let finalResult = result;
+    if (isGeminiConfigured() && result.action !== 'SKIP') {
+      const geminiEst = await getGeminiEstimate(market);
+      if (geminiEst) {
+        finalResult = ensemblePrediction(result, geminiEst);
+        // Recalculate edge with ensemble probability
+        if (finalResult.action === 'BET_YES') {
+          finalResult.edge = Math.round((finalResult.realProbability - market.yesPrice) * 1000) / 10;
+        } else if (finalResult.action === 'BET_NO') {
+          finalResult.edge = Math.round(((1 - finalResult.realProbability) - market.noPrice) * 1000) / 10;
+        }
+        const agr = finalResult.ensemble?.agreement || '?';
+        console.log(`[PolyBrain] Ensemble: Claude ${Math.round(result.realProbability * 100)}% / Gemini ${Math.round(geminiEst.realProbability * 100)}% => ${Math.round(finalResult.realProbability * 100)}% (${agr})`);
+      }
+    }
 
-    const emoji = result.action === 'BET_YES' ? '\uD83D\uDFE2' : result.action === 'BET_NO' ? '\uD83D\uDD34' : '\u26AA';
-    console.log(`[PolyBrain] ${emoji} ${result.action} "${market.question.slice(0, 40)}..." — edge ${result.edge}%, conf ${result.confidence}/10, strat: ${result.strategy}`);
+    analysisCache.set(market.id, { result: finalResult, ts: Date.now() });
 
-    return result;
+    const emoji = finalResult.action === 'BET_YES' ? '\uD83D\uDFE2' : finalResult.action === 'BET_NO' ? '\uD83D\uDD34' : '\u26AA';
+    console.log(`[PolyBrain] ${emoji} ${finalResult.action} "${market.question.slice(0, 40)}..." — edge ${finalResult.edge}%, conf ${finalResult.confidence}/10, strat: ${finalResult.strategy}`);
+
+    return finalResult;
   } catch (err) {
     console.error('[PolyBrain] analyzeMarket error:', err.message);
     return null;
@@ -559,13 +691,55 @@ export async function findBestBets(markets) {
     });
   }
 
+  // ── Strategy 5: Cross-platform arbitrage (Polymarket vs Kalshi) ──
+  try {
+    const { findCrossPlatformArb } = await import('./kalshiArb.js');
+    const crossArb = await findCrossPlatformArb(markets);
+    for (const arb of crossArb.slice(0, 3)) {
+      if (arb.isArbitrage) {
+        allBets.push({
+          marketId: arb.polymarket.question,
+          question: arb.polymarket.question,
+          action: arb.cheaperYes === 'polymarket' ? 'BET_YES' : 'BET_NO',
+          edge: arb.arbProfit,
+          confidence: 10, // Risk-free!
+          thesis: arb.thesis,
+          strategy: 'cross_platform_arb',
+          suggestedSizePct: 20, // High allocation for risk-free
+          score: arb.arbProfit * 15, // Very high score
+          arbDetails: arb,
+          analyzedAt: new Date().toISOString(),
+        });
+      } else if (arb.priceDiff > 8) {
+        // Not risk-free arb, but strong price divergence = confirmation signal
+        allBets.push({
+          marketId: arb.polymarket.question,
+          question: arb.polymarket.question,
+          marketYesPrice: arb.polymarket.yesPrice,
+          marketNoPrice: arb.polymarket.noPrice,
+          action: arb.cheaperYes === 'polymarket' ? 'BET_YES' : 'BET_NO',
+          edge: arb.priceDiff,
+          confidence: 7,
+          thesis: arb.thesis,
+          strategy: 'cross_platform_edge',
+          suggestedSizePct: 10,
+          score: arb.priceDiff * 5,
+          analyzedAt: new Date().toISOString(),
+        });
+      }
+    }
+  } catch (err) {
+    console.error('[PolyBrain] Cross-platform arb error:', err.message);
+  }
+
   // Sort all opportunities by score (best first)
   allBets.sort((a, b) => (b.score || 0) - (a.score || 0));
 
   // Tag the best opportunity
   if (allBets.length > 0) allBets[0].isBestBet = true;
 
-  console.log(`[PolyBrain] Found ${allBets.length} opportunities: ${allBets.filter(b => b.strategy === 'edge_detection').length} edge, ${allBets.filter(b => b.strategy === 'arbitrage').length} arb, ${allBets.filter(b => b.strategy === 'longshot_sell').length} longshot, ${allBets.filter(b => b.strategy === 'safe_bet').length} safe`);
+  const xArb = allBets.filter(b => b.strategy === 'cross_platform_arb' || b.strategy === 'cross_platform_edge').length;
+  console.log(`[PolyBrain] Found ${allBets.length} opportunities: ${allBets.filter(b => b.strategy === 'edge_detection').length} edge, ${allBets.filter(b => b.strategy === 'arbitrage').length} arb, ${xArb} cross-plat, ${allBets.filter(b => b.strategy === 'longshot_sell').length} longshot, ${allBets.filter(b => b.strategy === 'safe_bet').length} safe`);
 
   return allBets;
 }
@@ -577,12 +751,16 @@ export function getStrategyStatus() {
   return {
     strategies: [
       { name: 'Edge Detection', desc: 'Claude probability vs market price', active: true },
+      { name: 'Multi-Model Ensemble', desc: 'Claude + Gemini weighted average', active: isGeminiConfigured() },
       { name: 'Correlated Arbitrage', desc: 'Find pricing inconsistencies', active: true },
+      { name: 'Cross-Platform Arb', desc: 'Polymarket vs Kalshi price gaps', active: true },
       { name: 'Longshot Overpricing', desc: 'Sell overpriced low-probability bets', active: true },
       { name: 'Near-Expiry Safe Bets', desc: 'Stack near-certain outcomes', active: true },
+      { name: 'Compound Reinvestment', desc: 'Pyramid growth: safe→medium→aggressive', active: true },
       { name: 'News Speed Edge', desc: 'React to breaking news fast', active: true },
       { name: 'Category Accuracy', desc: 'Bet more where proven edge', active: categoryStats.size > 0 },
     ],
+    geminiActive: isGeminiConfigured(),
     categoryStats: getCategoryStats(),
     budgetUsed: Math.round(polySpendCents * 100) / 100,
     budgetRemaining: Math.round((BUDGET_CENTS - polySpendCents) * 100) / 100,

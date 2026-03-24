@@ -233,6 +233,50 @@ export function calculateKellyBet(balance, marketPrice, claudeProbability, maxPc
 }
 
 /**
+ * Compound reinvestment — pyramid growth strategy.
+ *
+ * Allocates portfolio into 3 tiers:
+ *   - SAFE tier (60%): near-expiry safe bets, 3-8% returns
+ *   - MEDIUM tier (30%): edge detection + arbitrage, 10-25% returns
+ *   - AGGRESSIVE tier (10%): longshots + high-edge, 50-200% returns
+ *
+ * Profits from SAFE reinvest into MEDIUM, profits from MEDIUM into AGGRESSIVE.
+ * This is how you compound $1,400 → $400K: safe base grows, winners compound up.
+ */
+export function getCompoundAllocation() {
+  const p = loadPortfolio();
+  const total = p.balance;
+
+  // Calculate tier allocations
+  const safeAlloc = Math.round(total * 0.60 * 100) / 100;
+  const medAlloc = Math.round(total * 0.30 * 100) / 100;
+  const aggAlloc = Math.round(total * 0.10 * 100) / 100;
+
+  // Calculate max bet per tier
+  return {
+    totalBalance: total,
+    tiers: {
+      safe: { allocation: safeAlloc, maxBet: Math.round(safeAlloc * 0.30 * 100) / 100, strategies: ['safe_bet'] },
+      medium: { allocation: medAlloc, maxBet: Math.round(medAlloc * 0.20 * 100) / 100, strategies: ['edge_detection', 'arbitrage'] },
+      aggressive: { allocation: aggAlloc, maxBet: Math.round(aggAlloc * 0.25 * 100) / 100, strategies: ['longshot_sell'] },
+    },
+    // Growth tracking
+    growthNeeded: Math.round((GOAL / total) * 100) / 100,
+    dailyGrowthNeeded: total > 0 ? Math.round(((Math.pow(GOAL / total, 1 / 365) - 1) * 100) * 100) / 100 : 0,
+  };
+}
+
+/**
+ * Get maximum bet for a strategy based on compound allocation tiers.
+ */
+export function getMaxBetForStrategy(strategy) {
+  const alloc = getCompoundAllocation();
+  if (['safe_bet'].includes(strategy)) return alloc.tiers.safe.maxBet;
+  if (['edge_detection', 'arbitrage'].includes(strategy)) return alloc.tiers.medium.maxBet;
+  return alloc.tiers.aggressive.maxBet;
+}
+
+/**
  * Reset portfolio to starting state.
  */
 export function resetPortfolio() {
