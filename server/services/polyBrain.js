@@ -821,14 +821,17 @@ export async function findBestBets(markets) {
     const bestMarket = arb.markets.reduce((a, b) => (b.yesPrice > a.yesPrice ? b : a), arb.markets[0]);
     allBets.push({
       marketId: bestMarket?.id || arb.markets[0]?.id,
-      question: `[ARB] ${arb.event}: ${bestMarket?.question || arb.event}`,
+      question: bestMarket?.question || `[ARB] ${arb.event}`,
       action: arb.type === 'overpriced_group' ? 'BET_NO' : 'BET_YES',
+      marketYesPrice: bestMarket?.yesPrice || 0.5,
+      marketNoPrice: bestMarket?.noPrice || 0.5,
+      realProbability: arb.type === 'overpriced_group' ? 0.3 : 0.7,
       edge: arb.edge,
       confidence: Math.min(9, 5 + Math.floor(arb.edge / 5)),
       thesis: arb.thesis,
       strategy: 'arbitrage',
       suggestedSizePct: Math.min(15, arb.edge / 2),
-      score: arb.edge * 7, // Arb is high certainty
+      score: arb.edge * 7,
       arbDetails: arb,
       analyzedAt: new Date().toISOString(),
     });

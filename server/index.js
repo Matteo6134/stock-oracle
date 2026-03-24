@@ -463,20 +463,20 @@ if (!process.env.VERCEL) {
             let minConf, minEdge, maxSizePct;
             switch (pick.strategy) {
               case 'safe_bet':
-                minConf = 7; minEdge = 3; maxSizePct = 30; break;     // Safe: low bar but guaranteed
+                minConf = 6; minEdge = 2; maxSizePct = 30; break;     // Safe: low bar, near-certain
               case 'arbitrage':
               case 'cross_platform_arb':
-                minConf = 6; minEdge = 5; maxSizePct = 15; break;     // Arb: near risk-free
+                minConf = 5; minEdge = 3; maxSizePct = 15; break;     // Arb: near risk-free
               case 'cross_platform_edge':
-                minConf = 7; minEdge = 8; maxSizePct = 12; break;     // Cross-plat price gap
+                minConf = 6; minEdge = 5; maxSizePct = 12; break;     // Cross-plat price gap
               case 'conditional_chain':
-                minConf = 8; minEdge = 12; maxSizePct = 10; break;    // Chain: needs high confidence
+                minConf = 7; minEdge = 8; maxSizePct = 10; break;     // Chain: needs confidence
               case 'whale_follow':
-                minConf = 7; minEdge = 3; maxSizePct = 8; break;      // Whale: follow small
+                minConf = 6; minEdge = 2; maxSizePct = 8; break;      // Whale: follow smart money
               case 'longshot_sell':
-                minConf = 8; minEdge = 15; maxSizePct = 10; break;    // Longshot: high bar
+                minConf = 7; minEdge = 10; maxSizePct = 10; break;    // Longshot: still careful
               default: // edge_detection
-                minConf = 8; minEdge = 12; maxSizePct = 20; break;    // Edge: standard bar
+                minConf = 6; minEdge = 8; maxSizePct = 20; break;     // Edge: Claude just needs decent edge
             }
 
             if (pick.confidence < minConf || Math.abs(pick.edge) < minEdge) continue;

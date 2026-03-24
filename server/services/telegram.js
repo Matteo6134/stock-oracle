@@ -638,9 +638,9 @@ function registerCommands() {
           );
         } else {
           // Edge detection, longshot, cross_platform_edge
-          const yesP = pick.marketYesPrice != null ? Math.round(pick.marketYesPrice * 100) : '?';
-          const noP = pick.marketNoPrice != null ? Math.round(pick.marketNoPrice * 100) : '?';
-          const realP = pick.realProbability != null ? Math.round(pick.realProbability * 100) : '?';
+          const yesP = (pick.marketYesPrice != null && !isNaN(pick.marketYesPrice)) ? Math.round(pick.marketYesPrice * 100) : '?';
+          const noP = (pick.marketNoPrice != null && !isNaN(pick.marketNoPrice)) ? Math.round(pick.marketNoPrice * 100) : '?';
+          const realP = (pick.realProbability != null && !isNaN(pick.realProbability)) ? Math.round(pick.realProbability * 100) : '?';
           lines.push(
             `\uD83D\uDCB0 Market: ${yesP}\u00A2 Yes / ${noP}\u00A2 No`,
             `\uD83E\uDDE0 Claude: ${realP}% real`,
@@ -659,14 +659,14 @@ function registerCommands() {
 
         // Clear verdict: would the brain actually bet on this?
         const thresholds = {
-          safe_bet: { minConf: 7, minEdge: 3 },
-          arbitrage: { minConf: 6, minEdge: 5 },
-          cross_platform_arb: { minConf: 6, minEdge: 5 },
-          cross_platform_edge: { minConf: 7, minEdge: 8 },
-          conditional_chain: { minConf: 8, minEdge: 12 },
-          whale_follow: { minConf: 7, minEdge: 3 },
-          longshot_sell: { minConf: 8, minEdge: 15 },
-          edge_detection: { minConf: 8, minEdge: 12 },
+          safe_bet: { minConf: 6, minEdge: 2 },
+          arbitrage: { minConf: 5, minEdge: 3 },
+          cross_platform_arb: { minConf: 5, minEdge: 3 },
+          cross_platform_edge: { minConf: 6, minEdge: 5 },
+          conditional_chain: { minConf: 7, minEdge: 8 },
+          whale_follow: { minConf: 6, minEdge: 2 },
+          longshot_sell: { minConf: 7, minEdge: 10 },
+          edge_detection: { minConf: 6, minEdge: 8 },
         };
         const t = thresholds[pick.strategy] || thresholds.edge_detection;
         const wouldBet = pick.confidence >= t.minConf && Math.abs(pick.edge || 0) >= t.minEdge;
