@@ -19,6 +19,7 @@ import { logPrediction } from './services/claudeTracker.js';
 import { getTopMarkets } from './services/polymarket.js';
 import { findBestBets } from './services/polyBrain.js';
 import { getPortfolio, placeBet, calculateKellyBet } from './services/polySimulator.js';
+import { getAllIntelligence, getMarketRegime, getSectorRotation } from './services/stockIntel.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -187,6 +188,63 @@ if (!process.env.VERCEL) {
         }
       } catch (err) {
         console.error('[Cron] Penny scan error:', err.message);
+      }
+
+      // ── Stock Intelligence: gather signals from all sources ──
+      try {
+        const symbols = allAnalyzed.map(s => s.symbol).filter(Boolean);
+        const intel = await getAllIntelligence(symbols);
+        scanCache.intel = intel;
+
+        // Attach regime data to all stocks (affects position sizing)
+        if (intel.regime) {
+          scanCache.regime = intel.regime;
+          for (const stock of allAnalyzed) {
+            stock.vixRegime = intel.regime.regime;
+            stock.positionMultiplier = intel.regime.positionMultiplier;
+          }
+        }
+
+        // Flag stocks with insider buying
+        if (intel.insiders?.length > 0) {
+          const insiderTickers = new Set(intel.insiders.map(f => f.ticker?.toUpperCase()));
+          for (const stock of allAnalyzed) {
+            if (insiderTickers.has(stock.symbol)) {
+              stock.signals = [...(stock.signals || []), 'insider_buying'];
+              stock.insiderBuying = true;
+            }
+          }
+        }
+
+        // Flag squeeze candidates
+        if (intel.shortInterest?.length > 0) {
+          const squeezeMap = new Map(intel.shortInterest.map(s => [s.symbol, s]));
+          for (const stock of allAnalyzed) {
+            const si = squeezeMap.get(stock.symbol);
+            if (si) {
+              stock.shortInterest = si.shortPctFloat;
+              stock.squeezePotential = si.squeezePotential;
+              if (si.signal === 'SQUEEZE_ALERT') {
+                stock.signals = [...(stock.signals || []), 'short_squeeze_loading'];
+              }
+            }
+          }
+        }
+
+        // Flag correlation pair opportunities
+        if (intel.pairs?.length > 0) {
+          for (const pair of intel.pairs) {
+            const laggard = allAnalyzed.find(s => s.symbol === pair.target);
+            if (laggard) {
+              laggard.correlationPair = pair;
+              laggard.signals = [...(laggard.signals || []), 'correlation_lag'];
+            }
+          }
+        }
+
+        console.log(`[StockIntel] Regime: ${intel.regime?.regime || '?'}, Sectors: ${intel.sectors?.hottest?.join(',') || '?'}, Insiders: ${intel.insiders?.length || 0}, Short alerts: ${intel.shortInterest?.length || 0}, Pairs: ${intel.pairs?.length || 0}`);
+      } catch (err) {
+        console.error('[StockIntel] Error:', err.message);
       }
 
       // Update scan cache

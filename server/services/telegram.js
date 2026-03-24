@@ -89,8 +89,9 @@ export function initTelegramBot() {
       { command: 'ask', description: 'Ask Claude anything about markets' },
       { command: 'briefing', description: 'Hourly market analysis' },
       { command: 'brain', description: 'Claude AI accuracy & status' },
+      { command: 'market', description: 'Full market intelligence dashboard' },
       { command: 'poly', description: 'Polymarket portfolio & picks' },
-      { command: 'bet', description: 'Force Polymarket scan now' },
+      { command: 'bet', description: 'See Claude Polymarket analysis' },
       { command: 'goal', description: 'Progress toward $400K goal' },
     ]).catch(err => console.error('[Telegram] setMyCommands error:', err.message));
 
@@ -717,6 +718,65 @@ function registerCommands() {
         `\uD83D\uDCCA Win rate: ${p.winRate}% (${p.wins}W/${p.losses}L)`,
         `\uD83D\uDCC8 Current multiplier: ${p.multiplier}x from $1,400`,
       ];
+
+      send(msg.chat.id, lines.join('\n'));
+    } catch (err) {
+      send(msg.chat.id, `Error: ${err.message}`);
+    }
+  });
+
+  // /market — full market intelligence dashboard
+  bot.onText(/\/market/, async (msg) => {
+    send(msg.chat.id, '\uD83D\uDCCA *Scanning market intelligence...*');
+    try {
+      const { getMarketRegime, getSectorRotation, getHighShortInterest, getCorrelationPairs } = await import('./stockIntel.js');
+
+      const [regime, sectors, shorts, pairs] = await Promise.all([
+        getMarketRegime(),
+        getSectorRotation(),
+        getHighShortInterest(),
+        getCorrelationPairs(),
+      ]);
+
+      // Regime
+      const regimeIcon = { CALM: '\uD83D\uDFE2', NORMAL: '\uD83D\uDFE1', ELEVATED: '\uD83D\uDFE0', HIGH_FEAR: '\uD83D\uDD34', PANIC: '\u26A0\uFE0F' }[regime.regime] || '\u26AA';
+      const lines = [
+        `${regimeIcon} *Market: ${regime.regime}* (VIX ${regime.vix})`,
+        regime.advice,
+        `SPY: ${regime.spy?.change > 0 ? '+' : ''}${regime.spy?.change}%`,
+        '',
+      ];
+
+      // Sectors
+      if (sectors?.sectors?.length > 0) {
+        lines.push('\uD83D\uDD25 *Hot Sectors:*');
+        sectors.sectors.slice(0, 3).forEach(s =>
+          lines.push(`  \uD83D\uDFE2 ${s.sector}: +${s.changePct}%`)
+        );
+        lines.push('\u2744\uFE0F *Cold Sectors:*');
+        sectors.sectors.slice(-2).forEach(s =>
+          lines.push(`  \uD83D\uDD34 ${s.sector}: ${s.changePct}%`)
+        );
+        lines.push(`Rotation: *${sectors.rotation}*`, '');
+      }
+
+      // Short squeeze alerts
+      const squeezeAlerts = (shorts || []).filter(s => s.signal === 'SQUEEZE_ALERT');
+      if (squeezeAlerts.length > 0) {
+        lines.push('\uD83D\uDCA5 *Squeeze Alerts:*');
+        squeezeAlerts.slice(0, 3).forEach(s =>
+          lines.push(`  ${s.symbol}: ${s.shortPctFloat}% short, ${s.changePct > 0 ? '+' : ''}${s.changePct}%, vol ${s.volumeRatio}x`)
+        );
+        lines.push('');
+      }
+
+      // Correlation pair divergences
+      if (pairs?.length > 0) {
+        lines.push('\uD83D\uDD04 *Pair Divergences:*');
+        pairs.slice(0, 3).forEach(p =>
+          lines.push(`  ${p.leader} +${p.leaderChange}% vs ${p.laggard} ${p.laggardChange}% \u2192 Buy ${p.target}`)
+        );
+      }
 
       send(msg.chat.id, lines.join('\n'));
     } catch (err) {

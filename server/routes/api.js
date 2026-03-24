@@ -25,6 +25,7 @@ import { getClaudeAccuracy, getClaudeHistory } from '../services/claudeTracker.j
 import { getTopMarkets } from '../services/polymarket.js';
 import { getPortfolio, placeBet, getTradeHistory as getPolyHistory, calculateKellyBet, resetPortfolio } from '../services/polySimulator.js';
 import { analyzeMarket, findBestBets, getStrategyStatus, findCorrelatedArbitrage, findSafeBets } from '../services/polyBrain.js';
+import { getAllIntelligence, getMarketRegime as getVixRegime, getSectorRotation, getHighShortInterest, getCorrelationPairs } from '../services/stockIntel.js';
 
 const router = express.Router();
 
@@ -2077,6 +2078,35 @@ router.get('/poly/safe-bets', async (req, res) => {
     const markets = await getTopMarkets(30);
     res.json(findSafeBets(markets));
   } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ── Stock Intelligence ──
+router.get('/intel', async (req, res) => {
+  try {
+    const symbols = (req.query.symbols || '').split(',').filter(Boolean);
+    const intel = await getAllIntelligence(symbols);
+    res.json(intel);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.get('/intel/regime', async (req, res) => {
+  try { res.json(await getVixRegime()); }
+  catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.get('/intel/sectors', async (req, res) => {
+  try { res.json(await getSectorRotation()); }
+  catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.get('/intel/shorts', async (req, res) => {
+  try { res.json(await getHighShortInterest()); }
+  catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+router.get('/intel/pairs', async (req, res) => {
+  try { res.json(await getCorrelationPairs()); }
+  catch (err) { res.status(500).json({ error: err.message }); }
 });
 
 // ── Historical Backtest ──

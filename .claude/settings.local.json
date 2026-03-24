@@ -69,7 +69,8 @@
       "Bash(node -c server/services/polySimulator.js)",
       "Bash(node -c server/index.js)",
       "Bash(node -c server/services/telegram.js)",
-      "Bash(node -c server/services/kalshiArb.js)"
+      "Bash(node -c server/services/kalshiArb.js)",
+      "Bash(node -c server/services/stockIntel.js)"
     ]
   }
 }
