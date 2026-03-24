@@ -445,7 +445,7 @@ if (!process.env.VERCEL) {
       console.log('[Claude] AI brain active — hourly briefings + per-stock analysis enabled');
 
       // ── Polymarket Oracle: 6-strategy scan every 30 min, auto-bet ──
-      cron.schedule('*/30 * * * *', async () => {
+      cron.schedule('*/15 * * * *', async () => {
         try {
           console.log('[PolyCron] Running 6-strategy scan...');
           const markets = await getTopMarkets(30);
@@ -544,7 +544,7 @@ if (!process.env.VERCEL) {
           console.error('[PolyCron] Scan error:', err.message);
         }
       });
-      console.log('[PolyOracle] 6-strategy scanner active — every 30 min');
+      console.log('[PolyOracle] 11-strategy scanner active — every 15 min');
     } else {
       console.log('[Claude] No ANTHROPIC_API_KEY — running rule-based only');
     }

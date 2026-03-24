@@ -557,7 +557,7 @@ function registerCommands() {
 
   // /bet — see what Claude's brain is thinking (read-only — cron places real bets)
   bot.onText(/\/bet/, async (msg) => {
-    send(msg.chat.id, '\uD83E\uDDE0 *Claude is scanning...*\nThis shows what I see. I place bets *autonomously* every 30 min \u2014 only when the math is right.');
+    send(msg.chat.id, '\uD83E\uDDE0 *Claude is scanning...*\nThis shows what I see. I place bets *autonomously* every 15 min \u2014 only when the math is right.');
     try {
       const { getTopMarkets } = await import('./polymarket.js');
       const { findBestBets, getStrategyStatus } = await import('./polyBrain.js');
@@ -689,7 +689,7 @@ function registerCommands() {
       try {
         const { getPortfolio } = await import('./polySimulator.js');
         const p = getPortfolio();
-        send(msg.chat.id, `\n\uD83D\uDCBC Portfolio: *$${p.totalValue.toFixed(2)}* \u00B7 ${p.openPositions.length} open \u00B7 ${p.winRate}% WR\n\u23F0 Auto-bets run every 30 min. I only bet when edge + confidence are strong enough.`);
+        send(msg.chat.id, `\n\uD83D\uDCBC Portfolio: *$${p.totalValue.toFixed(2)}* \u00B7 ${p.openPositions.length} open \u00B7 ${p.winRate}% WR\n\u23F0 Auto-bets run every 15 min. I only bet when edge + confidence are strong enough.`);
       } catch {}
 
     } catch (err) {
