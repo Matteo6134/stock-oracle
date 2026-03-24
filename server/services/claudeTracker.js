@@ -9,6 +9,7 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { savePrediction, updatePredictionOutcome, getPredictionStats, isDbConfigured } from './db.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = path.join(__dirname, '..', 'data');
@@ -37,8 +38,8 @@ function saveHistory(history) {
  * Log a Claude prediction (called when Claude analyzes a stock).
  */
 export function logPrediction(symbol, claudeVerdict, stockData) {
+  // Save to local file (in-memory backup)
   const history = loadHistory();
-
   history.push({
     id: `${symbol}-${Date.now()}`,
     symbol,
@@ -53,38 +54,61 @@ export function logPrediction(symbol, claudeVerdict, stockData) {
     entryPrice: stockData.price,
     gemScore: stockData.gemScore,
     consensus: stockData.consensus,
-    // Outcome fields — filled later when trade closes
-    outcome: null,       // 'win' | 'loss' | 'skipped'
+    outcome: null,
     exitPrice: null,
     actualPct: null,
     settledAt: null,
   });
-
   saveHistory(history);
+
+  // Also persist to Supabase (survives redeploys)
+  savePrediction({
+    symbol,
+    action: claudeVerdict.action,
+    confidence: claudeVerdict.confidence,
+    thesis: claudeVerdict.thesis,
+    riskLevel: claudeVerdict.riskLevel,
+    targetPct: claudeVerdict.targetPct,
+    stopPct: claudeVerdict.stopPct,
+    timeframeDays: claudeVerdict.timeframeDays,
+    entryPrice: stockData.price,
+    gemScore: stockData.gemScore,
+    consensus: stockData.consensus,
+    provider: claudeVerdict.provider || 'claude',
+  }).catch(() => {}); // Non-blocking
 }
 
 /**
  * Record outcome of a Claude prediction (called when trade closes).
  */
 export function recordOutcome(symbol, exitPrice, actualPct, exitReason) {
+  // Update local file
   const history = loadHistory();
-  // Find the most recent open prediction for this symbol
   const idx = history.findLastIndex(h => h.symbol === symbol && h.outcome === null);
-  if (idx === -1) return;
+  if (idx !== -1) {
+    history[idx].outcome = actualPct > 0 ? 'win' : 'loss';
+    history[idx].exitPrice = exitPrice;
+    history[idx].actualPct = Math.round(actualPct * 100) / 100;
+    history[idx].settledAt = new Date().toISOString();
+    history[idx].exitReason = exitReason;
+    saveHistory(history);
+  }
 
-  history[idx].outcome = actualPct > 0 ? 'win' : 'loss';
-  history[idx].exitPrice = exitPrice;
-  history[idx].actualPct = Math.round(actualPct * 100) / 100;
-  history[idx].settledAt = new Date().toISOString();
-  history[idx].exitReason = exitReason;
-
-  saveHistory(history);
+  // Also update Supabase
+  updatePredictionOutcome(symbol, exitPrice, actualPct, exitReason).catch(() => {});
 }
 
 /**
  * Get Claude's accuracy stats (fed back into prompts + /brain command).
  */
-export function getClaudeAccuracy() {
+export async function getClaudeAccuracy() {
+  // Try Supabase first (persistent across deploys)
+  if (isDbConfigured()) {
+    const dbStats = await getPredictionStats().catch(() => null);
+    if (dbStats) return dbStats;
+  }
+
+  // Fallback to local file
   const history = loadHistory();
   const settled = history.filter(h => h.outcome && h.action === 'BUY');
   const skipped = history.filter(h => h.action === 'SKIP');
