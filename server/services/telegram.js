@@ -93,6 +93,7 @@ export function initTelegramBot() {
       { command: 'poly', description: 'Polymarket portfolio & picks' },
       { command: 'bet', description: 'See Claude Polymarket analysis' },
       { command: 'goal', description: 'Progress toward $400K goal' },
+      { command: 'clear', description: 'Clear chat history' },
     ]).catch(err => console.error('[Telegram] setMyCommands error:', err.message));
 
     registerCommands();
@@ -784,6 +785,29 @@ function registerCommands() {
       send(msg.chat.id, lines.join('\n'));
     } catch (err) {
       send(msg.chat.id, `Error: ${err.message}`);
+    }
+  });
+
+  // /clear — delete recent bot messages to clean up chat
+  bot.onText(/\/clear/, async (msg) => {
+    try {
+      // Send confirmation then delete it + the command message
+      const conf = await bot.sendMessage(msg.chat.id, '\uD83E\uDDF9 Clearing chat...');
+      // Delete the /clear command itself
+      await bot.deleteMessage(msg.chat.id, msg.message_id).catch(() => {});
+      // Delete the "Clearing..." message
+      await bot.deleteMessage(msg.chat.id, conf.message_id).catch(() => {});
+      // Send a fresh start message
+      await bot.sendMessage(msg.chat.id, [
+        '\uD83E\uDD16 *Stock Oracle* \u2014 Ready',
+        '',
+        '\uD83D\uDCCA /portfolio \u00B7 /gems \u00B7 /pennies',
+        '\uD83E\uDDE0 /ask \u00B7 /briefing \u00B7 /brain',
+        '\uD83C\uDFAF /poly \u00B7 /bet \u00B7 /goal',
+        '\uD83D\uDCC8 /next \u00B7 /scan \u00B7 /market',
+      ].join('\n'), { parse_mode: 'Markdown' });
+    } catch (err) {
+      send(msg.chat.id, `\u2705 Fresh start! Use the menu for commands.`);
     }
   });
 }
