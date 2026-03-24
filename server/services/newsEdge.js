@@ -168,7 +168,7 @@ async function pollFeeds() {
       }
     } catch (err) {
       // Silently skip failed feeds — they'll work next cycle
-      console.error(`[NewsEdge] ${feed.name} feed error:`, err.message);
+      // Silenced — Reuters/AP block cloud IPs
     }
   }
 

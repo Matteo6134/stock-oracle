@@ -18,10 +18,9 @@ const CB_RECOVERY_MS = 30 * 60 * 1000; // 30 min auto-recovery
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 async function fetchSubreddit(subreddit) {
-  // Circuit breaker check — skip request if circuit is open
+  // Circuit breaker check — skip silently if circuit is open
   if (circuitBreaker.isOpen) {
     if (Date.now() - circuitBreaker.lastFailure > CB_RECOVERY_MS) {
-      console.log('[Reddit] Circuit breaker recovering — retrying requests');
       circuitBreaker.isOpen = false;
       circuitBreaker.failures = 0;
     } else {
@@ -48,10 +47,10 @@ async function fetchSubreddit(subreddit) {
     circuitBreaker.lastFailure = Date.now();
     if (circuitBreaker.failures >= CB_THRESHOLD) {
       circuitBreaker.isOpen = true;
-      console.error(`[Reddit] Circuit breaker OPEN after ${CB_THRESHOLD} consecutive failures — pausing requests for 30 min`);
+      // Silent — Reddit blocks cloud IPs, no point logging every cycle
     }
     if (err.response?.status !== 429) {
-      console.error(`[Reddit] Error r/${subreddit}:`, err.message);
+      // Silenced — Reddit/Reuters/AP block cloud IPs (403)
     }
     return [];
   }
@@ -83,7 +82,7 @@ async function ensurePostsLoaded() {
 
       cachedPosts = allPosts;
       cacheTimestamp = Date.now();
-      console.log(`[Reddit] Cached ${allPosts.length} posts from ${SUBREDDITS.length} subreddits`);
+      if (allPosts.length > 0) console.log(`[Reddit] Cached ${allPosts.length} posts from ${SUBREDDITS.length} subreddits`);
       return allPosts;
     } finally {
       loadingPromise = null; // Reset so future calls after TTL can re-fetch
