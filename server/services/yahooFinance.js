@@ -6,6 +6,99 @@ const yf = new YahooFinance({
   validation: { logErrors: false, logOptionsErrors: false },
 });
 
+// Configure yahoo-finance2 to handle Railway/cloud IP blocks
+// Set longer timeouts and custom fetch options
+try {
+  yf.setGlobalConfig({
+    queue: {
+      concurrency: 2,      // Limit concurrent requests
+      intervalCap: 3,       // Max 3 requests per interval
+      interval: 2000,       // 2 second interval
+      timeout: 15000,       // 15 sec timeout
+    },
+  });
+} catch (e) {
+  // Older versions may not support setGlobalConfig
+}
+
+/**
+ * Fallback: fetch quote via Yahoo Finance v8 API directly with axios
+ * when the yahoo-finance2 library fails (common on cloud servers)
+ */
+async function fetchQuoteDirect(symbol) {
+  try {
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1d`;
+    const { data } = await axios.get(url, {
+      timeout: 10000,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+        'Accept': 'application/json',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Origin': 'https://finance.yahoo.com',
+        'Referer': 'https://finance.yahoo.com/',
+      },
+    });
+    const result = data?.chart?.result?.[0];
+    if (!result) return null;
+
+    const meta = result.meta || {};
+    const close = result.indicators?.quote?.[0]?.close;
+    const lastClose = close?.filter(Boolean).pop();
+
+    return {
+      symbol: meta.symbol || symbol,
+      shortName: meta.shortName || symbol,
+      regularMarketPrice: meta.regularMarketPrice || lastClose || 0,
+      regularMarketChange: meta.regularMarketPrice && meta.chartPreviousClose
+        ? meta.regularMarketPrice - meta.chartPreviousClose : 0,
+      regularMarketChangePercent: meta.regularMarketPrice && meta.chartPreviousClose
+        ? ((meta.regularMarketPrice - meta.chartPreviousClose) / meta.chartPreviousClose) * 100 : 0,
+      regularMarketVolume: meta.regularMarketVolume || 0,
+      regularMarketPreviousClose: meta.chartPreviousClose || meta.previousClose || 0,
+      fiftyTwoWeekHigh: meta.fiftyTwoWeekHigh || 0,
+      fiftyTwoWeekLow: meta.fiftyTwoWeekLow || 0,
+      marketCap: (meta.regularMarketPrice || 0) * (meta.sharesOutstanding || 0),
+    };
+  } catch (err) {
+    return null;
+  }
+}
+
+/**
+ * Fallback: fetch historical data directly when yahoo-finance2 fails
+ */
+async function fetchHistoryDirect(symbol, days = 45) {
+  try {
+    const end = Math.floor(Date.now() / 1000);
+    const start = end - (days * 86400);
+    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?period1=${start}&period2=${end}&interval=1d`;
+    const { data } = await axios.get(url, {
+      timeout: 10000,
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+        'Accept': 'application/json',
+        'Origin': 'https://finance.yahoo.com',
+        'Referer': 'https://finance.yahoo.com/',
+      },
+    });
+    const result = data?.chart?.result?.[0];
+    if (!result?.timestamp) return [];
+
+    const timestamps = result.timestamp;
+    const q = result.indicators?.quote?.[0] || {};
+    return timestamps.map((ts, i) => ({
+      date: new Date(ts * 1000),
+      open: q.open?.[i] || 0,
+      high: q.high?.[i] || 0,
+      low: q.low?.[i] || 0,
+      close: q.close?.[i] || 0,
+      volume: q.volume?.[i] || 0,
+    })).filter(d => d.close > 0);
+  } catch {
+    return [];
+  }
+}
+
 // ── Earnings calendar cache ──
 let earningsCache = { data: [], timestamp: 0 };
 const EARNINGS_CACHE_TTL = 60 * 60 * 1000; // 1 hour
@@ -339,27 +432,34 @@ export async function getQuoteBatch(symbols) {
   // Chunk into smaller batches to avoid Yahoo rate limits
   const CHUNK_SIZE = 10;
   const allQuotes = [];
+  let useDirectApi = false; // Switch to direct API if library keeps failing
 
   for (let i = 0; i < symbols.length; i += CHUNK_SIZE) {
     const chunk = symbols.slice(i, i + CHUNK_SIZE);
-    try {
-      const result = await yf.quote(chunk, {}, { validateResult: false });
-      const quotes = Array.isArray(result) ? result : [result];
-      allQuotes.push(...quotes.filter(Boolean).map(q => ({ ...q, currentSessionPrice: getCurrentSessionPrice(q) })));
-    } catch (err) {
-      console.warn(`[YahooFinance] Chunk ${i}-${i + chunk.length} failed:`, err.message);
-      // Fallback: try individually with delay
-      for (const s of chunk) {
-        try {
-          const q = await yf.quote(s, {}, { validateResult: false });
-          if (q) allQuotes.push({ ...q, currentSessionPrice: getCurrentSessionPrice(q) });
-        } catch { /* skip symbol */ }
-        await new Promise(r => setTimeout(r, 200)); // small delay between calls
+
+    if (!useDirectApi) {
+      try {
+        const result = await yf.quote(chunk, {}, { validateResult: false });
+        const quotes = Array.isArray(result) ? result : [result];
+        allQuotes.push(...quotes.filter(Boolean).map(q => ({ ...q, currentSessionPrice: getCurrentSessionPrice(q) })));
+      } catch (err) {
+        console.warn(`[YahooFinance] Library chunk ${i}-${i + chunk.length} failed, switching to direct API`);
+        useDirectApi = true; // Library is blocked — switch to direct for all remaining
       }
     }
-    // Small delay between chunks
+
+    if (useDirectApi) {
+      // Direct API fallback — slower but works on Railway
+      for (const s of chunk) {
+        const q = await fetchQuoteDirect(s);
+        if (q) allQuotes.push({ ...q, currentSessionPrice: q.regularMarketPrice });
+        await new Promise(r => setTimeout(r, 150)); // Rate limit
+      }
+    }
+
+    // Delay between chunks
     if (i + CHUNK_SIZE < symbols.length) {
-      await new Promise(r => setTimeout(r, 300));
+      await new Promise(r => setTimeout(r, useDirectApi ? 500 : 300));
     }
   }
 
@@ -369,12 +469,12 @@ export async function getQuoteBatch(symbols) {
 export async function getQuote(symbol) {
   try {
     const q = await yf.quote(symbol, {}, { validateResult: false });
-    if (!q) return {};
-    return {
-      ...q,
-      currentSessionPrice: getCurrentSessionPrice(q)
-    };
+    if (!q) throw new Error('empty result');
+    return { ...q, currentSessionPrice: getCurrentSessionPrice(q) };
   } catch (err) {
+    // Fallback to direct API when yahoo-finance2 fails (common on cloud/Railway)
+    const direct = await fetchQuoteDirect(symbol);
+    if (direct) return { ...direct, currentSessionPrice: direct.regularMarketPrice };
     console.error(`[YahooFinance] Quote error ${symbol}:`, err.message);
     return {};
   }
@@ -406,13 +506,24 @@ export async function getHistoricalData(symbol) {
       if (result?.quotes?.length > 0) {
         return result.quotes.map(d => ({ date: d.date, open: d.open, high: d.high, low: d.low, close: d.close, volume: d.volume }));
       }
+      // Library returned empty — try direct
+      throw new Error('empty chart result');
     } catch (chartErr) {
-      const result = await yf.historical(symbol, {
-        period1: start.toISOString().split('T')[0],
-        period2: end.toISOString().split('T')[0],
-        interval: '1d'
-      }, { validateResult: false });
-      return Array.isArray(result) ? result.map(d => ({ date: d.date, open: d.open, high: d.high, low: d.low, close: d.close, volume: d.volume })) : [];
+      // Try direct API first (more reliable on cloud)
+      const direct = await fetchHistoryDirect(symbol, 45);
+      if (direct.length > 0) return direct;
+
+      // Last resort: try yf.historical
+      try {
+        const result = await yf.historical(symbol, {
+          period1: start.toISOString().split('T')[0],
+          period2: end.toISOString().split('T')[0],
+          interval: '1d'
+        }, { validateResult: false });
+        return Array.isArray(result) ? result.map(d => ({ date: d.date, open: d.open, high: d.high, low: d.low, close: d.close, volume: d.volume })) : [];
+      } catch {
+        return [];
+      }
     }
     return [];
   } catch (err) {
