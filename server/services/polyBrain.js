@@ -772,6 +772,65 @@ export function detectWhaleActivity(markets, prevMarkets) {
 }
 
 // ══════════════════════════════════════════════════════════════
+// STRATEGY 9: RESOLUTION SNIPING
+// ══════════════════════════════════════════════════════════════
+
+/**
+ * Find markets resolving in 1-7 days where one side is near-certain (>=85%).
+ * These are "free money" — buy the near-certain side and collect the spread on resolution.
+ *
+ * Example: "Will the sun rise tomorrow?" at 92¢ Yes → buy Yes for 8.7% return in 1 day.
+ * Only include if annualized return > 50% (otherwise not worth locking capital).
+ *
+ * @param {Array} markets - All active markets
+ * @returns {Array} Resolution snipe opportunities sorted by annualized return
+ */
+export function findResolutionSnipes(markets) {
+  const now = new Date();
+  const snipes = [];
+
+  for (const m of markets) {
+    if (!m.endDate) continue;
+
+    const daysLeft = (new Date(m.endDate) - now) / 86400000;
+    if (daysLeft < 1 || daysLeft > 7) continue; // 1-7 days only
+
+    // Check if YES side is near-certain
+    const yesNearCertain = m.yesPrice >= 0.85;
+    // Check if NO side is near-certain
+    const noNearCertain = m.noPrice >= 0.85;
+
+    if (!yesNearCertain && !noNearCertain) continue;
+
+    const betSide = yesNearCertain ? 'Yes' : 'No';
+    const price = yesNearCertain ? m.yesPrice : m.noPrice;
+    const returnPct = Math.round(((1 / price) - 1) * 1000) / 10;
+    const roundedDays = Math.max(0.1, Math.round(daysLeft * 10) / 10);
+    const annualizedReturn = Math.round((returnPct / roundedDays) * 365 * 10) / 10;
+
+    // Only include if annualized return > 50%
+    if (annualizedReturn <= 50) continue;
+
+    snipes.push({
+      id: m.id,
+      question: m.question,
+      betSide,
+      price,
+      returnPct,
+      daysLeft: roundedDays,
+      annualizedReturn,
+      yesPrice: m.yesPrice,
+      noPrice: m.noPrice,
+      volume: m.volume,
+      category: m.category,
+      thesis: `Near-certain outcome: "${m.question.slice(0, 60)}" at ${Math.round(price * 100)}\u00A2 resolves in ${roundedDays} days. ${returnPct}% return if correct.`,
+    });
+  }
+
+  return snipes.sort((a, b) => b.annualizedReturn - a.annualizedReturn);
+}
+
+// ══════════════════════════════════════════════════════════════
 // MASTER SCANNER — combines all strategies
 // ══════════════════════════════════════════════════════════════
 
@@ -953,6 +1012,88 @@ export async function findBestBets(markets) {
   // Store current markets for next scan's whale detection
   _prevScanMarkets = markets.map(m => ({ id: m.id, yesPrice: m.yesPrice, noPrice: m.noPrice, volume: m.volume }));
 
+  // ── Strategy 8: Resolution Sniping ──
+  // Markets resolving in 1-7 days where one side is 85-92% (gap between safe_bet threshold)
+  // Higher return than safe bets, still very likely to resolve correctly
+  try {
+    const now = new Date();
+    const snipes = filteredMarkets.filter(m => {
+      if (!m.endDate) return false;
+      const daysLeft = (new Date(m.endDate) - now) / 86400000;
+      if (daysLeft < 0.5 || daysLeft > 7) return false;
+      // 85-92% on either side — too low for safe_bet (92%+), but still near-certain
+      const yesNear = m.yesPrice >= 0.85 && m.yesPrice < 0.92;
+      const noNear = m.noPrice >= 0.85 && m.noPrice < 0.92;
+      return (yesNear || noNear) && m.volume >= 30000;
+    });
+
+    for (const m of snipes.slice(0, 5)) {
+      const betSide = m.yesPrice >= 0.85 ? 'Yes' : 'No';
+      const price = betSide === 'Yes' ? m.yesPrice : m.noPrice;
+      const returnPct = Math.round(((1 / price) - 1) * 1000) / 10;
+      const daysLeft = Math.max(0.5, (new Date(m.endDate) - now) / 86400000);
+      const annualized = Math.round((returnPct / daysLeft) * 365);
+
+      if (annualized < 50) continue; // Not worth locking capital
+
+      allBets.push({
+        marketId: m.id,
+        question: m.question,
+        marketYesPrice: m.yesPrice,
+        marketNoPrice: m.noPrice,
+        action: betSide === 'Yes' ? 'BET_YES' : 'BET_NO',
+        realProbability: price, // Market already says ~90%
+        edge: returnPct,
+        confidence: 8, // Very likely but not certain (85-92%)
+        thesis: `Resolution snipe: ${returnPct}% return in ${Math.round(daysLeft * 10) / 10} days (${annualized}% annualized). Market at ${Math.round(price * 100)}¢ — near-certain but not fully priced in.`,
+        strategy: 'resolution_snipe',
+        suggestedSizePct: Math.min(20, 8 + returnPct),
+        score: annualized * 0.6,
+        returnPct,
+        daysLeft: Math.round(daysLeft * 10) / 10,
+        annualizedReturn: annualized,
+        analyzedAt: new Date().toISOString(),
+      });
+    }
+  } catch (err) {
+    console.error('[PolyBrain] Resolution snipe error:', err.message);
+  }
+
+  // ── Strategy 9: Momentum Detection ──
+  // Markets with 5%+ move in 1h or 10%+ in 4h — ride or fade
+  try {
+    const { detectMomentum } = await import('./polyMomentum.js');
+    const momentumSignals = detectMomentum(markets);
+
+    for (const sig of momentumSignals.slice(0, 3)) {
+      // Strong/moderate momentum with aligned timeframes → ride it
+      if (sig.strength === 'weak') continue;
+
+      allBets.push({
+        marketId: sig.id,
+        question: sig.question,
+        marketYesPrice: sig.yesPrice,
+        marketNoPrice: sig.noPrice,
+        action: sig.direction === 'up' ? 'BET_YES' : 'BET_NO',
+        realProbability: sig.direction === 'up' ? Math.min(0.95, sig.yesPrice + sig.maxMove / 200) : Math.max(0.05, sig.yesPrice - sig.maxMove / 200),
+        edge: Math.round(sig.maxMove),
+        confidence: sig.strength === 'strong' ? 8 : 6,
+        thesis: sig.thesis,
+        strategy: 'momentum',
+        suggestedSizePct: sig.strength === 'strong' ? 10 : 5,
+        score: sig.maxMove * (sig.strength === 'strong' ? 6 : 3),
+        momentum1h: sig.momentum1h,
+        momentum4h: sig.momentum4h,
+        momentum24h: sig.momentum24h,
+        direction: sig.direction,
+        momentumStrength: sig.strength,
+        analyzedAt: new Date().toISOString(),
+      });
+    }
+  } catch (err) {
+    console.error('[PolyBrain] Momentum detection error:', err.message);
+  }
+
   // Sort all opportunities by score (best first)
   allBets.sort((a, b) => (b.score || 0) - (a.score || 0));
 
@@ -962,7 +1103,9 @@ export async function findBestBets(markets) {
   const xArb = allBets.filter(b => b.strategy === 'cross_platform_arb' || b.strategy === 'cross_platform_edge').length;
   const chains = allBets.filter(b => b.strategy === 'conditional_chain').length;
   const whales = allBets.filter(b => b.strategy === 'whale_follow').length;
-  console.log(`[PolyBrain] Found ${allBets.length} opps: ${allBets.filter(b => b.strategy === 'edge_detection').length} edge, ${allBets.filter(b => b.strategy === 'arbitrage').length} arb, ${xArb} cross-plat, ${allBets.filter(b => b.strategy === 'longshot_sell').length} longshot, ${allBets.filter(b => b.strategy === 'safe_bet').length} safe, ${chains} chains, ${whales} whale`);
+  const snipeCount = allBets.filter(b => b.strategy === 'resolution_snipe').length;
+  const momentumCount = allBets.filter(b => b.strategy === 'momentum').length;
+  console.log(`[PolyBrain] Found ${allBets.length} opps: ${allBets.filter(b => b.strategy === 'edge_detection').length} edge, ${allBets.filter(b => b.strategy === 'arbitrage').length} arb, ${xArb} cross-plat, ${allBets.filter(b => b.strategy === 'longshot_sell').length} longshot, ${allBets.filter(b => b.strategy === 'safe_bet').length} safe, ${chains} chains, ${whales} whale, ${snipeCount} snipes, ${momentumCount} momentum`);
 
   return allBets;
 }
@@ -982,6 +1125,8 @@ export function getStrategyStatus() {
       { name: 'Compound Reinvestment', desc: 'Pyramid growth: safe→medium→aggressive', active: true },
       { name: 'Conditional Chains', desc: 'If A happens, bet downstream B, C, D', active: true },
       { name: 'Whale Follow', desc: 'Detect volume spikes from big traders', active: _prevScanMarkets.length > 0 },
+      { name: 'Resolution Sniping', desc: 'Near-certain markets not fully priced in', active: true },
+      { name: 'Momentum Detection', desc: 'Ride strong price moves', active: true },
       { name: 'News Speed Edge', desc: 'React to breaking news fast', active: true },
       { name: 'Category Accuracy', desc: 'Bet more where proven edge', active: categoryStats.size > 0 },
     ],

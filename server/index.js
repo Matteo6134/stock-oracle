@@ -445,12 +445,20 @@ if (!process.env.VERCEL) {
       }, { timezone: 'America/New_York' });
       console.log('[Claude] AI brain active — hourly briefings + per-stock analysis enabled');
 
-      // ── Polymarket Oracle: 6-strategy scan every 30 min, auto-bet ──
+      // ── Polymarket Oracle: 13-strategy scan every 15 min, auto-bet ──
       cron.schedule('*/15 * * * *', async () => {
         try {
-          console.log('[PolyCron] Running 6-strategy scan...');
+          console.log('[PolyCron] Running 13-strategy scan...');
           const markets = await getTopMarkets(30);
           if (markets.length === 0) return;
+
+          // Record prices for momentum tracking
+          try {
+            const { recordPrices } = await import('./services/polyMomentum.js');
+            recordPrices(markets);
+          } catch (err) {
+            console.error('[PolyCron] Momentum record error:', err.message);
+          }
           const picks = await findBestBets(markets);
           if (picks.length === 0) { console.log('[PolyCron] No edge found'); return; }
 
@@ -476,6 +484,10 @@ if (!process.env.VERCEL) {
                 minConf = 6; minEdge = 2; maxSizePct = 8; break;      // Whale: follow smart money
               case 'longshot_sell':
                 minConf = 7; minEdge = 10; maxSizePct = 10; break;    // Longshot: still careful
+              case 'resolution_snipe':
+                minConf = 7; minEdge = 5; maxSizePct = 20; break;     // Snipe: near-certain, bigger bets
+              case 'momentum':
+                minConf = 7; minEdge = 8; maxSizePct = 10; break;     // Momentum: needs strong signal
               default: // edge_detection
                 minConf = 6; minEdge = 8; maxSizePct = 20; break;     // Edge: Claude just needs decent edge
             }

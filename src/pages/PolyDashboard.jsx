@@ -40,17 +40,21 @@ const STRATEGY_CHIPS = {
   safe_bet: { label: 'Safe', icon: '🛡', color: 'bg-green-500/15 text-green-400' },
   conditional_chain: { label: 'Chain', icon: '🔗', color: 'bg-orange-500/15 text-orange-400' },
   whale_follow: { label: 'Whale', icon: '🐳', color: 'bg-indigo-500/15 text-indigo-400' },
+  resolution_snipe: { label: 'Snipe', icon: '🎯', color: 'bg-emerald-500/15 text-emerald-400' },
+  momentum: { label: 'Momentum', icon: '📈', color: 'bg-rose-500/15 text-rose-400' },
 };
 
 const QUALITY_GATES = {
-  safe_bet: { minConf: 7, minEdge: 3 },
-  arbitrage: { minConf: 6, minEdge: 5 },
-  cross_platform_arb: { minConf: 6, minEdge: 5 },
-  cross_platform_edge: { minConf: 7, minEdge: 8 },
-  conditional_chain: { minConf: 8, minEdge: 12 },
-  whale_follow: { minConf: 7, minEdge: 3 },
-  longshot_sell: { minConf: 8, minEdge: 15 },
-  edge_detection: { minConf: 8, minEdge: 12 },
+  safe_bet: { minConf: 6, minEdge: 2 },
+  arbitrage: { minConf: 5, minEdge: 3 },
+  cross_platform_arb: { minConf: 5, minEdge: 3 },
+  cross_platform_edge: { minConf: 6, minEdge: 5 },
+  conditional_chain: { minConf: 7, minEdge: 8 },
+  whale_follow: { minConf: 6, minEdge: 2 },
+  longshot_sell: { minConf: 7, minEdge: 10 },
+  edge_detection: { minConf: 6, minEdge: 8 },
+  resolution_snipe: { minConf: 7, minEdge: 5 },
+  momentum: { minConf: 7, minEdge: 8 },
 };
 
 function StrategyChip({ strategy }) {

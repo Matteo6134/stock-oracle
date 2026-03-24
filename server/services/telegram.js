@@ -94,6 +94,7 @@ export function initTelegramBot() {
       { command: 'bet', description: 'See Claude Polymarket analysis' },
       { command: 'goal', description: 'Progress toward $400K goal' },
       { command: 'phase', description: 'Growth phase & strategy limits' },
+      { command: 'momentum', description: 'Markets with big price moves' },
       { command: 'clear', description: 'Clear chat history' },
     ]).catch(err => console.error('[Telegram] setMyCommands error:', err.message));
 
@@ -604,6 +605,8 @@ function registerCommands() {
         cross_platform_edge: '\uD83C\uDF10 Cross-Edge',
         conditional_chain: '\uD83D\uDD17 Chain',
         whale_follow: '\uD83D\uDC33 Whale',
+        resolution_snipe: '\uD83C\uDFAF Snipe',
+        momentum: '\uD83D\uDCC8 Momentum',
       };
       const stratLine = Object.entries(stratCounts).map(([k, v]) => `${stratLabels[k] || k}: ${v}`).join(' \u00B7 ');
       send(msg.chat.id, `\uD83C\uDFAF Found *${picks.length}* opportunities\n${stratLine}`);
@@ -619,6 +622,8 @@ function registerCommands() {
           cross_platform_edge: '\uD83C\uDF10',
           conditional_chain: '\uD83D\uDD17',
           whale_follow: '\uD83D\uDC33',
+          resolution_snipe: '\uD83C\uDFAF',
+          momentum: '\uD83D\uDCC8',
         }[pick.strategy] || '\uD83C\uDFAF';
 
         const confBar = '\u2588'.repeat(Math.min(pick.confidence, 10)) + '\u2591'.repeat(Math.max(0, 10 - pick.confidence));
@@ -655,6 +660,22 @@ function registerCommands() {
             `\uD83D\uDCC8 Edge: *+${pick.edge || 0}%*`,
             `[${confBar}] Confidence: ${pick.confidence}/10`,
             `\uD83D\uDCDD ${pick.thesis || ''}`,
+          );
+        } else if (pick.strategy === 'resolution_snipe') {
+          lines.push(
+            `\uD83C\uDFAF Return: *+${pick.returnPct || 0}%* in ${pick.daysLeft || '?'} days`,
+            `\uD83D\uDCC8 Annualized: *${pick.annualizedReturn || 0}%*`,
+            `\uD83D\uDCB0 Price: ${Math.round((pick.marketYesPrice || 0.5) * 100)}\u00A2`,
+            `[${confBar}] Confidence: ${pick.confidence}/10`,
+            `\uD83E\uDDE0 Near-certain outcome not fully priced in`,
+          );
+        } else if (pick.strategy === 'momentum') {
+          const arrow = pick.direction === 'up' ? '\u2B06\uFE0F' : '\u2B07\uFE0F';
+          lines.push(
+            `${arrow} Direction: *${pick.direction?.toUpperCase()}* (${pick.momentumStrength || 'moderate'})`,
+            `1h: ${(pick.momentum1h || 0) > 0 ? '+' : ''}${(pick.momentum1h || 0).toFixed(1)}% \u00B7 4h: ${(pick.momentum4h || 0) > 0 ? '+' : ''}${(pick.momentum4h || 0).toFixed(1)}% \u00B7 24h: ${(pick.momentum24h || 0) > 0 ? '+' : ''}${(pick.momentum24h || 0).toFixed(1)}%`,
+            `[${confBar}] Confidence: ${pick.confidence}/10`,
+            `\uD83E\uDDE0 ${pick.thesis || ''}`,
           );
         } else {
           // Edge detection, longshot, cross_platform_edge
@@ -779,6 +800,34 @@ function registerCommands() {
           const wrIcon = s.winRate >= 60 ? '\uD83D\uDFE2' : s.winRate >= 40 ? '\uD83D\uDFE1' : '\uD83D\uDD34';
           lines.push(`  ${wrIcon} ${cat}: ${s.winRate}% (${s.wins}/${s.total}) \u00B7 ${mult} \u00B7 P&L: ${s.totalPnl >= 0 ? '+' : ''}$${s.totalPnl}`);
         }
+      }
+
+      send(msg.chat.id, lines.join('\n'));
+    } catch (err) {
+      send(msg.chat.id, `Error: ${err.message}`);
+    }
+  });
+
+  // /momentum — show markets with biggest price moves
+  bot.onText(/\/momentum/, async (msg) => {
+    try {
+      const { getMomentumSignals } = await import('./polyMomentum.js');
+      const data = getMomentumSignals();
+
+      if (data.signals.length === 0) {
+        return send(msg.chat.id, `\uD83D\uDCC8 *Momentum Tracker*\n\nTracking ${data.trackedMarkets} markets.\nNo significant moves detected yet \u2014 need a few scan cycles to build history.`);
+      }
+
+      const lines = [
+        `\uD83D\uDCC8 *Momentum Tracker*`,
+        `Tracking ${data.trackedMarkets} markets\n`,
+      ];
+
+      for (const sig of data.signals.slice(0, 8)) {
+        const arrow1h = sig.m1h > 0 ? '\u2B06\uFE0F' : sig.m1h < 0 ? '\u2B07\uFE0F' : '\u2796';
+        const arrow4h = sig.m4h > 0 ? '\u2B06\uFE0F' : sig.m4h < 0 ? '\u2B07\uFE0F' : '\u2796';
+        const arrow24h = sig.m24h > 0 ? '\u2B06\uFE0F' : sig.m24h < 0 ? '\u2B07\uFE0F' : '\u2796';
+        lines.push(`${arrow1h} 1h: ${sig.m1h > 0 ? '+' : ''}${sig.m1h.toFixed(1)}% \u00B7 ${arrow4h} 4h: ${sig.m4h > 0 ? '+' : ''}${sig.m4h.toFixed(1)}% \u00B7 ${arrow24h} 24h: ${sig.m24h > 0 ? '+' : ''}${sig.m24h.toFixed(1)}%`);
       }
 
       send(msg.chat.id, lines.join('\n'));
