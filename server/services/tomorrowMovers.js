@@ -192,6 +192,7 @@ async function _scan() {
       ...STOCK_UNIVERSE.BIOTECH_PHARMA,
       ...STOCK_UNIVERSE.MEME_VOLATILE,
       ...STOCK_UNIVERSE.RECENT_IPOS,
+      ...STOCK_UNIVERSE.MICRO_CAP_GEMS,
     ];
     const unique = [...new Set(allSymbols)];
 

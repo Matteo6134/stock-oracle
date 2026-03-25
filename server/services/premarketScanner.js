@@ -60,6 +60,29 @@ const RECENT_IPOS = [
   'BROS', 'DNUT', 'VRT', 'SMCI', 'ONON', 'CELH',
 ];
 
+// Micro-cap gems — the kind that go from $1 to $10 overnight
+// These are the stocks the user specifically wants to track
+const MICRO_CAP_GEMS = [
+  // User-requested tickers
+  'JFB', 'BZAI', 'ROMA', 'ANNA', 'MRLN', 'AAOI',
+  // Photonics / Fiber optics / Tech micro-caps
+  'LTRX', 'AUVI', 'CUEN', 'BIMI', 'VNET', 'LIQT', 'SOPA', 'WIMI',
+  // AI / Data micro-caps
+  'GFAI', 'DTSS', 'INOD', 'BTBT', 'SOS', 'EOSE', 'OUST',
+  // Fintech micro-caps
+  'CODA', 'PSFE', 'PAYO', 'NUVB', 'PRCH',
+  // Biotech micro-caps with catalyst potential
+  'MBOT', 'VSTM', 'MVST', 'BIOR', 'SLDB', 'RVPH',
+  // Energy / Mining micro-caps
+  'UROY', 'DNN', 'NXE', 'PTRA', 'WKSP',
+  // Consumer / Retail micro-caps
+  'SFIX', 'REAL', 'CINT', 'PRPL',
+  // Space / Defense micro-caps
+  'MNTS', 'VORB', 'ASTR',
+  // Cannabis micro-caps
+  'MAPS', 'GRWG',
+];
+
 // ────────────────────────────────────────────────────────────────────────────
 // Caches
 // ────────────────────────────────────────────────────────────────────────────
@@ -106,6 +129,7 @@ function buildUniverse(earningsCalendar = []) {
     ...BIOTECH_PHARMA,
     ...MEME_VOLATILE,
     ...RECENT_IPOS,
+    ...MICRO_CAP_GEMS,
   ];
 
   // Deduplicate
@@ -691,6 +715,7 @@ export const STOCK_UNIVERSE = {
   BIOTECH_PHARMA,
   MEME_VOLATILE,
   RECENT_IPOS,
+  MICRO_CAP_GEMS,
   get ALL() {
     return buildUniverse();
   },
