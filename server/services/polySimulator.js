@@ -25,7 +25,7 @@ const GOAL = 400000;
 // ── Growth Phase System ──
 // As balance grows, unlock more aggressive strategies and bet sizes
 const GROWTH_PHASES = [
-  { name: 'foundation', minBalance: 0, maxBalance: 3000, maxBetPct: 8, minConfidence: 8, strategies: ['safe_bet', 'edge_detection'] },
+  { name: 'foundation', minBalance: 0, maxBalance: 3000, maxBetPct: 10, minConfidence: 6, strategies: ['safe_bet', 'edge_detection', 'resolution_snipe', 'whale_follow'] },
   { name: 'growth', minBalance: 3000, maxBalance: 15000, maxBetPct: 12, minConfidence: 7, strategies: ['safe_bet', 'edge_detection', 'arbitrage', 'whale_follow'] },
   { name: 'acceleration', minBalance: 15000, maxBalance: 100000, maxBetPct: 15, minConfidence: 7, strategies: ['all'] },
   { name: 'moonshot', minBalance: 100000, maxBalance: 400000, maxBetPct: 20, minConfidence: 6, strategies: ['all'] },

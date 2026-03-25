@@ -524,7 +524,11 @@ if (!process.env.VERCEL) {
         try {
           console.log('[PolyCron] Running 13-strategy scan...');
           const markets = await getTopMarkets(30);
-          if (markets.length === 0) return;
+          if (markets.length === 0) {
+            console.log('[PolyCron] No markets returned from Polymarket API');
+            return;
+          }
+          console.log(`[PolyCron] Fetched ${markets.length} markets`);
 
           // Record prices for momentum tracking
           try {
@@ -560,31 +564,37 @@ if (!process.env.VERCEL) {
             let minConf, minEdge, maxSizePct;
             switch (pick.strategy) {
               case 'safe_bet':
-                minConf = 6; minEdge = 2; maxSizePct = 30; break;     // Safe: low bar, near-certain
+                minConf = 5; minEdge = 1; maxSizePct = 30; break;     // Safe: very low bar, near-certain
               case 'arbitrage':
               case 'cross_platform_arb':
-                minConf = 5; minEdge = 3; maxSizePct = 15; break;     // Arb: near risk-free
+                minConf = 5; minEdge = 2; maxSizePct = 15; break;     // Arb: near risk-free
               case 'cross_platform_edge':
-                minConf = 6; minEdge = 5; maxSizePct = 12; break;     // Cross-plat price gap
+                minConf = 5; minEdge = 3; maxSizePct = 12; break;     // Cross-plat price gap
               case 'conditional_chain':
-                minConf = 7; minEdge = 8; maxSizePct = 10; break;     // Chain: needs confidence
+                minConf = 6; minEdge = 6; maxSizePct = 10; break;     // Chain: needs some confidence
               case 'whale_follow':
-                minConf = 6; minEdge = 2; maxSizePct = 8; break;      // Whale: follow smart money
+                minConf = 5; minEdge = 2; maxSizePct = 10; break;     // Whale: follow smart money
               case 'longshot_sell':
-                minConf = 7; minEdge = 10; maxSizePct = 10; break;    // Longshot: still careful
+                minConf = 6; minEdge = 8; maxSizePct = 10; break;     // Longshot: still careful
               case 'resolution_snipe':
-                minConf = 7; minEdge = 5; maxSizePct = 20; break;     // Snipe: near-certain, bigger bets
+                minConf = 6; minEdge = 3; maxSizePct = 20; break;     // Snipe: near-certain, bigger bets
               case 'momentum':
-                minConf = 7; minEdge = 8; maxSizePct = 10; break;     // Momentum: needs strong signal
+                minConf = 6; minEdge = 6; maxSizePct = 10; break;     // Momentum: needs decent signal
               default: // edge_detection
-                minConf = 6; minEdge = 8; maxSizePct = 20; break;     // Edge: Claude just needs decent edge
+                minConf = 6; minEdge = 6; maxSizePct = 20; break;     // Edge: decent edge is enough
             }
 
-            if (pick.confidence < minConf || Math.abs(pick.edge) < minEdge) continue;
+            if (pick.confidence < minConf || Math.abs(pick.edge) < minEdge) {
+              console.log(`[PolyCron] SKIP: ${pick.question?.slice(0, 50)} — conf:${pick.confidence}<${minConf} or edge:${Math.abs(pick.edge).toFixed(1)}<${minEdge}`);
+              continue;
+            }
 
             // Growth phase gate — skip strategies not allowed in current phase
             const phaseCheck = shouldBet(pick, portfolio.balance);
-            if (!phaseCheck.allowed) continue;
+            if (!phaseCheck.allowed) {
+              console.log(`[PolyCron] PHASE BLOCK: ${pick.question?.slice(0, 50)} — ${phaseCheck.reason}`);
+              continue;
+            }
 
             // Category accuracy gate — reduce or block bets on bad categories
             const catMult = getCategoryMultiplier(pick.category);
