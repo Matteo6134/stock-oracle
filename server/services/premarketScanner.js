@@ -229,13 +229,13 @@ export async function scanPremarketMovers(earningsCalendar = []) {
         // Gap percentage
         const gapPct = ((currentPrice - previousClose) / previousClose) * 100;
 
-        // Volume ratio: pre-market volume vs average daily volume
+        // Volume ratio: pre-market volume vs ESTIMATED pre-market average
+        // FIX: Old code compared 4-hour pre-market to 6.5-hour trading day = nonsensical
+        // Pre-market is ~15-20% of daily volume normally. Scale avg accordingly.
         const preMarketVol = q.preMarketVolume || 0;
-        const avgVol = q.averageDailyVolume10Day || q.averageDailyVolume3Month || q.averageVolume10days || q.averageVolume || 1;
-        // For pre-market, even a fraction of the avg daily volume is significant
-        // Compare pre-market vol to avg vol (whole day). A ratio of 0.5 in pre-market
-        // already suggests massive interest.
-        const volumeRatio = avgVol > 0 ? preMarketVol / avgVol : 0;
+        const avgDailyVol = q.averageDailyVolume10Day || q.averageDailyVolume3Month || q.averageVolume10days || q.averageVolume || 1;
+        const estimatedPreMarketAvg = avgDailyVol * 0.15; // Pre-market is ~15% of daily
+        const volumeRatio = estimatedPreMarketAvg > 0 ? preMarketVol / estimatedPreMarketAvg : 0;
 
         // Float shares (from quote if available)
         const floatShares = q.floatShares || q.sharesOutstanding || null;
