@@ -1341,15 +1341,26 @@ router.get('/tomorrow', async (req, res, next) => {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
 
+    // If own computation found nothing, use the cron's gem cache
+    let finalPredictions = predictions;
+    if (predictions.length === 0) {
+      const cronGems = getShared('gems') || [];
+      if (cronGems.length > 0) {
+        finalPredictions = cronGems;
+        console.log(`[Tomorrow] Own scan empty, using ${cronGems.length} gems from cron cache`);
+      }
+    }
+
     const result = {
       date: new Date().toISOString().split('T')[0],
       tomorrowDate: tomorrow.toISOString().split('T')[0],
       generatedAt: new Date().toISOString(),
-      predictions
+      predictions: finalPredictions,
+      gems: finalPredictions, // Frontend reads either field
     };
 
-    console.log(`[Tomorrow] Done: ${predictions.length} picks`);
-    saveDailyPicks('tomorrow', predictions);
+    console.log(`[Tomorrow] Done: ${finalPredictions.length} picks`);
+    if (predictions.length > 0) saveDailyPicks('tomorrow', predictions);
     setCache('tomorrow', result);
     clearTimeout(timeout);
     if (!res.headersSent) res.json(result);
