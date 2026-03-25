@@ -16,6 +16,7 @@ import { initTelegramBot, setScanCache, notifyBuyAlerts, notifyNewTrade } from '
 import { runCalibration, getCalibration } from './services/strategyCalibrator.js';
 import { analyzeStock, getMarketBriefing, isClaudeConfigured, getMarketContext } from './services/claudeBrain.js';
 import { logPrediction } from './services/claudeTracker.js';
+import { saveExplosionPrediction, resolveExplosionPredictions } from './services/db.js';
 import { getTopMarkets } from './services/polymarket.js';
 import { findBestBets } from './services/polyBrain.js';
 import { getPortfolio, placeBet, calculateKellyBet, shouldBet, getCategoryMultiplier } from './services/polySimulator.js';
@@ -345,6 +346,15 @@ if (!process.env.VERCEL) {
         notifyBuyAlerts(allAnalyzed).catch(err =>
           console.error('[Cron] Buy alert error:', err.message)
         );
+
+        // Save explosion predictions to Supabase for tracking accuracy
+        const strongGems = allAnalyzed.filter(s =>
+          s.explosion?.expectedGainPct >= 15 &&
+          (s.consensus === 'Strong Buy' || s.consensus === 'Buy')
+        );
+        for (const gem of strongGems.slice(0, 10)) {
+          saveExplosionPrediction(gem).catch(() => {});
+        }
       }
 
       // Auto-trader: execute trades for strong consensus picks
@@ -372,6 +382,23 @@ if (!process.env.VERCEL) {
       console.error('[Cron] Gem scan error:', err.message);
     } finally {
       gemScanRunning = false;
+    }
+  });
+
+  // ── Resolve explosion predictions daily at 5 PM ET ──
+  cron.schedule('0 17 * * 1-5', async () => {
+    try {
+      console.log('[PredictionResolver] Checking old predictions against actual prices...');
+      const result = await resolveExplosionPredictions(yahooFinance.getQuote);
+      if (result.resolved > 0) {
+        console.log(`[PredictionResolver] Resolved ${result.resolved} predictions`);
+        // Log results for learning
+        for (const r of (result.results || [])) {
+          console.log(`  ${r.symbol}: predicted ${r.predicted}, actual ${r.actual} → ${r.hit ? 'HIT' : 'MISS'}`);
+        }
+      }
+    } catch (err) {
+      console.error('[PredictionResolver] Error:', err.message);
     }
   });
 

@@ -36,25 +36,236 @@ export async function savePrediction(prediction) {
   if (!db) return null;
 
   try {
+    // Pack explosion data into thesis field (existing column)
+    const explosionMeta = prediction.predictedGainPct
+      ? `[PRED:+${prediction.predictedGainPct}%/${prediction.predictedDays}d/${prediction.predictedProbability}%/${prediction.explosionType}] `
+      : '';
+    const signalsMeta = prediction.signals?.length
+      ? `[SIG:${prediction.signals.join(',')}] ` : '';
+    const verdictsMeta = prediction.agentVerdicts
+      ? `[AGENTS:${prediction.agentVerdicts}] ` : '';
+
     const { data, error } = await db.from('predictions').insert({
       symbol: prediction.symbol,
       action: prediction.action,
       confidence: prediction.confidence,
-      thesis: prediction.thesis,
+      thesis: `${explosionMeta}${signalsMeta}${verdictsMeta}${prediction.thesis || ''}`.slice(0, 1000),
       risk_level: prediction.riskLevel,
-      target_pct: prediction.targetPct,
+      target_pct: prediction.predictedGainPct || prediction.targetPct,
       stop_pct: prediction.stopPct,
-      timeframe_days: prediction.timeframeDays,
+      timeframe_days: prediction.predictedDays || prediction.timeframeDays,
       entry_price: prediction.entryPrice,
       gem_score: prediction.gemScore,
       consensus: prediction.consensus,
-      provider: prediction.provider || 'claude',
+      provider: prediction.provider || 'gemini',
     }).select();
 
     if (error) throw error;
     return data?.[0];
   } catch (err) {
     console.error('[DB] savePrediction error:', err.message);
+    return null;
+  }
+}
+
+/**
+ * Save explosion prediction for a gem — called every scan cycle
+ * for gems with strong setups. Outcome resolved days later.
+ */
+export async function saveExplosionPrediction(gem) {
+  const db = getClient();
+  if (!db) return null;
+
+  try {
+    // Don't duplicate — check if we already predicted this stock today
+    const today = new Date().toISOString().split('T')[0];
+    const { data: existing } = await db.from('predictions')
+      .select('id')
+      .eq('symbol', gem.symbol)
+      .gte('created_at', `${today}T00:00:00`)
+      .is('outcome', null)
+      .limit(1);
+
+    if (existing?.length > 0) return existing[0]; // Already predicted today
+
+    const expl = gem.explosion || {};
+    const factorsStr = expl.factors?.slice(0, 3).join('; ') || 'Signal-based prediction';
+    const signalsStr = (gem.signals || []).join(',');
+    const verdictsStr = gem.verdicts
+      ? gem.verdicts.map(v => `${v.agent?.split(' ')[0] || '?'}:${v.action}(${v.conviction})`).join(',')
+      : '';
+
+    const thesis = [
+      `[PRED:+${expl.expectedGainPct || 10}%/${expl.daysToMove || 5}d/${expl.probability || 30}%/${expl.explosionType || 'setup'}]`,
+      `[SIG:${signalsStr}]`,
+      verdictsStr ? `[AGENTS:${verdictsStr}]` : '',
+      factorsStr,
+    ].filter(Boolean).join(' ').slice(0, 1000);
+
+    const { data, error } = await db.from('predictions').insert({
+      symbol: gem.symbol,
+      action: gem.consensus === 'Strong Buy' || gem.consensus === 'Buy' ? 'BUY' : 'WATCH',
+      confidence: gem.avgConviction || 3,
+      thesis,
+      risk_level: gem.risk || 'moderate',
+      target_pct: expl.expectedGainPct || 10,
+      stop_pct: 5,
+      timeframe_days: expl.daysToMove || 5,
+      entry_price: gem.price,
+      gem_score: gem.gemScore,
+      consensus: gem.consensus,
+      provider: 'explosion_model',
+    }).select();
+
+    if (error) throw error;
+    return data?.[0];
+  } catch (err) {
+    console.error('[DB] saveExplosionPrediction error:', err.message);
+    return null;
+  }
+}
+
+/**
+ * Resolve explosion predictions — check if predicted gains actually happened.
+ * Called daily. Looks at predictions from 1-7 days ago and checks actual price.
+ */
+export async function resolveExplosionPredictions(getQuoteFn) {
+  const db = getClient();
+  if (!db) return { resolved: 0 };
+
+  try {
+    // Find unresolved explosion predictions older than their predicted timeframe
+    const { data: unresolved } = await db.from('predictions')
+      .select('*')
+      .is('outcome', null)
+      .eq('provider', 'explosion_model')
+      .order('created_at', { ascending: true })
+      .limit(50);
+
+    if (!unresolved?.length) return { resolved: 0 };
+
+    let resolved = 0;
+    const results = [];
+
+    for (const pred of unresolved) {
+      const createdAt = new Date(pred.created_at);
+      const ageInDays = (Date.now() - createdAt.getTime()) / 86400000;
+      const predictedDays = pred.predicted_days || 5;
+
+      // Only resolve if enough time has passed (predicted days + 1 buffer day)
+      if (ageInDays < predictedDays + 1) continue;
+
+      // Get current price
+      try {
+        const quote = await getQuoteFn(pred.symbol);
+        const currentPrice = quote?.regularMarketPrice;
+        if (!currentPrice || !pred.entry_price) continue;
+
+        const actualPct = Math.round(((currentPrice - pred.entry_price) / pred.entry_price) * 10000) / 100;
+        const hit = actualPct >= (pred.target_pct || 10) * 0.5; // Hit if got 50%+ of predicted gain
+        const outcome = actualPct > 0 ? 'win' : 'loss';
+
+        await db.from('predictions').update({
+          outcome,
+          exit_price: currentPrice,
+          actual_pct: actualPct,
+          exit_reason: `Resolved after ${Math.round(ageInDays)}d (predicted ${predictedDays}d)`,
+          settled_at: new Date().toISOString(),
+        }).eq('id', pred.id);
+
+        resolved++;
+        results.push({
+          symbol: pred.symbol,
+          predicted: `+${pred.target_pct || '?'}% in ${predictedDays}d`,
+          actual: `${actualPct > 0 ? '+' : ''}${actualPct}% in ${Math.round(ageInDays)}d`,
+          hit,
+          outcome,
+        });
+      } catch (err) {
+        // Skip this symbol if quote fails
+      }
+    }
+
+    if (results.length > 0) {
+      const hits = results.filter(r => r.hit).length;
+      console.log(`[DB] Resolved ${resolved} predictions: ${hits}/${results.length} hit target (${Math.round(hits / results.length * 100)}%)`);
+    }
+
+    return { resolved, results };
+  } catch (err) {
+    console.error('[DB] resolveExplosionPredictions error:', err.message);
+    return { resolved: 0 };
+  }
+}
+
+/**
+ * Get explosion prediction accuracy stats
+ */
+export async function getExplosionStats() {
+  const db = getClient();
+  if (!db) return null;
+
+  try {
+    const { data: all } = await db.from('predictions')
+      .select('*')
+      .eq('provider', 'explosion_model')
+      .order('created_at', { ascending: false })
+      .limit(200);
+
+    if (!all?.length) return null;
+
+    // Parse explosion data from thesis field [PRED:+XX%/Xd/XX%/type]
+    for (const p of all) {
+      const match = (p.thesis || '').match(/\[PRED:\+(\d+)%\/(\d+)d\/(\d+)%\/([^\]]+)\]/);
+      if (match) {
+        p._predictedGain = parseInt(match[1]);
+        p._predictedDays = parseInt(match[2]);
+        p._predictedProb = parseInt(match[3]);
+        p._explosionType = match[4];
+      }
+    }
+
+    const settled = all.filter(p => p.outcome);
+    const wins = settled.filter(p => p.outcome === 'win');
+    const bigWins = settled.filter(p => p.actual_pct >= 10);
+
+    // Accuracy by explosion type
+    const byType = {};
+    for (const p of settled) {
+      const type = p._explosionType || 'unknown';
+      if (!byType[type]) byType[type] = { total: 0, wins: 0, avgPredicted: 0, avgActual: 0 };
+      byType[type].total++;
+      if (p.outcome === 'win') byType[type].wins++;
+      byType[type].avgPredicted += (p._predictedGain || p.target_pct || 0);
+      byType[type].avgActual += (p.actual_pct || 0);
+    }
+    for (const [type, stats] of Object.entries(byType)) {
+      stats.winRate = Math.round((stats.wins / stats.total) * 100);
+      stats.avgPredicted = Math.round(stats.avgPredicted / stats.total);
+      stats.avgActual = Math.round((stats.avgActual / stats.total) * 100) / 100;
+    }
+
+    return {
+      totalPredictions: all.length,
+      totalSettled: settled.length,
+      pending: all.length - settled.length,
+      winRate: settled.length > 0 ? Math.round((wins.length / settled.length) * 100) : 0,
+      bigWinRate: settled.length > 0 ? Math.round((bigWins.length / settled.length) * 100) : 0,
+      avgPredictedGain: all.length > 0
+        ? Math.round(all.reduce((s, p) => s + (p._predictedGain || p.target_pct || 0), 0) / all.length) : 0,
+      avgActualGain: settled.length > 0
+        ? Math.round(settled.reduce((s, p) => s + (p.actual_pct || 0), 0) / settled.length * 100) / 100 : 0,
+      byExplosionType: byType,
+      recentPredictions: all.slice(0, 10).map(p => ({
+        symbol: p.symbol,
+        predicted: `+${p._predictedGain || p.target_pct || '?'}%`,
+        actual: p.outcome ? `${p.actual_pct > 0 ? '+' : ''}${p.actual_pct}%` : 'pending',
+        outcome: p.outcome || 'pending',
+        daysAgo: Math.round((Date.now() - new Date(p.created_at).getTime()) / 86400000),
+      })),
+    };
+  } catch (err) {
+    console.error('[DB] getExplosionStats error:', err.message);
     return null;
   }
 }
