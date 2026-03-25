@@ -126,63 +126,73 @@ try {
  * when the yahoo-finance2 library fails (common on cloud servers)
  */
 async function fetchQuoteDirect(symbol) {
-  try {
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1d`;
-    const { data } = await axios.get(url, {
-      timeout: 10000,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-        'Accept': 'application/json',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Origin': 'https://finance.yahoo.com',
-        'Referer': 'https://finance.yahoo.com/',
-      },
-    });
-    const result = data?.chart?.result?.[0];
-    if (!result) return null;
+  // Try multiple Yahoo endpoints — Railway IPs get blocked intermittently
+  const endpoints = [
+    `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1d`,
+    `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?interval=1d&range=1d`,
+  ];
 
-    const meta = result.meta || {};
-    const close = result.indicators?.quote?.[0]?.close;
-    const lastClose = close?.filter(Boolean).pop();
+  for (const url of endpoints) {
+    try {
+      const { data } = await axios.get(url, {
+        timeout: 8000,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+          'Accept': 'application/json, text/plain, */*',
+          'Accept-Language': 'en-US,en;q=0.9',
+        },
+      });
+      const result = data?.chart?.result?.[0];
+      if (!result) continue; // Try next endpoint
 
-    return {
-      symbol: meta.symbol || symbol,
-      shortName: meta.shortName || symbol,
-      regularMarketPrice: meta.regularMarketPrice || lastClose || 0,
-      regularMarketChange: meta.regularMarketPrice && meta.chartPreviousClose
-        ? meta.regularMarketPrice - meta.chartPreviousClose : 0,
-      regularMarketChangePercent: meta.regularMarketPrice && meta.chartPreviousClose
-        ? ((meta.regularMarketPrice - meta.chartPreviousClose) / meta.chartPreviousClose) * 100 : 0,
-      regularMarketVolume: meta.regularMarketVolume || 0,
-      regularMarketPreviousClose: meta.chartPreviousClose || meta.previousClose || 0,
-      fiftyTwoWeekHigh: meta.fiftyTwoWeekHigh || 0,
-      fiftyTwoWeekLow: meta.fiftyTwoWeekLow || 0,
-      marketCap: (meta.regularMarketPrice || 0) * (meta.sharesOutstanding || 0),
-    };
-  } catch (err) {
-    return null;
+      const meta = result.meta || {};
+      const close = result.indicators?.quote?.[0]?.close;
+      const lastClose = close?.filter(Boolean).pop();
+
+      return {
+        symbol: meta.symbol || symbol,
+        shortName: meta.shortName || symbol,
+        regularMarketPrice: meta.regularMarketPrice || lastClose || 0,
+        regularMarketChange: meta.regularMarketPrice && meta.chartPreviousClose
+          ? meta.regularMarketPrice - meta.chartPreviousClose : 0,
+        regularMarketChangePercent: meta.regularMarketPrice && meta.chartPreviousClose
+          ? ((meta.regularMarketPrice - meta.chartPreviousClose) / meta.chartPreviousClose) * 100 : 0,
+        regularMarketVolume: meta.regularMarketVolume || 0,
+        regularMarketPreviousClose: meta.chartPreviousClose || meta.previousClose || 0,
+        fiftyTwoWeekHigh: meta.fiftyTwoWeekHigh || 0,
+        fiftyTwoWeekLow: meta.fiftyTwoWeekLow || 0,
+        marketCap: (meta.regularMarketPrice || 0) * (meta.sharesOutstanding || 0),
+      };
+    } catch {
+      continue; // Try next endpoint
+    }
   }
+  return null; // All endpoints failed
 }
 
 /**
  * Fallback: fetch historical data directly when yahoo-finance2 fails
  */
 async function fetchHistoryDirect(symbol, days = 45) {
-  try {
-    const end = Math.floor(Date.now() / 1000);
-    const start = end - (days * 86400);
-    const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?period1=${start}&period2=${end}&interval=1d`;
-    const { data } = await axios.get(url, {
-      timeout: 10000,
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-        'Accept': 'application/json',
-        'Origin': 'https://finance.yahoo.com',
-        'Referer': 'https://finance.yahoo.com/',
-      },
-    });
-    const result = data?.chart?.result?.[0];
-    if (!result?.timestamp) return [];
+  const end = Math.floor(Date.now() / 1000);
+  const start = end - (days * 86400);
+  const endpoints = [
+    `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?period1=${start}&period2=${end}&interval=1d`,
+    `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?period1=${start}&period2=${end}&interval=1d`,
+  ];
+
+  for (const url of endpoints) {
+    try {
+      const { data } = await axios.get(url, {
+        timeout: 8000,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+          'Accept': 'application/json, text/plain, */*',
+          'Accept-Language': 'en-US,en;q=0.9',
+        },
+      });
+      const result = data?.chart?.result?.[0];
+      if (!result?.timestamp) continue;
 
     const timestamps = result.timestamp;
     const q = result.indicators?.quote?.[0] || {};
@@ -194,9 +204,11 @@ async function fetchHistoryDirect(symbol, days = 45) {
       close: q.close?.[i] || 0,
       volume: q.volume?.[i] || 0,
     })).filter(d => d.close > 0);
-  } catch {
-    return [];
+    } catch {
+      continue; // Try next endpoint
+    }
   }
+  return []; // All endpoints failed
 }
 
 // ── Earnings calendar cache ──
