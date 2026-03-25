@@ -6,6 +6,106 @@ const yf = new YahooFinance({
   validation: { logErrors: false, logOptionsErrors: false },
 });
 
+// ── FINNHUB as primary data source (Yahoo blocked on Railway) ──
+const FINNHUB_KEY = process.env.FINNHUB_API_KEY;
+const FINNHUB_BASE = 'https://finnhub.io/api/v1';
+
+// Rate limiter: Finnhub free = 60 calls/min
+let finnhubCallCount = 0;
+let finnhubResetTime = Date.now() + 60000;
+
+async function finnhubThrottle() {
+  const now = Date.now();
+  if (now > finnhubResetTime) {
+    finnhubCallCount = 0;
+    finnhubResetTime = now + 60000;
+  }
+  if (finnhubCallCount >= 55) { // Leave 5 buffer
+    const waitMs = finnhubResetTime - now + 100;
+    await new Promise(r => setTimeout(r, waitMs));
+    finnhubCallCount = 0;
+    finnhubResetTime = Date.now() + 60000;
+  }
+  finnhubCallCount++;
+}
+
+/**
+ * Fetch quote via Finnhub (primary — works on Railway)
+ */
+async function fetchQuoteFinnhub(symbol) {
+  if (!FINNHUB_KEY) return null;
+  try {
+    await finnhubThrottle();
+    const { data } = await axios.get(`${FINNHUB_BASE}/quote`, {
+      params: { symbol, token: FINNHUB_KEY },
+      timeout: 8000,
+    });
+    if (!data || data.c === 0) return null; // No data
+    return {
+      symbol,
+      shortName: symbol,
+      regularMarketPrice: data.c || 0,         // Current price
+      regularMarketChange: (data.c || 0) - (data.pc || 0),
+      regularMarketChangePercent: data.pc ? ((data.c - data.pc) / data.pc) * 100 : 0,
+      regularMarketVolume: 0,  // Finnhub quote doesn't include volume — we'll get it from candles
+      regularMarketPreviousClose: data.pc || 0,
+      regularMarketOpen: data.o || 0,
+      regularMarketDayHigh: data.h || 0,
+      regularMarketDayLow: data.l || 0,
+      fiftyTwoWeekHigh: 0,
+      fiftyTwoWeekLow: 0,
+      marketCap: 0,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Fetch candles (OHLCV) via Finnhub — for historical data + volume
+ */
+async function fetchCandlesFinnhub(symbol, days = 45) {
+  if (!FINNHUB_KEY) return [];
+  try {
+    await finnhubThrottle();
+    const to = Math.floor(Date.now() / 1000);
+    const from = to - (days * 86400);
+    const { data } = await axios.get(`${FINNHUB_BASE}/stock/candle`, {
+      params: { symbol, resolution: 'D', from, to, token: FINNHUB_KEY },
+      timeout: 10000,
+    });
+    if (data.s !== 'ok' || !data.t?.length) return [];
+    return data.t.map((ts, i) => ({
+      date: new Date(ts * 1000),
+      open: data.o[i],
+      high: data.h[i],
+      low: data.l[i],
+      close: data.c[i],
+      volume: data.v[i],
+    }));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Enrich Finnhub quote with volume from candles (single extra call)
+ */
+async function enrichFinnhubQuote(quote) {
+  if (!quote || !FINNHUB_KEY) return quote;
+  try {
+    const candles = await fetchCandlesFinnhub(quote.symbol, 2);
+    if (candles.length > 0) {
+      const latest = candles[candles.length - 1];
+      quote.regularMarketVolume = latest.volume || 0;
+      // Calculate avg volume from candles
+      const totalVol = candles.reduce((s, c) => s + c.volume, 0);
+      quote.averageDailyVolume10Day = totalVol / candles.length;
+    }
+  } catch {}
+  return quote;
+}
+
 // Configure yahoo-finance2 to handle Railway/cloud IP blocks
 // Set longer timeouts and custom fetch options
 try {
@@ -429,10 +529,27 @@ export function getCurrentSessionPrice(quote) {
 export async function getQuoteBatch(symbols) {
   if (!symbols || symbols.length === 0) return [];
 
-  // Chunk into smaller batches to avoid Yahoo rate limits
-  const CHUNK_SIZE = 10;
   const allQuotes = [];
-  let useDirectApi = false; // Switch to direct API if library keeps failing
+
+  // Strategy 1: Finnhub (primary — works on Railway, 60 calls/min)
+  if (FINNHUB_KEY) {
+    let finnhubSuccess = 0;
+    for (const s of symbols) {
+      const q = await fetchQuoteFinnhub(s);
+      if (q?.regularMarketPrice > 0) {
+        allQuotes.push({ ...q, currentSessionPrice: q.regularMarketPrice });
+        finnhubSuccess++;
+      }
+    }
+    if (finnhubSuccess > 0) {
+      console.log(`[YahooFinance] Finnhub: ${finnhubSuccess}/${symbols.length} quotes fetched`);
+      return allQuotes;
+    }
+  }
+
+  // Strategy 2: Yahoo library in chunks (may fail on Railway)
+  const CHUNK_SIZE = 10;
+  let useDirectApi = false;
 
   for (let i = 0; i < symbols.length; i += CHUNK_SIZE) {
     const chunk = symbols.slice(i, i + CHUNK_SIZE);
@@ -444,20 +561,18 @@ export async function getQuoteBatch(symbols) {
         allQuotes.push(...quotes.filter(Boolean).map(q => ({ ...q, currentSessionPrice: getCurrentSessionPrice(q) })));
       } catch (err) {
         console.warn(`[YahooFinance] Library chunk ${i}-${i + chunk.length} failed, switching to direct API`);
-        useDirectApi = true; // Library is blocked — switch to direct for all remaining
+        useDirectApi = true;
       }
     }
 
     if (useDirectApi) {
-      // Direct API fallback — slower but works on Railway
       for (const s of chunk) {
         const q = await fetchQuoteDirect(s);
         if (q) allQuotes.push({ ...q, currentSessionPrice: q.regularMarketPrice });
-        await new Promise(r => setTimeout(r, 150)); // Rate limit
+        await new Promise(r => setTimeout(r, 150));
       }
     }
 
-    // Delay between chunks
     if (i + CHUNK_SIZE < symbols.length) {
       await new Promise(r => setTimeout(r, useDirectApi ? 500 : 300));
     }
@@ -467,17 +582,25 @@ export async function getQuoteBatch(symbols) {
 }
 
 export async function getQuote(symbol) {
+  // 1. Finnhub (primary — works on Railway)
+  const fh = await fetchQuoteFinnhub(symbol);
+  if (fh?.regularMarketPrice > 0) {
+    return { ...fh, currentSessionPrice: fh.regularMarketPrice };
+  }
+
+  // 2. Yahoo direct API
+  const direct = await fetchQuoteDirect(symbol);
+  if (direct?.regularMarketPrice > 0) {
+    return { ...direct, currentSessionPrice: direct.regularMarketPrice };
+  }
+
+  // 3. Yahoo library (least reliable on cloud)
   try {
     const q = await yf.quote(symbol, {}, { validateResult: false });
-    if (!q) throw new Error('empty result');
-    return { ...q, currentSessionPrice: getCurrentSessionPrice(q) };
-  } catch (err) {
-    // Fallback to direct API when yahoo-finance2 fails (common on cloud/Railway)
-    const direct = await fetchQuoteDirect(symbol);
-    if (direct) return { ...direct, currentSessionPrice: direct.regularMarketPrice };
-    console.error(`[YahooFinance] Quote error ${symbol}:`, err.message);
-    return {};
-  }
+    if (q) return { ...q, currentSessionPrice: getCurrentSessionPrice(q) };
+  } catch {}
+
+  return {};
 }
 
 export async function getTrendingStocks() {
@@ -494,6 +617,15 @@ export async function getTrendingStocks() {
 
 export async function getHistoricalData(symbol) {
   try {
+    // 1. Finnhub candles (primary)
+    const fhCandles = await fetchCandlesFinnhub(symbol, 45);
+    if (fhCandles.length > 5) return fhCandles;
+
+    // 2. Yahoo direct API
+    const direct = await fetchHistoryDirect(symbol, 45);
+    if (direct.length > 5) return direct;
+
+    // 3. Yahoo library (least reliable)
     const end = new Date();
     const start = new Date();
     start.setDate(start.getDate() - 45);
@@ -506,14 +638,7 @@ export async function getHistoricalData(symbol) {
       if (result?.quotes?.length > 0) {
         return result.quotes.map(d => ({ date: d.date, open: d.open, high: d.high, low: d.low, close: d.close, volume: d.volume }));
       }
-      // Library returned empty — try direct
-      throw new Error('empty chart result');
-    } catch (chartErr) {
-      // Try direct API first (more reliable on cloud)
-      const direct = await fetchHistoryDirect(symbol, 45);
-      if (direct.length > 0) return direct;
-
-      // Last resort: try yf.historical
+    } catch {
       try {
         const result = await yf.historical(symbol, {
           period1: start.toISOString().split('T')[0],
@@ -534,13 +659,12 @@ export async function getHistoricalData(symbol) {
 
 export async function getDailyGainers() {
   try {
-    const result = await yf.dailyGainers({ count: 10 });
-    if (result?.quotes) {
-      return result.quotes.map(q => ({ symbol: q.symbol, name: q.shortName || q.symbol, price: q.regularMarketPrice, change: q.regularMarketChangePercent }));
-    }
-    return [];
+    // dailyGainers is deprecated — use screener instead
+    const result = await yf.screener({ scrIds: 'day_gainers', count: 10 }, { validateResult: false });
+    const quotes = result?.quotes || result?.result?.[0]?.quotes || [];
+    return quotes.map(q => ({ symbol: q.symbol, name: q.shortName || q.symbol, price: q.regularMarketPrice, change: q.regularMarketChangePercent }));
   } catch (err) {
-    console.error('[YahooFinance] Daily gainers error:', err.message);
+    // If screener also fails, return empty (non-critical)
     return [];
   }
 }
