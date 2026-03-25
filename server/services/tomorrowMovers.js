@@ -184,6 +184,139 @@ function calculateGemScore(signals, details, histAnalysis) {
   return Math.min(100, Math.round(score));
 }
 
+/**
+ * EXPLOSION PREDICTION — estimate expected gain %, timeframe, and probability
+ * Based on empirical patterns:
+ * - Low float + volume surge → fastest explosions (1-2 days, 20-100%+)
+ * - Multi-day accumulation + smart money → medium term (2-5 days, 15-40%)
+ * - BB squeeze + volume buildup → 3-7 days, 10-30%
+ * - Short squeeze loading → 1-5 days, 30-80%+ (can be extreme)
+ * - Earnings catalyst → overnight, 5-20% typical, can be 50%+ either way
+ */
+function predictExplosion(signals, details, hist, price, volumeRatio, floatShares, marketCap) {
+  let expectedGainPct = 0;
+  let daysToMove = 5;
+  let probability = 30; // base probability
+  let explosionType = 'moderate_setup';
+  const factors = [];
+
+  // ── Factor 1: Float size (smaller = more explosive) ──
+  if (floatShares > 0) {
+    if (floatShares < 5_000_000) {
+      expectedGainPct += 40; probability += 10; daysToMove -= 1;
+      factors.push('Micro float (<5M) — extreme squeeze potential');
+    } else if (floatShares < 15_000_000) {
+      expectedGainPct += 25; probability += 5;
+      factors.push('Low float (<15M) — strong squeeze potential');
+    } else if (floatShares < 30_000_000) {
+      expectedGainPct += 12;
+      factors.push('Moderate float');
+    }
+  }
+
+  // ── Factor 2: Volume spike magnitude ──
+  if (volumeRatio >= 5) {
+    expectedGainPct += 30; probability += 15; daysToMove = Math.min(daysToMove, 2);
+    factors.push(`Massive volume (${volumeRatio.toFixed(1)}x avg) — institutional entry`);
+    explosionType = 'volume_explosion';
+  } else if (volumeRatio >= 3) {
+    expectedGainPct += 20; probability += 10; daysToMove = Math.min(daysToMove, 3);
+    factors.push(`Heavy volume (${volumeRatio.toFixed(1)}x avg)`);
+  } else if (volumeRatio >= 2) {
+    expectedGainPct += 10; probability += 5;
+    factors.push(`Above-avg volume (${volumeRatio.toFixed(1)}x)`);
+  }
+
+  // ── Factor 3: Multi-day accumulation pattern ──
+  if (signals.includes('multi_day_accumulation') && hist?.volumeStreakDays >= 3) {
+    expectedGainPct += 15; probability += 12; daysToMove = Math.min(daysToMove, 3);
+    factors.push(`${hist.volumeStreakDays}-day accumulation — smart money loading`);
+    explosionType = 'stealth_accumulation';
+  }
+
+  // ── Factor 4: Smart money footprint ──
+  if (signals.includes('smart_money') && hist?.closingStrength > 0.75) {
+    expectedGainPct += 12; probability += 10;
+    factors.push('Closing near highs on volume — institutions buying');
+  }
+
+  // ── Factor 5: Short squeeze setup ──
+  if (signals.includes('short_squeeze_loading')) {
+    const si = details.shortInterest || 0;
+    if (si > 30) {
+      expectedGainPct += 50; probability += 12; daysToMove = Math.min(daysToMove, 2);
+      factors.push(`Short interest ${si.toFixed(0)}% — extreme squeeze setup`);
+      explosionType = 'short_squeeze';
+    } else if (si > 15) {
+      expectedGainPct += 25; probability += 8;
+      factors.push(`Short interest ${si.toFixed(0)}% — squeeze building`);
+    }
+  }
+
+  // ── Factor 6: Bollinger squeeze (coiled spring) ──
+  if (signals.includes('bb_squeeze')) {
+    expectedGainPct += 15; probability += 8; daysToMove = Math.min(daysToMove, 5);
+    factors.push('BB squeeze — price compressed, breakout imminent');
+    if (explosionType === 'moderate_setup') explosionType = 'coiled_spring';
+  }
+
+  // ── Factor 7: Price compression + momentum building ──
+  if (hist?.priceCompression > 0.7 && hist?.momentumAccel > 2) {
+    expectedGainPct += 12; probability += 8;
+    factors.push('Price compressed + momentum accelerating — spring loaded');
+  }
+
+  // ── Factor 8: Earnings catalyst ──
+  if (signals.includes('earnings_tomorrow')) {
+    expectedGainPct += 15; daysToMove = 1;
+    probability += 5; // Earnings are unpredictable
+    factors.push('Earnings tomorrow — potential overnight gap');
+    explosionType = 'earnings_catalyst';
+  }
+
+  // ── Factor 9: Insider / institutional buying ──
+  if (signals.includes('insider_buying')) {
+    expectedGainPct += 15; probability += 15;
+    factors.push('Insiders buying — they know something');
+  }
+  if (signals.includes('institutions_accumulating')) {
+    expectedGainPct += 10; probability += 8;
+    factors.push('Institutions accumulating — big money moving in');
+  }
+
+  // ── Factor 10: Market cap (smaller = more explosive) ──
+  if (marketCap > 0 && marketCap < 100_000_000) {
+    expectedGainPct *= 1.5; // Micro-cap bonus
+    factors.push('Micro-cap (<$100M) — highest explosion potential');
+  } else if (marketCap > 0 && marketCap < 500_000_000) {
+    expectedGainPct *= 1.2;
+    factors.push('Small-cap (<$500M)');
+  }
+
+  // ── Signal count multiplier ──
+  if (signals.length >= 5) { probability += 15; expectedGainPct *= 1.3; }
+  else if (signals.length >= 4) { probability += 10; expectedGainPct *= 1.15; }
+  else if (signals.length >= 3) { probability += 5; }
+
+  // Cap values
+  expectedGainPct = Math.min(200, Math.round(expectedGainPct));
+  probability = Math.min(85, Math.round(probability)); // Never say more than 85%
+  daysToMove = Math.max(1, Math.min(7, daysToMove));
+
+  // Target price
+  const targetPrice = Math.round(price * (1 + expectedGainPct / 100) * 100) / 100;
+
+  return {
+    expectedGainPct,
+    targetPrice,
+    daysToMove,
+    probability,
+    explosionType,
+    factors,
+    urgency: daysToMove <= 2 ? 'IMMINENT' : daysToMove <= 4 ? 'SOON' : 'BUILDING',
+  };
+}
+
 async function _scan() {
   try {
     // Build full symbol universe
@@ -487,6 +620,10 @@ async function _scan() {
       if (signals.length >= 2 && setupScore >= 20) {
         const gemScore = calculateGemScore(signals, details, hist);
 
+        // ── EXPLOSION PREDICTION ──
+        // Estimate how much this stock could move and when, based on signal pattern
+        const explosion = predictExplosion(signals, details, hist, price, volumeRatio, floatShares, marketCap);
+
         setups.push({
           symbol,
           companyName: quote.shortName || quote.longName || symbol,
@@ -503,6 +640,7 @@ async function _scan() {
           setupScore,
           gemScore, // 0-100 explosive potential
           details,
+          explosion, // predicted gain %, timeframe, probability
           timing: categorizeUrgency(signals),
           risk: gemScore >= 60 ? 'high_conviction' : 'moderate',
         });

@@ -1122,15 +1122,25 @@ export async function notifyBuyAlerts(stocks) {
 ${confDots} ${cl.confidence}/10 \u00B7 Risk: ${cl.riskLevel}${overrideNote}`;
       }
 
+      // Explosion prediction line
+      const expl = s.explosion;
+      let explLine = '';
+      if (expl && expl.expectedGainPct >= 15) {
+        const urgIcon = expl.urgency === 'IMMINENT' ? '\u26A1' : expl.urgency === 'SOON' ? '\u23F0' : '\uD83D\uDD04';
+        explLine = `${urgIcon} *+${expl.expectedGainPct}% in ${expl.daysToMove}d* (${expl.probability}% prob) \u2192 $${expl.targetPrice}`;
+      }
+
       const lines = [
         header,
         '',
         `${icon} *${s.symbol}*  ${$(s.price)}  ${changeLine}`,
+        explLine, // Show explosion prediction prominently
         `\uD83C\uDFAF Target: +${avgTarget.toFixed(0)}% \u2192 ${tpPrice}`,
         `\uD83D\uDED1 Stop: -${avgStop.toFixed(0)}% \u2192 ${slPrice}`,
         `\uD83D\uDCCA ${s.buyCount || 0}/5 agents \u00B7 Score ${s.gemScore || 0} \u00B7 ${s.consensus}`,
         histLine,
         topSignals ? `\uD83D\uDD0D ${topSignals}` : '',
+        expl?.factors?.[0] ? `\uD83E\uDDE0 ${expl.factors[0]}` : '',
         claudeLine,
         '',
         s.source === 'penny' ? '\uD83E\uDE99 Penny stock \u2014 small position, high risk' : '\uD83D\uDC8E Quality setup',
