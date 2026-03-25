@@ -108,31 +108,39 @@ function SignalPill({ signal }) {
 
 // ── Explosion Prediction ──
 function ExplosionLine({ gem }) {
-  const pred = gem.explosionPrediction || gem.prediction || {}
-  const targetPrice = pred.targetPrice || pred.target
-  const probability = pred.probability || pred.confidence || 0
-  const timeframe = pred.timeframe || pred.horizon || ''
-  const pctGain = pred.percentGain || pred.expectedGain || pred.pctGain || 0
+  // Read from all possible field names (cron uses 'explosion', predictions use 'explosionPrediction')
+  const pred = gem.explosion || gem.explosionPrediction || gem.prediction || {}
+  const targetPrice = pred.targetPrice || pred.target || pred.priceTarget
+  const probability = pred.probability || pred.confidence || pred.prob || 0
+  const timeframe = pred.timeframe || pred.horizon || pred.expectedDays
+  const pctGain = pred.expectedGainPct || pred.percentGain || pred.expectedGain || pred.pctGain || 0
 
   if (!targetPrice && !pctGain) return null
 
+  const timeLabel = typeof timeframe === 'number' ? `${timeframe} days` : timeframe
+
   return (
-    <div className="flex items-center gap-1.5 text-sm">
-      <Zap size={14} className="text-yellow-400" />
-      <span className="text-green-400 font-bold">
-        +{typeof pctGain === 'number' ? pctGain.toFixed(0) : pctGain}%
-      </span>
-      {timeframe && <span className="text-gray-500">in {timeframe}</span>}
-      {probability > 0 && (
-        <span className="text-gray-500">
-          · <span className="text-yellow-400 font-semibold">{Math.round(probability)}%</span> prob
+    <div className="bg-green-500/10 border border-green-500/20 rounded-xl px-3 py-2">
+      <div className="flex items-center gap-2 text-sm">
+        <Zap size={14} className="text-yellow-400" />
+        <span className="text-green-400 font-black text-base">
+          +{typeof pctGain === 'number' ? pctGain.toFixed(0) : pctGain}%
         </span>
-      )}
-      {targetPrice && (
-        <span className="text-gray-500">
-          → <span className="text-green-400 font-semibold">${typeof targetPrice === 'number' ? targetPrice.toFixed(2) : targetPrice}</span>
-        </span>
-      )}
+        {targetPrice && (
+          <span className="text-green-400 font-bold">
+            → ${typeof targetPrice === 'number' ? targetPrice.toFixed(2) : targetPrice}
+          </span>
+        )}
+      </div>
+      <div className="flex items-center gap-2 mt-0.5">
+        {timeLabel && <span className="text-gray-400 text-[10px]">in {timeLabel}</span>}
+        {probability > 0 && (
+          <span className="text-[10px]">
+            <span className="text-yellow-400 font-bold">{Math.round(probability)}%</span>
+            <span className="text-gray-500"> probability</span>
+          </span>
+        )}
+      </div>
     </div>
   )
 }
