@@ -531,70 +531,67 @@ export async function getQuoteBatch(symbols) {
 
   const allQuotes = [];
 
-  // Strategy 1: Finnhub (primary — works on Railway, 60 calls/min)
+  // Strategy 1: Yahoo direct API (CONFIRMED WORKING on Railway, no rate limit)
+  // Fetch all symbols via direct API with small delays
+  let directSuccess = 0;
+  for (const s of symbols) {
+    const q = await fetchQuoteDirect(s);
+    if (q?.regularMarketPrice > 0) {
+      allQuotes.push({ ...q, currentSessionPrice: q.regularMarketPrice });
+      directSuccess++;
+    }
+    // Small delay to avoid hammering Yahoo
+    if (directSuccess % 10 === 0) await new Promise(r => setTimeout(r, 200));
+  }
+
+  if (directSuccess > 0) {
+    console.log(`[YahooFinance] Direct API: ${directSuccess}/${symbols.length} quotes fetched`);
+    return allQuotes;
+  }
+
+  // Strategy 2: Finnhub (backup — 60 calls/min, gets 429 on large batches)
   if (FINNHUB_KEY) {
-    let finnhubSuccess = 0;
     for (const s of symbols) {
       const q = await fetchQuoteFinnhub(s);
       if (q?.regularMarketPrice > 0) {
         allQuotes.push({ ...q, currentSessionPrice: q.regularMarketPrice });
-        finnhubSuccess++;
       }
     }
-    if (finnhubSuccess > 0) {
-      console.log(`[YahooFinance] Finnhub: ${finnhubSuccess}/${symbols.length} quotes fetched`);
+    if (allQuotes.length > 0) {
+      console.log(`[YahooFinance] Finnhub fallback: ${allQuotes.length}/${symbols.length} quotes`);
       return allQuotes;
     }
   }
 
-  // Strategy 2: Yahoo library in chunks (may fail on Railway)
+  // Strategy 3: Yahoo library in chunks (last resort)
   const CHUNK_SIZE = 10;
-  let useDirectApi = false;
-
   for (let i = 0; i < symbols.length; i += CHUNK_SIZE) {
     const chunk = symbols.slice(i, i + CHUNK_SIZE);
-
-    if (!useDirectApi) {
-      try {
-        const result = await yf.quote(chunk, {}, { validateResult: false });
-        const quotes = Array.isArray(result) ? result : [result];
-        allQuotes.push(...quotes.filter(Boolean).map(q => ({ ...q, currentSessionPrice: getCurrentSessionPrice(q) })));
-      } catch (err) {
-        console.warn(`[YahooFinance] Library chunk ${i}-${i + chunk.length} failed, switching to direct API`);
-        useDirectApi = true;
-      }
-    }
-
-    if (useDirectApi) {
-      for (const s of chunk) {
-        const q = await fetchQuoteDirect(s);
-        if (q) allQuotes.push({ ...q, currentSessionPrice: q.regularMarketPrice });
-        await new Promise(r => setTimeout(r, 150));
-      }
-    }
-
-    if (i + CHUNK_SIZE < symbols.length) {
-      await new Promise(r => setTimeout(r, useDirectApi ? 500 : 300));
-    }
+    try {
+      const result = await yf.quote(chunk, {}, { validateResult: false });
+      const quotes = Array.isArray(result) ? result : [result];
+      allQuotes.push(...quotes.filter(Boolean).map(q => ({ ...q, currentSessionPrice: getCurrentSessionPrice(q) })));
+    } catch {}
+    if (i + CHUNK_SIZE < symbols.length) await new Promise(r => setTimeout(r, 300));
   }
 
   return allQuotes;
 }
 
 export async function getQuote(symbol) {
-  // 1. Finnhub (primary — works on Railway)
-  const fh = await fetchQuoteFinnhub(symbol);
-  if (fh?.regularMarketPrice > 0) {
-    return { ...fh, currentSessionPrice: fh.regularMarketPrice };
-  }
-
-  // 2. Yahoo direct API
+  // 1. Yahoo direct API (CONFIRMED WORKING on Railway — fastest, no rate limit)
   const direct = await fetchQuoteDirect(symbol);
   if (direct?.regularMarketPrice > 0) {
     return { ...direct, currentSessionPrice: direct.regularMarketPrice };
   }
 
-  // 3. Yahoo library (least reliable on cloud)
+  // 2. Finnhub (backup — 60 calls/min limit, gets 429 when scanning many stocks)
+  const fh = await fetchQuoteFinnhub(symbol);
+  if (fh?.regularMarketPrice > 0) {
+    return { ...fh, currentSessionPrice: fh.regularMarketPrice };
+  }
+
+  // 3. Yahoo library (fallback)
   try {
     const q = await yf.quote(symbol, {}, { validateResult: false });
     if (q) return { ...q, currentSessionPrice: getCurrentSessionPrice(q) };
@@ -617,13 +614,13 @@ export async function getTrendingStocks() {
 
 export async function getHistoricalData(symbol) {
   try {
-    // 1. Finnhub candles (primary)
-    const fhCandles = await fetchCandlesFinnhub(symbol, 45);
-    if (fhCandles.length > 5) return fhCandles;
-
-    // 2. Yahoo direct API
+    // 1. Yahoo direct API (CONFIRMED WORKING on Railway)
     const direct = await fetchHistoryDirect(symbol, 45);
     if (direct.length > 5) return direct;
+
+    // 2. Finnhub candles (backup — rate limited)
+    const fhCandles = await fetchCandlesFinnhub(symbol, 45);
+    if (fhCandles.length > 5) return fhCandles;
 
     // 3. Yahoo library (least reliable)
     const end = new Date();
