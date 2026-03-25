@@ -30,6 +30,23 @@ import { getAllIntelligence, getMarketRegime as getVixRegime, getSectorRotation,
 
 const router = express.Router();
 
+// ── Diagnostic endpoint ──
+router.get('/diag', (req, res) => {
+  const shared = getShared('gems');
+  res.json({
+    finnhubKey: process.env.FINNHUB_API_KEY ? 'SET (' + process.env.FINNHUB_API_KEY.slice(0, 4) + '...)' : 'MISSING',
+    anthropicKey: process.env.ANTHROPIC_API_KEY ? 'SET' : 'MISSING',
+    geminiKey: process.env.GEMINI_API_KEY ? 'SET' : 'MISSING',
+    telegramToken: process.env.TELEGRAM_BOT_TOKEN ? 'SET' : 'MISSING',
+    telegramChatId: process.env.TELEGRAM_CHAT_ID || 'MISSING',
+    supabaseUrl: process.env.SUPABASE_URL ? 'SET' : 'MISSING',
+    alpacaKey: process.env.ALPACA_API_KEY ? 'SET' : 'MISSING',
+    sharedCacheGems: shared ? shared.length : 0,
+    nodeVersion: process.version,
+    uptime: Math.round(process.uptime()),
+  });
+});
+
 const cache = new Map();
 const CACHE_TTL = 5 * 60 * 1000; // 5 min for scored data (was 30 min)
 const PRICE_CACHE_TTL = 60 * 1000; // 1 min for live prices
