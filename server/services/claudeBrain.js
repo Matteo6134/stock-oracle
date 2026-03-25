@@ -45,10 +45,26 @@ export function isClaudeConfigured() {
 }
 
 /**
- * Call AI — tries Claude first, falls back to Gemini if credits exhausted
+ * Call AI — Gemini is PRIMARY (free), Claude is backup (when credits available)
  */
 async function callAI(systemPrompt, userPrompt, maxTokens = 400, model = MODEL_ANALYSIS) {
-  // Try Claude first (unless we know it's out of credits)
+  // Gemini first (free, always available)
+  const g = getGeminiClient();
+  if (g) {
+    try {
+      const gemModel = g.getGenerativeModel({ model: 'gemini-2.0-flash' });
+      const result = await gemModel.generateContent({
+        contents: [{ role: 'user', parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }] }],
+        generationConfig: { maxOutputTokens: maxTokens, temperature: 0.3 },
+      });
+      const text = result.response?.text() || '';
+      return { text, provider: 'gemini' };
+    } catch (err) {
+      console.error('[AI Brain] Gemini error:', err.message);
+    }
+  }
+
+  // Claude backup (only if Gemini fails AND Claude has credits)
   if (!useGeminiFallback && API_KEY) {
     const c = getClient();
     if (c) {
@@ -64,28 +80,10 @@ async function callAI(systemPrompt, userPrompt, maxTokens = 400, model = MODEL_A
         return { text, provider: 'claude' };
       } catch (err) {
         if (err.message?.includes('credit balance') || err.status === 400) {
-          console.warn('[AI Brain] Claude credits exhausted, switching to Gemini fallback');
           useGeminiFallback = true;
-        } else {
-          console.error('[AI Brain] Claude error:', err.message);
         }
+        console.error('[AI Brain] Claude error:', err.message);
       }
-    }
-  }
-
-  // Gemini fallback
-  const g = getGeminiClient();
-  if (g) {
-    try {
-      const gemModel = g.getGenerativeModel({ model: 'gemini-2.0-flash' });
-      const result = await gemModel.generateContent({
-        contents: [{ role: 'user', parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }] }],
-        generationConfig: { maxOutputTokens: maxTokens, temperature: 0.3 },
-      });
-      const text = result.response?.text() || '';
-      return { text, provider: 'gemini' };
-    } catch (err) {
-      console.error('[AI Brain] Gemini error:', err.message);
     }
   }
 

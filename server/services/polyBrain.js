@@ -244,14 +244,12 @@ function ensemblePrediction(claudeResult, geminiResult) {
  * Uses Claude as primary, Gemini as second opinion (ensemble).
  */
 export async function analyzeMarket(market) {
-  if (!isClaudeConfigured() || !canSpend()) return null;
+  // Accept either Gemini OR Claude (Gemini is primary now)
+  if (!isGeminiConfigured() && !isClaudeConfigured()) return null;
 
   // Check cache
   const cached = analysisCache.get(market.id);
   if (cached && Date.now() - cached.ts < CACHE_TTL) return cached.result;
-
-  const c = getClient();
-  if (!c) return null;
 
   const daysToResolution = market.endDate
     ? Math.max(0, Math.round((new Date(market.endDate) - new Date()) / 86400000))
@@ -298,17 +296,41 @@ Respond with JSON:
 }`;
 
   try {
-    const response = await c.messages.create({
-      model: MODEL,
-      max_tokens: 600,
-      system: SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: prompt }],
-    });
+    let text = '';
 
-    const text = response.content[0]?.text || '';
-    const inputTokens = response.usage?.input_tokens || 0;
-    const outputTokens = response.usage?.output_tokens || 0;
-    polySpendCents += (inputTokens * 300 + outputTokens * 1500) / 1_000_000;
+    // Gemini PRIMARY (free)
+    const g = getGemini();
+    if (g) {
+      try {
+        const gemModel = g.getGenerativeModel({ model: GEMINI_MODEL });
+        const result = await gemModel.generateContent({
+          contents: [{ role: 'user', parts: [{ text: `${SYSTEM_PROMPT}\n\n${prompt}` }] }],
+          generationConfig: { maxOutputTokens: 600, temperature: 0.3 },
+        });
+        text = result.response?.text() || '';
+      } catch (gemErr) {
+        console.error('[PolyBrain] Gemini primary error:', gemErr.message);
+      }
+    }
+
+    // Claude BACKUP (only if Gemini failed)
+    if (!text) {
+      const c = getClient();
+      if (c && canSpend()) {
+        const response = await c.messages.create({
+          model: MODEL,
+          max_tokens: 600,
+          system: SYSTEM_PROMPT,
+          messages: [{ role: 'user', content: prompt }],
+        });
+        text = response.content[0]?.text || '';
+        const inputTokens = response.usage?.input_tokens || 0;
+        const outputTokens = response.usage?.output_tokens || 0;
+        polySpendCents += (inputTokens * 300 + outputTokens * 1500) / 1_000_000;
+      }
+    }
+
+    if (!text) return null;
 
     const jsonStr = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     const raw = JSON.parse(jsonStr);
