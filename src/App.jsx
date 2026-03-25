@@ -3,7 +3,6 @@ import { Routes, Route, NavLink, useLocation, matchPath } from 'react-router-dom
 import { Diamond, DollarSign, Bookmark, Menu, X, Target, Globe, ArrowLeftRight, Bot } from 'lucide-react'
 import ErrorBoundary from './components/ErrorBoundary'
 import { ToastProvider } from './components/Toast'
-import LandscapeSplit from './components/LandscapeSplit'
 import GemsPage from './pages/GemsPage'
 import TradePage from './pages/TradePage'
 import WishlistPage from './pages/WishlistPage'
@@ -11,6 +10,7 @@ import StockDetail from './pages/StockDetail'
 import OracleLanding from './pages/OracleLanding'
 import PolyDashboard from './pages/PolyDashboard'
 import PolyMarkets from './pages/PolyMarkets'
+import PolyPortfolio from './pages/PolyPortfolio'
 import packageJson from '../package.json'
 import { isNotificationSupported, isNotificationEnabled, requestNotificationPermission, disableNotifications } from './lib/notifications'
 import { checkSmartAlerts } from './lib/tradeAlerts'
@@ -25,10 +25,11 @@ const stockNavItems = [
   { to: '/watchlist', icon: Bookmark, label: 'Watchlist' },
 ]
 
-// ── Poly Oracle ──
+// ── Poly Oracle: 3 tabs (matching Stock Oracle structure) ──
 const polyNavItems = [
-  { to: '/poly', icon: Target, label: 'Dashboard' },
+  { to: '/poly', icon: Target, label: 'Picks' },
   { to: '/poly/markets', icon: Globe, label: 'Markets' },
+  { to: '/poly/portfolio', icon: DollarSign, label: 'Portfolio' },
 ]
 
 // Routes where the sidebar toggle should be hidden
@@ -142,11 +143,9 @@ export default function App() {
   return (
     <ToastProvider>
     <div className="min-h-screen bg-gray-950">
-      {/* Landscape split view */}
-      <LandscapeSplit />
 
-      {/* ── Top Tab Bar (Stock Oracle) ── */}
-      {!isDetailPage && !isPolyMode && (
+      {/* ── Unified Top Tab Bar (both modes) ── */}
+      {!isDetailPage && (
         <div className="sticky top-0 z-40 bg-gray-950/90 backdrop-blur-md border-b border-gray-800/50">
           <div className="max-w-lg mx-auto flex items-center">
             {/* Hamburger */}
@@ -158,13 +157,13 @@ export default function App() {
               <Menu size={18} />
             </button>
 
-            {/* Tabs */}
+            {/* Tabs — same style for both Stock and Poly */}
             <div className="flex-1 flex">
-              {stockNavItems.map(({ to, icon: Icon, label }) => (
+              {navItems.map(({ to, icon: Icon, label }) => (
                 <NavLink
                   key={to}
                   to={to}
-                  end={to === '/'}
+                  end={to === '/' || to === '/poly'}
                   className={({ isActive }) =>
                     `flex-1 flex items-center justify-center gap-1.5 py-3 text-xs font-bold uppercase tracking-wider transition-all border-b-2 ${
                       isActive
@@ -178,37 +177,6 @@ export default function App() {
                 </NavLink>
               ))}
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* ── Top Bar (Poly Oracle / Detail pages) ── */}
-      {!isDetailPage && isPolyMode && (
-        <div className="sticky top-0 z-40 bg-gray-950/90 backdrop-blur-md border-b border-gray-800/50 px-4 py-2 flex items-center gap-2">
-          <button
-            onClick={() => setSidebarOpen(true)}
-            className="p-2 bg-gray-900 border border-gray-800 rounded-xl text-gray-500 hover:text-white transition-all active:scale-95"
-            aria-label="Open menu"
-          >
-            <Menu size={18} />
-          </button>
-          <div className="flex gap-1 flex-1">
-            {polyNavItems.map(({ to, icon: Icon, label }) => (
-              <NavLink
-                key={to}
-                to={to}
-                className={({ isActive }) =>
-                  `flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all ${
-                    isActive
-                      ? 'bg-purple-500/15 text-purple-400 border border-purple-500/30'
-                      : 'text-gray-500 hover:text-gray-300'
-                  }`
-                }
-              >
-                <Icon size={14} />
-                {label}
-              </NavLink>
-            ))}
           </div>
         </div>
       )}
@@ -314,6 +282,7 @@ export default function App() {
             {/* Poly Oracle */}
             <Route path="/poly" element={<PolyDashboard />} />
             <Route path="/poly/markets" element={<PolyMarkets />} />
+            <Route path="/poly/portfolio" element={<PolyPortfolio />} />
           </Routes>
         </ErrorBoundary>
       </main>
