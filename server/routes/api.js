@@ -1,4 +1,5 @@
 import express from 'express';
+import { getShared } from '../services/sharedCache.js';
 import * as yahooFinance from '../services/yahooFinance.js';
 import { getEarningsHistory } from '../services/yahooFinance.js';
 import { getRedditSentiment } from '../services/reddit.js';
@@ -1053,7 +1054,8 @@ router.get('/predictions', async (req, res, next) => {
   const timeout = setTimeout(() => {
     if (!res.headersSent) {
       console.warn('[Predictions] Timed out after 15s, returning scan cache');
-      res.json({ predictions: [], source: 'timeout', timestamp: new Date().toISOString(), message: 'Data loading, try again in 30s' });
+      const cronGems = getShared('allAnalyzed') || getShared('gems') || [];
+      res.json({ predictions: cronGems.slice(0, 10), source: cronGems.length > 0 ? 'cron_cache' : 'timeout', timestamp: new Date().toISOString() });
     }
   }, 15000);
 
@@ -1221,9 +1223,22 @@ router.get('/predictions', async (req, res, next) => {
 // /api/tomorrow — Stocks to buy for tomorrow
 // ══════════════════════════════════════════
 router.get('/tomorrow', async (req, res, next) => {
+  const timeout = setTimeout(() => {
+    if (!res.headersSent) {
+      console.warn('[Tomorrow] Timed out after 20s — returning scan cache');
+      // Try shared cache from cron (populated every 5 min)
+      const cronGems = getShared('gems') || [];
+      if (cronGems.length > 0) {
+        res.json({ gems: cronGems, source: 'cron_cache' });
+      } else {
+        res.json({ gems: [], source: 'timeout', message: 'First scan in progress — data appears after ~5 min' });
+      }
+    }
+  }, 20000);
+
   try {
     const cached = getCached('tomorrow');
-    if (cached) return res.json(cached);
+    if (cached) { clearTimeout(timeout); return res.json(cached); }
 
     console.log('[Tomorrow] Finding stocks for tomorrow\'s catalysts...');
 
@@ -1297,9 +1312,11 @@ router.get('/tomorrow', async (req, res, next) => {
     console.log(`[Tomorrow] Done: ${predictions.length} picks`);
     saveDailyPicks('tomorrow', predictions);
     setCache('tomorrow', result);
-    res.json(result);
+    clearTimeout(timeout);
+    if (!res.headersSent) res.json(result);
   } catch (err) {
-    next(err);
+    clearTimeout(timeout);
+    if (!res.headersSent) next(err);
   }
 });
 

@@ -13,6 +13,7 @@ import * as yahooFinance from './services/yahooFinance.js';
 import { scanPennyStocks } from './services/pennyScanner.js';
 import { processSignals, checkExitSignals } from './services/autoTrader.js';
 import { initTelegramBot, setScanCache, notifyBuyAlerts, notifyNewTrade } from './services/telegram.js';
+import { setShared } from './services/sharedCache.js';
 import { runCalibration, getCalibration } from './services/strategyCalibrator.js';
 import { analyzeStock, getMarketBriefing, isClaudeConfigured, getMarketContext } from './services/claudeBrain.js';
 import { logPrediction } from './services/claudeTracker.js';
@@ -185,6 +186,8 @@ if (!process.env.VERCEL) {
         });
         saveGemSnapshot(gemsWithVerdicts).catch(() => {});
         scanCache.gems = gemsWithVerdicts;
+        // Save to shared cache so /api/tomorrow can use it as fallback
+        setShared('gems', gemsWithVerdicts);
         allAnalyzed.push(...gemsWithVerdicts);
         broadcastSSE({
           type: 'gems_update',
@@ -309,6 +312,7 @@ if (!process.env.VERCEL) {
       // Update scan cache
       scanCache.allAnalyzed = allAnalyzed;
       scanCache.lastScanTime = new Date().toISOString();
+      setShared('allAnalyzed', allAnalyzed);
 
       // ── Claude AI Brain: deep analysis on promising stocks ──
       // Claude validates/enriches Buy + Strong Buy setups, can upgrade or reject
