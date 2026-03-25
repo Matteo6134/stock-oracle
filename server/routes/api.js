@@ -31,9 +31,31 @@ import { getAllIntelligence, getMarketRegime as getVixRegime, getSectorRotation,
 const router = express.Router();
 
 // ── Diagnostic endpoint ──
-router.get('/diag', (req, res) => {
+router.get('/diag', async (req, res) => {
   const shared = getShared('gems');
+  // Quick Finnhub test
+  let finnhubTest = 'not_tested';
+  try {
+    const axios = (await import('axios')).default;
+    const { data } = await axios.get(`https://finnhub.io/api/v1/quote?symbol=AAPL&token=${process.env.FINNHUB_API_KEY}`, { timeout: 5000 });
+    finnhubTest = data?.c > 0 ? `OK (AAPL=$${data.c})` : `EMPTY (${JSON.stringify(data)})`;
+  } catch (e) { finnhubTest = `ERROR: ${e.message}`; }
+
+  // Quick Yahoo test
+  let yahooTest = 'not_tested';
+  try {
+    const axios = (await import('axios')).default;
+    const { data } = await axios.get('https://query1.finance.yahoo.com/v8/finance/chart/AAPL?interval=1d&range=1d', {
+      timeout: 5000,
+      headers: { 'User-Agent': 'Mozilla/5.0', 'Origin': 'https://finance.yahoo.com', 'Referer': 'https://finance.yahoo.com/' }
+    });
+    const price = data?.chart?.result?.[0]?.meta?.regularMarketPrice;
+    yahooTest = price ? `OK (AAPL=$${price})` : 'EMPTY';
+  } catch (e) { yahooTest = `ERROR: ${e.message}`; }
+
   res.json({
+    finnhubTest,
+    yahooTest,
     finnhubKey: process.env.FINNHUB_API_KEY ? 'SET (' + process.env.FINNHUB_API_KEY.slice(0, 4) + '...)' : 'MISSING',
     anthropicKey: process.env.ANTHROPIC_API_KEY ? 'SET' : 'MISSING',
     geminiKey: process.env.GEMINI_API_KEY ? 'SET' : 'MISSING',
