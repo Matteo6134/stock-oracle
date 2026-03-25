@@ -6,7 +6,68 @@ const yf = new YahooFinance({
   validation: { logErrors: false, logOptionsErrors: false },
 });
 
-// ── FINNHUB as primary data source (Yahoo blocked on Railway) ──
+// ── ALPACA market data (most reliable — already authenticated, never blocked) ──
+const ALPACA_KEY = process.env.ALPACA_API_KEY;
+const ALPACA_SECRET = process.env.ALPACA_SECRET_KEY;
+const ALPACA_DATA = 'https://data.alpaca.markets';
+
+/**
+ * Fetch quote via Alpaca market data API (most reliable on Railway — never blocked)
+ */
+async function fetchQuoteAlpaca(symbol) {
+  if (!ALPACA_KEY || !ALPACA_SECRET) return null;
+  try {
+    const { data } = await axios.get(`${ALPACA_DATA}/v2/stocks/${symbol}/quotes/latest`, {
+      headers: { 'APCA-API-KEY-ID': ALPACA_KEY, 'APCA-API-SECRET-KEY': ALPACA_SECRET },
+      timeout: 5000,
+    });
+    // Alpaca returns bid/ask — use midpoint as price
+    const bid = data?.quote?.bp || 0;
+    const ask = data?.quote?.ap || 0;
+    const price = bid && ask ? (bid + ask) / 2 : bid || ask;
+    if (!price) return null;
+
+    // Also get today's bar for OHLCV
+    let bar = null;
+    try {
+      const barRes = await axios.get(`${ALPACA_DATA}/v2/stocks/${symbol}/bars/latest`, {
+        headers: { 'APCA-API-KEY-ID': ALPACA_KEY, 'APCA-API-SECRET-KEY': ALPACA_SECRET },
+        timeout: 5000,
+      });
+      bar = barRes.data?.bar;
+    } catch {}
+
+    // Get previous close from snapshot
+    let prevClose = 0;
+    try {
+      const snapRes = await axios.get(`${ALPACA_DATA}/v2/stocks/${symbol}/snapshot`, {
+        headers: { 'APCA-API-KEY-ID': ALPACA_KEY, 'APCA-API-SECRET-KEY': ALPACA_SECRET },
+        timeout: 5000,
+      });
+      prevClose = snapRes.data?.prevDailyBar?.c || 0;
+    } catch {}
+
+    return {
+      symbol,
+      shortName: symbol,
+      regularMarketPrice: bar?.c || price,
+      regularMarketChange: prevClose ? (bar?.c || price) - prevClose : 0,
+      regularMarketChangePercent: prevClose ? (((bar?.c || price) - prevClose) / prevClose) * 100 : 0,
+      regularMarketVolume: bar?.v || 0,
+      regularMarketPreviousClose: prevClose,
+      regularMarketOpen: bar?.o || 0,
+      regularMarketDayHigh: bar?.h || 0,
+      regularMarketDayLow: bar?.l || 0,
+      fiftyTwoWeekHigh: 0,
+      fiftyTwoWeekLow: 0,
+      marketCap: 0,
+    };
+  } catch {
+    return null;
+  }
+}
+
+// ── FINNHUB as backup data source ──
 const FINNHUB_KEY = process.env.FINNHUB_API_KEY;
 const FINNHUB_BASE = 'https://finnhub.io/api/v1';
 
@@ -543,8 +604,51 @@ export async function getQuoteBatch(symbols) {
 
   const allQuotes = [];
 
-  // Strategy 1: Yahoo direct API (CONFIRMED WORKING on Railway, no rate limit)
-  // Fetch all symbols via direct API with small delays
+  // Strategy 1: Alpaca snapshots (MOST RELIABLE — authenticated, never blocked)
+  if (ALPACA_KEY && ALPACA_SECRET) {
+    try {
+      // Alpaca supports batch snapshots — up to 200 symbols at once
+      const symStr = symbols.join(',');
+      const { data } = await axios.get(`${ALPACA_DATA}/v2/stocks/snapshots?symbols=${encodeURIComponent(symStr)}`, {
+        headers: { 'APCA-API-KEY-ID': ALPACA_KEY, 'APCA-API-SECRET-KEY': ALPACA_SECRET },
+        timeout: 15000,
+      });
+      if (data && typeof data === 'object') {
+        for (const [sym, snap] of Object.entries(data)) {
+          const bar = snap.dailyBar || snap.latestBar || {};
+          const prevBar = snap.prevDailyBar || {};
+          const price = bar.c || 0;
+          const prevClose = prevBar.c || 0;
+          if (price > 0) {
+            allQuotes.push({
+              symbol: sym,
+              shortName: sym,
+              regularMarketPrice: price,
+              regularMarketChange: prevClose ? price - prevClose : 0,
+              regularMarketChangePercent: prevClose ? ((price - prevClose) / prevClose) * 100 : 0,
+              regularMarketVolume: bar.v || 0,
+              regularMarketPreviousClose: prevClose,
+              regularMarketOpen: bar.o || 0,
+              regularMarketDayHigh: bar.h || 0,
+              regularMarketDayLow: bar.l || 0,
+              fiftyTwoWeekHigh: 0,
+              fiftyTwoWeekLow: 0,
+              marketCap: 0,
+              currentSessionPrice: price,
+            });
+          }
+        }
+        if (allQuotes.length > 0) {
+          console.log(`[Data] Alpaca batch: ${allQuotes.length}/${symbols.length} quotes`);
+          return allQuotes;
+        }
+      }
+    } catch (err) {
+      console.warn('[Data] Alpaca batch failed:', err.message);
+    }
+  }
+
+  // Strategy 2: Yahoo direct API (works intermittently on Railway)
   let directSuccess = 0;
   for (const s of symbols) {
     const q = await fetchQuoteDirect(s);
@@ -552,12 +656,11 @@ export async function getQuoteBatch(symbols) {
       allQuotes.push({ ...q, currentSessionPrice: q.regularMarketPrice });
       directSuccess++;
     }
-    // Small delay to avoid hammering Yahoo
-    if (directSuccess % 10 === 0) await new Promise(r => setTimeout(r, 200));
+    if (directSuccess % 10 === 0) await new Promise(r => setTimeout(r, 150));
   }
 
   if (directSuccess > 0) {
-    console.log(`[YahooFinance] Direct API: ${directSuccess}/${symbols.length} quotes fetched`);
+    console.log(`[Data] Yahoo direct: ${directSuccess}/${symbols.length} quotes`);
     return allQuotes;
   }
 
@@ -591,23 +694,23 @@ export async function getQuoteBatch(symbols) {
 }
 
 export async function getQuote(symbol) {
-  // 1. Yahoo direct API (CONFIRMED WORKING on Railway — fastest, no rate limit)
+  // 1. Alpaca (MOST RELIABLE — authenticated, never blocked on cloud)
+  const alp = await fetchQuoteAlpaca(symbol);
+  if (alp?.regularMarketPrice > 0) {
+    return { ...alp, currentSessionPrice: alp.regularMarketPrice };
+  }
+
+  // 2. Yahoo direct API (works intermittently on Railway)
   const direct = await fetchQuoteDirect(symbol);
   if (direct?.regularMarketPrice > 0) {
     return { ...direct, currentSessionPrice: direct.regularMarketPrice };
   }
 
-  // 2. Finnhub (backup — 60 calls/min limit, gets 429 when scanning many stocks)
+  // 3. Finnhub (60 calls/min limit)
   const fh = await fetchQuoteFinnhub(symbol);
   if (fh?.regularMarketPrice > 0) {
     return { ...fh, currentSessionPrice: fh.regularMarketPrice };
   }
-
-  // 3. Yahoo library (fallback)
-  try {
-    const q = await yf.quote(symbol, {}, { validateResult: false });
-    if (q) return { ...q, currentSessionPrice: getCurrentSessionPrice(q) };
-  } catch {}
 
   return {};
 }
