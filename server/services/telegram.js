@@ -53,11 +53,13 @@ function removeSubscriber(id) {
 
 // Broadcast a message to every subscriber. Auto-removes users who blocked the bot.
 async function broadcast(text, opts = {}) {
-  if (!bot || subscribers.size === 0) return;
+  if (!bot || subscribers.size === 0) return 0;
+  let sent = 0;
   const payload = { parse_mode: 'Markdown', disable_web_page_preview: true, ...opts };
   for (const id of [...subscribers]) {
     try {
       await bot.sendMessage(id, text, payload);
+      sent++;
     } catch (err) {
       const errCode = err?.response?.body?.error_code;
       const errDesc = (err?.response?.body?.description || '').toLowerCase();
@@ -70,12 +72,14 @@ async function broadcast(text, opts = {}) {
         try {
           const plain = text.replace(/\*/g, '').replace(/_/g, '');
           await bot.sendMessage(id, plain, { disable_web_page_preview: true });
+          sent++;
         } catch { /* give up on this user for this msg */ }
       }
     }
     // small gap to avoid rate limits (Telegram allows ~30 msgs/sec globally)
     await new Promise(r => setTimeout(r, 40));
   }
+  return sent;
 }
 
 // Alert dedup
@@ -1313,9 +1317,13 @@ export async function notifyBuyAlerts(stocks) {
       if (expl?.factors?.[0]) lines.push(`\uD83E\uDDE0 ${expl.factors[0]}`);
 
       const msg = lines.join('\n');
-      await broadcast(msg);
+      const sent = await broadcast(msg);
 
-      alertedStocks.set(s.symbol, { ts: now, gemScore: s.gemScore || 0 });
+      // Only start the 4h cooldown if at least one subscriber actually got the
+      // alert — a transient Telegram failure must not mute the stock for 4h.
+      if (sent > 0) {
+        alertedStocks.set(s.symbol, { ts: now, gemScore: s.gemScore || 0 });
+      }
       await new Promise(r => setTimeout(r, 500));
     } catch (err) {
       console.error('[Telegram] Alert error:', err.message);
@@ -1356,16 +1364,23 @@ export async function notifyEarlyWarnings() {
     const newAlerts = getNewAlerts({ revolutOnly: true });
     if (!newAlerts?.length) return;
 
-    for (const alert of newAlerts.slice(0, 5)) {
+    // Only LOADING/IMMINENT stages get pushed — day-1 BUILDING alerts were
+    // generating ~30 notifications/day of noise with no demonstrated edge.
+    const actionable = newAlerts.filter(a => a.stage === 'IMMINENT' || a.stage === 'LOADING');
+    if (!actionable.length) return;
+
+    let sentCount = 0;
+    for (const alert of actionable.slice(0, 3)) {
       try {
         await broadcast(alert.alertMessage);
+        sentCount++;
         await new Promise(r => setTimeout(r, 500));
       } catch (err) {
         console.error('[Telegram] Early warning alert error:', err.message);
       }
     }
 
-    console.log(`[Telegram] Sent ${newAlerts.length} early warning alerts`);
+    console.log(`[Telegram] Sent ${sentCount} early warning alerts (${newAlerts.length} candidates)`);
   } catch (err) {
     console.error('[Telegram] notifyEarlyWarnings error:', err.message);
   }
