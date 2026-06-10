@@ -42,8 +42,8 @@ const DEFAULT_CONFIG = {
   requireOrderFlow: false,   // Don't require order flow — Yahoo can't provide this on Railway
   onlyStrongBuy: false,      // Trade "Buy" AND "Strong Buy" (was true — too strict)
   maxStockPrice: 400,        // Safety cap — allows mid/large caps like CAR, MSTR, etc.
-  maxHoldDays: 10,           // Time stop: close any position older than this (0 = off)
-  hardStopPct: 12,           // Hard stop: cut loss at -12% even if broker stop failed (0 = off)
+  maxHoldDays: 10,           // Time stop: close stale positions older than this, but ONLY at breakeven or better (0 = off)
+  hardStopPct: 0,            // DISABLED — user's #1 rule: NEVER sell at a loss. (>0 enables loss-cutting + broker stops)
 };
 
 // Reset old restrictive configs on first load
@@ -374,7 +374,9 @@ export async function processSignals(analyzedStocks) {
       // ── Broker-side stop-loss: protects against gap opens / crashes ──
       // Polling every 2 min cannot catch a -20% gap. A resting stop order on Alpaca
       // triggers at the broker regardless of our uptime. Fire-and-forget; log if it fails.
-      if (price > 0 && finalStopPct > 0) {
+      // GATED on hardStopPct: the user's #1 rule is never sell at a loss, so by
+      // default (hardStopPct: 0) NO loss-selling order is placed at the broker.
+      if (config.hardStopPct > 0 && price > 0 && finalStopPct > 0) {
         const stopPrice = Math.round(price * (1 - finalStopPct / 100) * 100) / 100;
         alpaca.submitStopLossAfterFill({
           symbol,
@@ -511,9 +513,9 @@ async function runExitCheck(config) {
       }
     };
 
-    // ── RULE #0a: HARD STOP — cut catastrophic losses ──
-    // The broker-side stop should fire first (~5-7%); this catches positions
-    // that slipped through it (partial fills, stop order rejected, gaps).
+    // ── RULE #0a: HARD STOP — disabled by default (hardStopPct: 0). ──
+    // The user's #1 rule is NEVER sell at a loss. Only fires if explicitly
+    // enabled in config for catastrophic protection.
     if (config.hardStopPct > 0 && unrealizedPLPct <= -config.hardStopPct) {
       try {
         console.log(`[AutoTrader] 🛑 HARD STOP ${symbol} at ${unrealizedPLPct.toFixed(1)}% (limit -${config.hardStopPct}%)`);
@@ -522,15 +524,16 @@ async function runExitCheck(config) {
       continue;
     }
 
-    // ── RULE #0b: TIME STOP — recycle capital out of dead positions ──
-    // Holding losers indefinitely ("never sell red") trapped thousands in
-    // positions down 20-50% for weeks. After maxHoldDays, exit regardless of P&L.
+    // ── RULE #0b: TIME STOP — recycle capital out of stale positions, but
+    // ONLY at breakeven or better (never realizes a loss). A position older
+    // than maxHoldDays exits as soon as it recovers to >= 0%.
     const entryTime = entry?.timestamp ? new Date(entry.timestamp).getTime() : null;
     const heldDays = entryTime ? (Date.now() - entryTime) / 86400000 : null;
-    if (config.maxHoldDays > 0 && heldDays != null && heldDays >= config.maxHoldDays && unrealizedPLPct < targetPct) {
+    if (config.maxHoldDays > 0 && heldDays != null && heldDays >= config.maxHoldDays
+        && unrealizedPLPct >= 0 && unrealizedPLPct < targetPct) {
       try {
-        console.log(`[AutoTrader] ⏱️ TIME STOP ${symbol} after ${Math.floor(heldDays)}d at ${unrealizedPLPct.toFixed(1)}%`);
-        await closeWithReason(`Time stop (${Math.floor(heldDays)}d held, ${unrealizedPLPct.toFixed(1)}%)`, 'time_stop');
+        console.log(`[AutoTrader] ⏱️ TIME STOP ${symbol} after ${Math.floor(heldDays)}d at +${unrealizedPLPct.toFixed(1)}% (breakeven exit)`);
+        await closeWithReason(`Time stop (${Math.floor(heldDays)}d held, +${unrealizedPLPct.toFixed(1)}%)`, 'time_stop');
       } catch (err) { console.error(`[AutoTrader] Failed to close ${symbol}:`, err.message); }
       continue;
     }
