@@ -19,7 +19,8 @@ import { notifyNewTrade, notifyTradeExit } from './telegram.js';
 import { logNewTrade, logTradeExit } from './sheetsLogger.js';
 import { logNewTrade as logSupabaseTrade, logTradeExit as logSupabaseExit } from './supabaseLogger.js';
 import { recordOutcome } from './claudeTracker.js';
-import { kellySizingPct, signalPerformance } from './tradeStats.js';
+import { signalPerformance } from './tradeStats.js';
+import { getSignalReport, getComboBonus } from './signalLearner.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CONFIG_FILE = path.join(__dirname, '..', 'data', 'autoTradeConfig.json');
@@ -28,10 +29,10 @@ const TRADES_FILE = path.join(__dirname, '..', 'data', 'agentTrades.json');
 // ── Config ──
 const DEFAULT_CONFIG = {
   enabled: true,             // Auto-trading ON by default — Claude is in charge
-  maxBudget: 1000,           // Total max $ invested at any time — this is the ONLY limit
-  strongBuyAmount: 200,      // $ per Strong Buy trade (conservative)
-  buyAmount: 100,            // $ per Buy trade
-  maxPerStock: 200,          // Max $ in any single stock
+  maxBudget: 5000,           // Total max $ invested at any time
+  strongBuyAmount: 200,      // LEGACY — unused since conviction-based sizing
+  buyAmount: 100,            // LEGACY — unused since conviction-based sizing
+  maxPerStock: 500,          // Max $ in any single stock (= 100% conviction size)
   defaultStopPct: 5,         // Tight stop loss (5%)
   takeProfitPct: 10,         // Take profit at 10%
   trailingStopPct: 3,        // After +5% gain, trail by 3%
@@ -152,6 +153,43 @@ function pdtGuardBlocks(account) {
   return null;
 }
 
+// ── Conviction-based sizing ──
+// Fraction of maxPerStock to invest, driven by MEASURED edge, not vibes:
+// - the 5d performance of this setup's signals (learned from gem outcomes)
+// - presence of a killer combo (signal pairs with proven 10%+ hit rates)
+// - agent consensus and Claude confidence
+// Strong evidence → invest the full per-stock cap; weak evidence → a fraction.
+function convictionFraction(stock, claude) {
+  const signals = stock.signals || [];
+  let f = stock.consensus === 'Strong Buy' ? 0.5 : 0.35;
+
+  // Empirical edge: average 5d return of this setup's signals (n≥30 only)
+  const perf = getSignalReport()?.signalPerformance || {};
+  const edges = signals
+    .map(s => perf[s])
+    .filter(p => p && p.count >= 30)
+    .map(p => p.avgReturn);
+  if (edges.length > 0) {
+    const avgEdge = edges.reduce((a, b) => a + b, 0) / edges.length;
+    if (avgEdge >= 5) f += 0.25;
+    else if (avgEdge >= 3) f += 0.15;
+    else if (avgEdge >= 1.5) f += 0.08;
+    else if (avgEdge < 0) f -= 0.15;
+  }
+
+  // Killer combo present (e.g. squeeze + volume_contraction: 71% hit10, n=24)
+  if (getComboBonus(signals) >= 10) f += 0.15;
+
+  // Claude/Gemini validation confidence
+  if (claude) {
+    if (claude.confidence >= 9) f += 0.2;
+    else if (claude.confidence >= 8) f += 0.1;
+    else if (claude.confidence <= 6) f -= 0.1;
+  }
+
+  return Math.min(1, Math.max(0.2, f));
+}
+
 // ── Main: Process Signals from Scan ──
 export async function processSignals(analyzedStocks) {
   const config = getAutoTradeConfig();
@@ -191,8 +229,6 @@ export async function processSignals(analyzedStocks) {
   const accountEquity = parseFloat(account.equity) || 0;
   const maxBudget = Math.min(accountEquity || config.maxBudget, config.maxBudget);
 
-  // Kelly-sized default amount (null when insufficient stats — falls back to config)
-  const kellyPct = kellySizingPct();
   const signalBlacklist = getSignalBlacklist();
 
   const results = { bought: [], skipped: [], errors: [] };
@@ -267,17 +303,12 @@ export async function processSignals(analyzedStocks) {
       continue;
     }
 
-    // Budget check — don't exceed account equity (scales with account)
     const currentlyInvested = totalInvested + results.bought.reduce((s, b) => s + b.amount, 0);
-    // Size priority: Claude's explicit suggestion > Kelly (if stats exist) > fixed defaults
-    const claudeSizeAmount = claude?.suggestedSizePct
-      ? Math.round(maxBudget * (claude.suggestedSizePct / 100))
-      : null;
-    const kellyAmount = kellyPct != null
-      ? Math.round(maxBudget * kellyPct)
-      : null;
-    const defaultAmount = consensus === 'Strong Buy' ? config.strongBuyAmount : config.buyAmount;
-    let amount = claudeSizeAmount || kellyAmount || defaultAmount;
+    // Conviction-based sizing: more money where the measured edge is stronger.
+    // Replaces the old Kelly/Claude-pct paths, which sized off survivorship-
+    // biased closed-trade stats and once scaled to the whole account.
+    const conviction = convictionFraction(stock, claude);
+    let amount = Math.max(50, Math.round(config.maxPerStock * conviction));
 
     // Regime scaling — stockIntel attaches positionMultiplier (0.3x panic → 1.2x calm).
     // In PANIC/HIGH_FEAR only Claude-high-confidence trades survive (override below).
@@ -338,7 +369,7 @@ export async function processSignals(analyzedStocks) {
     );
 
     try {
-      console.log(`[AutoTrader] BUY ${symbol} — ${consensus} (${buyCount}/5 agents, conviction ${avgConviction}, score ${gemScore}) — $${amount}`);
+      console.log(`[AutoTrader] BUY ${symbol} — ${consensus} (${buyCount}/5 agents, conviction ${avgConviction}, score ${gemScore}) — $${amount} (edge sizing ${(conviction * 100).toFixed(0)}%)`);
 
       // Use marketable limit order (+0.5% above current) instead of pure market.
       // Market orders on thinly-traded small/penny stocks can eat 1-3% in slippage.
