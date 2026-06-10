@@ -2516,5 +2516,58 @@
       "near_expiry_call_rush"
     ],
     "createdAt": "2026-06-09T20:05:00.029Z"
+  },
+  {
+    "pickDate": "2026-06-10",
+    "symbol": "RDW",
+    "compositeScore": 22.28,
+    "gemScore": 100,
+    "claudeConfidence": null,
+    "explosionProb": 38,
+    "entryPrice": 15.75,
+    "expectedReturnPct": 15,
+    "reasoning": "Picked from 3 candidates by composite ranking",
+    "signals": [
+      "bb_squeeze",
+      "price_compression",
+      "bullish_options",
+      "unusual_options_volume",
+      "institutions_accumulating"
+    ],
+    "createdAt": "2026-06-10T11:50:11.772Z"
+  },
+  {
+    "pickDate": "2026-06-10",
+    "symbol": "PLUG",
+    "compositeScore": -4,
+    "gemScore": 51,
+    "claudeConfidence": null,
+    "explosionProb": null,
+    "entryPrice": 2.905,
+    "expectedReturnPct": null,
+    "reasoning": "Picked from 3 candidates by composite ranking",
+    "signals": [
+      "penny_squeeze",
+      "bullish_options",
+      "unusual_options_volume"
+    ],
+    "createdAt": "2026-06-10T11:50:11.772Z"
+  },
+  {
+    "pickDate": "2026-06-10",
+    "symbol": "BBAI",
+    "compositeScore": -4,
+    "gemScore": 51,
+    "claudeConfidence": null,
+    "explosionProb": null,
+    "entryPrice": 3.97,
+    "expectedReturnPct": null,
+    "reasoning": "Picked from 3 candidates by composite ranking",
+    "signals": [
+      "penny_squeeze",
+      "bullish_options",
+      "unusual_options_volume"
+    ],
+    "createdAt": "2026-06-10T11:50:11.772Z"
   }
 ]

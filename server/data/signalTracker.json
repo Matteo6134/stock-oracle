@@ -237,28 +237,11 @@
   },
   "OCGN": {
     "firstSeen": "2026-04-10",
-    "lastUpdate": "2026-06-09",
-    "consecutiveDays": 9,
-    "totalAppearances": 37,
-    "stage": "LOADING",
+    "lastUpdate": "2026-06-10",
+    "consecutiveDays": 10,
+    "totalAppearances": 38,
+    "stage": "IMMINENT",
     "history": [
-      {
-        "date": "2026-05-22",
-        "gemScore": 94,
-        "price": 1.355,
-        "signals": [
-          "momentum_acceleration",
-          "short_squeeze_loading",
-          "bb_squeeze",
-          "bullish_options",
-          "institutions_accumulating",
-          "analyst_strong_buy"
-        ],
-        "loadingSignalCount": 4,
-        "breakoutSignalCount": 1,
-        "consensus": "Strong Buy",
-        "volumeRatio": 1
-      },
       {
         "date": "2026-05-28",
         "gemScore": 94,
@@ -408,34 +391,35 @@
         "breakoutSignalCount": 0,
         "consensus": "No Trade",
         "volumeRatio": 1
+      },
+      {
+        "date": "2026-06-10",
+        "gemScore": 70,
+        "price": 1.225,
+        "signals": [
+          "price_compression",
+          "penny_squeeze",
+          "institutions_accumulating",
+          "analyst_strong_buy"
+        ],
+        "loadingSignalCount": 2,
+        "breakoutSignalCount": 0,
+        "consensus": "No Trade",
+        "volumeRatio": 1
       }
     ],
     "peakScore": 94,
-    "scoreTrajectory": "flat",
+    "scoreTrajectory": "rising",
     "companyName": "OCGN",
     "explosion": null
   },
   "RCKT": {
     "firstSeen": "2026-04-10",
-    "lastUpdate": "2026-06-09",
-    "consecutiveDays": 9,
-    "totalAppearances": 37,
-    "stage": "LOADING",
+    "lastUpdate": "2026-06-10",
+    "consecutiveDays": 10,
+    "totalAppearances": 38,
+    "stage": "IMMINENT",
     "history": [
-      {
-        "date": "2026-05-22",
-        "gemScore": 51,
-        "price": 3.1,
-        "signals": [
-          "short_squeeze_loading",
-          "bullish_options",
-          "unusual_options_volume"
-        ],
-        "loadingSignalCount": 3,
-        "breakoutSignalCount": 0,
-        "consensus": "Speculative",
-        "volumeRatio": 1
-      },
       {
         "date": "2026-05-28",
         "gemScore": 75,
@@ -566,45 +550,34 @@
         "breakoutSignalCount": 0,
         "consensus": "Speculative",
         "volumeRatio": 1
+      },
+      {
+        "date": "2026-06-10",
+        "gemScore": 91,
+        "price": 2.64,
+        "signals": [
+          "short_squeeze_loading",
+          "bb_squeeze",
+          "unusual_options_volume"
+        ],
+        "loadingSignalCount": 3,
+        "breakoutSignalCount": 0,
+        "consensus": "Speculative",
+        "volumeRatio": 1
       }
     ],
     "peakScore": 94,
-    "scoreTrajectory": "flat",
+    "scoreTrajectory": "rising",
     "companyName": "RCKT",
     "explosion": null
   },
   "SPCE": {
     "firstSeen": "2026-04-10",
-    "lastUpdate": "2026-06-09",
-    "consecutiveDays": 9,
-    "totalAppearances": 37,
+    "lastUpdate": "2026-06-10",
+    "consecutiveDays": 10,
+    "totalAppearances": 38,
     "stage": "IMMINENT",
     "history": [
-      {
-        "date": "2026-05-22",
-        "gemScore": 92,
-        "price": 3.23,
-        "signals": [
-          "multi_day_accumulation",
-          "momentum_acceleration",
-          "short_squeeze_loading",
-          "volume_acceleration",
-          "bullish_options",
-          "unusual_options_volume",
-          "call_sweep_large",
-          "put_call_extreme_bullish",
-          "options_volume_spike",
-          "deep_itm_calls",
-          "near_expiry_call_rush",
-          "dark_pool_pressure",
-          "insider_buy_recent",
-          "social_surge"
-        ],
-        "loadingSignalCount": 5,
-        "breakoutSignalCount": 1,
-        "consensus": "Strong Buy",
-        "volumeRatio": 1
-      },
       {
         "date": "2026-05-28",
         "gemScore": 100,
@@ -790,10 +763,29 @@
         "breakoutSignalCount": 0,
         "consensus": "Speculative",
         "volumeRatio": 1
+      },
+      {
+        "date": "2026-06-10",
+        "gemScore": 100,
+        "price": 4.58,
+        "signals": [
+          "short_squeeze_loading",
+          "bullish_options",
+          "unusual_options_volume",
+          "put_call_bullish",
+          "options_volume_spike",
+          "deep_itm_calls",
+          "near_expiry_call_rush",
+          "dark_pool_pressure"
+        ],
+        "loadingSignalCount": 3,
+        "breakoutSignalCount": 0,
+        "consensus": "Speculative",
+        "volumeRatio": 1
       }
     ],
     "peakScore": 100,
-    "scoreTrajectory": "rising",
+    "scoreTrajectory": "flat",
     "companyName": "SPCE",
     "explosion": {
       "expectedGainPct": 15,
@@ -809,27 +801,11 @@
   },
   "IOVA": {
     "firstSeen": "2026-04-10",
-    "lastUpdate": "2026-06-09",
-    "consecutiveDays": 9,
-    "totalAppearances": 38,
+    "lastUpdate": "2026-06-10",
+    "consecutiveDays": 10,
+    "totalAppearances": 39,
     "stage": "IMMINENT",
     "history": [
-      {
-        "date": "2026-05-22",
-        "gemScore": 75,
-        "price": 3.7,
-        "signals": [
-          "momentum_acceleration",
-          "short_squeeze_loading",
-          "bullish_options",
-          "unusual_options_volume",
-          "put_call_bullish"
-        ],
-        "loadingSignalCount": 3,
-        "breakoutSignalCount": 1,
-        "consensus": "Strong Buy",
-        "volumeRatio": 1
-      },
       {
         "date": "2026-05-28",
         "gemScore": 51,
@@ -976,10 +952,26 @@
         "breakoutSignalCount": 1,
         "consensus": "Speculative",
         "volumeRatio": 1
+      },
+      {
+        "date": "2026-06-10",
+        "gemScore": 100,
+        "price": 3.87,
+        "signals": [
+          "momentum_acceleration",
+          "penny_squeeze",
+          "bullish_options",
+          "put_call_bullish",
+          "analyst_strong_buy"
+        ],
+        "loadingSignalCount": 1,
+        "breakoutSignalCount": 1,
+        "consensus": "Speculative",
+        "volumeRatio": 1
       }
     ],
     "peakScore": 100,
-    "scoreTrajectory": "flat",
+    "scoreTrajectory": "rising",
     "companyName": "IOVA",
     "explosion": {
       "expectedGainPct": 15,
@@ -995,29 +987,11 @@
   },
   "MVIS": {
     "firstSeen": "2026-04-10",
-    "lastUpdate": "2026-06-09",
-    "consecutiveDays": 9,
-    "totalAppearances": 37,
-    "stage": "LOADING",
+    "lastUpdate": "2026-06-10",
+    "consecutiveDays": 10,
+    "totalAppearances": 38,
+    "stage": "BUILDING",
     "history": [
-      {
-        "date": "2026-05-22",
-        "gemScore": 91,
-        "price": 0.5996,
-        "signals": [
-          "momentum_acceleration",
-          "short_squeeze_loading",
-          "bb_squeeze",
-          "bullish_options",
-          "unusual_options_volume",
-          "dark_pool_pressure",
-          "analyst_strong_buy"
-        ],
-        "loadingSignalCount": 4,
-        "breakoutSignalCount": 1,
-        "consensus": "Strong Buy",
-        "volumeRatio": 1
-      },
       {
         "date": "2026-05-28",
         "gemScore": 28,
@@ -1147,40 +1121,34 @@
         "breakoutSignalCount": 0,
         "consensus": "Speculative",
         "volumeRatio": 1
+      },
+      {
+        "date": "2026-06-10",
+        "gemScore": 41,
+        "price": 0.3583,
+        "signals": [
+          "price_compression",
+          "penny_squeeze",
+          "analyst_strong_buy"
+        ],
+        "loadingSignalCount": 1,
+        "breakoutSignalCount": 0,
+        "consensus": "No Trade",
+        "volumeRatio": 1
       }
     ],
     "peakScore": 91,
-    "scoreTrajectory": "rising",
+    "scoreTrajectory": "flat",
     "companyName": "MVIS",
     "explosion": null
   },
   "PLUG": {
     "firstSeen": "2026-04-10",
-    "lastUpdate": "2026-06-09",
-    "consecutiveDays": 9,
-    "totalAppearances": 38,
-    "stage": "IMMINENT",
+    "lastUpdate": "2026-06-10",
+    "consecutiveDays": 10,
+    "totalAppearances": 39,
+    "stage": "LOADING",
     "history": [
-      {
-        "date": "2026-05-22",
-        "gemScore": 75,
-        "price": 3.785,
-        "signals": [
-          "momentum_acceleration",
-          "short_squeeze_loading",
-          "bullish_options",
-          "unusual_options_volume",
-          "put_call_extreme_bullish",
-          "options_volume_spike",
-          "deep_itm_calls",
-          "near_expiry_call_rush",
-          "social_surge"
-        ],
-        "loadingSignalCount": 3,
-        "breakoutSignalCount": 1,
-        "consensus": "Strong Buy",
-        "volumeRatio": 1
-      },
       {
         "date": "2026-05-28",
         "gemScore": 51,
@@ -1337,10 +1305,26 @@
         "breakoutSignalCount": 0,
         "consensus": "Speculative",
         "volumeRatio": 1
+      },
+      {
+        "date": "2026-06-10",
+        "gemScore": 87,
+        "price": 2.905,
+        "signals": [
+          "penny_squeeze",
+          "bullish_options",
+          "unusual_options_volume",
+          "put_call_bullish",
+          "near_expiry_call_rush"
+        ],
+        "loadingSignalCount": 2,
+        "breakoutSignalCount": 0,
+        "consensus": "No Trade",
+        "volumeRatio": 1
       }
     ],
     "peakScore": 100,
-    "scoreTrajectory": "flat",
+    "scoreTrajectory": "falling",
     "companyName": "PLUG",
     "explosion": {
       "expectedGainPct": 15,
@@ -1356,29 +1340,11 @@
   },
   "BBAI": {
     "firstSeen": "2026-04-10",
-    "lastUpdate": "2026-06-09",
-    "consecutiveDays": 9,
-    "totalAppearances": 38,
-    "stage": "LOADING",
+    "lastUpdate": "2026-06-10",
+    "consecutiveDays": 10,
+    "totalAppearances": 39,
+    "stage": "IMMINENT",
     "history": [
-      {
-        "date": "2026-05-22",
-        "gemScore": 77,
-        "price": 4.19,
-        "signals": [
-          "momentum_acceleration",
-          "short_squeeze_loading",
-          "volume_acceleration",
-          "bullish_options",
-          "unusual_options_volume",
-          "put_call_extreme_bullish",
-          "near_expiry_call_rush"
-        ],
-        "loadingSignalCount": 4,
-        "breakoutSignalCount": 1,
-        "consensus": "Strong Buy",
-        "volumeRatio": 1
-      },
       {
         "date": "2026-05-28",
         "gemScore": 100,
@@ -1542,10 +1508,28 @@
         "breakoutSignalCount": 0,
         "consensus": "Speculative",
         "volumeRatio": 1
+      },
+      {
+        "date": "2026-06-10",
+        "gemScore": 100,
+        "price": 3.97,
+        "signals": [
+          "penny_squeeze",
+          "bullish_options",
+          "unusual_options_volume",
+          "call_sweep",
+          "put_call_bullish",
+          "deep_itm_calls",
+          "near_expiry_call_rush"
+        ],
+        "loadingSignalCount": 2,
+        "breakoutSignalCount": 0,
+        "consensus": "No Trade",
+        "volumeRatio": 1
       }
     ],
     "peakScore": 100,
-    "scoreTrajectory": "flat",
+    "scoreTrajectory": "rising",
     "companyName": "BBAI",
     "explosion": {
       "expectedGainPct": 17,
@@ -1561,27 +1545,11 @@
   },
   "DNUT": {
     "firstSeen": "2026-04-10",
-    "lastUpdate": "2026-06-09",
-    "consecutiveDays": 9,
-    "totalAppearances": 34,
+    "lastUpdate": "2026-06-10",
+    "consecutiveDays": 10,
+    "totalAppearances": 35,
     "stage": "IMMINENT",
     "history": [
-      {
-        "date": "2026-05-22",
-        "gemScore": 70,
-        "price": 3.33,
-        "signals": [
-          "momentum_acceleration",
-          "short_squeeze_loading",
-          "bb_squeeze",
-          "unusual_options_volume",
-          "dark_pool_pressure"
-        ],
-        "loadingSignalCount": 3,
-        "breakoutSignalCount": 1,
-        "consensus": "Strong Buy",
-        "volumeRatio": 1
-      },
       {
         "date": "2026-05-28",
         "gemScore": 70,
@@ -1734,37 +1702,37 @@
         "breakoutSignalCount": 1,
         "consensus": "Speculative",
         "volumeRatio": 1
+      },
+      {
+        "date": "2026-06-10",
+        "gemScore": 100,
+        "price": 3.73,
+        "signals": [
+          "momentum_acceleration",
+          "short_squeeze_loading",
+          "bullish_options",
+          "unusual_options_volume",
+          "insider_heavy_buy",
+          "insider_buy_recent"
+        ],
+        "loadingSignalCount": 3,
+        "breakoutSignalCount": 1,
+        "consensus": "Speculative",
+        "volumeRatio": 1
       }
     ],
     "peakScore": 100,
-    "scoreTrajectory": "flat",
+    "scoreTrajectory": "rising",
     "companyName": "DNUT",
     "explosion": null
   },
   "CABA": {
     "firstSeen": "2026-04-10",
-    "lastUpdate": "2026-06-09",
-    "consecutiveDays": 2,
-    "totalAppearances": 31,
-    "stage": "LOADING",
+    "lastUpdate": "2026-06-10",
+    "consecutiveDays": 3,
+    "totalAppearances": 32,
+    "stage": "IMMINENT",
     "history": [
-      {
-        "date": "2026-05-21",
-        "gemScore": 86,
-        "price": 3.68,
-        "signals": [
-          "momentum_acceleration",
-          "short_squeeze_loading",
-          "price_compression",
-          "bullish_options",
-          "unusual_options_volume",
-          "analyst_strong_buy"
-        ],
-        "loadingSignalCount": 4,
-        "breakoutSignalCount": 1,
-        "consensus": "Strong Buy",
-        "volumeRatio": 1
-      },
       {
         "date": "2026-05-22",
         "gemScore": 75,
@@ -1910,10 +1878,25 @@
         "breakoutSignalCount": 0,
         "consensus": "No Trade",
         "volumeRatio": 1
+      },
+      {
+        "date": "2026-06-10",
+        "gemScore": 100,
+        "price": 3.22,
+        "signals": [
+          "short_squeeze_loading",
+          "bullish_options",
+          "unusual_options_volume",
+          "put_call_extreme_bullish"
+        ],
+        "loadingSignalCount": 3,
+        "breakoutSignalCount": 0,
+        "consensus": "No Trade",
+        "volumeRatio": 1
       }
     ],
     "peakScore": 100,
-    "scoreTrajectory": "flat",
+    "scoreTrajectory": "rising",
     "companyName": "CABA",
     "explosion": null
   },
@@ -2153,29 +2136,11 @@
   },
   "PINS": {
     "firstSeen": "2026-04-10",
-    "lastUpdate": "2026-06-09",
-    "consecutiveDays": 2,
-    "totalAppearances": 24,
+    "lastUpdate": "2026-06-10",
+    "consecutiveDays": 3,
+    "totalAppearances": 25,
     "stage": "IMMINENT",
     "history": [
-      {
-        "date": "2026-05-20",
-        "gemScore": 100,
-        "price": 18.8,
-        "signals": [
-          "short_squeeze_loading",
-          "bb_squeeze",
-          "sector_lag",
-          "price_compression",
-          "bullish_options",
-          "unusual_options_volume",
-          "institutions_accumulating"
-        ],
-        "loadingSignalCount": 6,
-        "breakoutSignalCount": 0,
-        "consensus": "Strong Buy",
-        "volumeRatio": 1
-      },
       {
         "date": "2026-05-21",
         "gemScore": 100,
@@ -2349,6 +2314,24 @@
         "breakoutSignalCount": 1,
         "consensus": "Buy",
         "volumeRatio": 1
+      },
+      {
+        "date": "2026-06-10",
+        "gemScore": 100,
+        "price": 21.9,
+        "signals": [
+          "momentum_acceleration",
+          "short_squeeze_loading",
+          "volume_acceleration",
+          "bullish_options",
+          "institutions_accumulating",
+          "dark_pool_squeeze",
+          "analyst_upgrade"
+        ],
+        "loadingSignalCount": 4,
+        "breakoutSignalCount": 1,
+        "consensus": "Buy",
+        "volumeRatio": 1
       }
     ],
     "peakScore": 100,
@@ -2356,7 +2339,7 @@
     "companyName": "PINS",
     "explosion": {
       "expectedGainPct": 0,
-      "targetPrice": 21.98,
+      "targetPrice": 21.9,
       "daysToMove": 5,
       "probability": 35,
       "explosionType": "moderate_setup",
@@ -2369,7 +2352,7 @@
     "lastUpdate": "2026-06-09",
     "consecutiveDays": 3,
     "totalAppearances": 33,
-    "stage": "LOADING",
+    "stage": "COOLING",
     "history": [
       {
         "date": "2026-05-20",
@@ -2534,32 +2517,11 @@
   },
   "RDW": {
     "firstSeen": "2026-05-01",
-    "lastUpdate": "2026-06-09",
-    "consecutiveDays": 6,
-    "totalAppearances": 21,
+    "lastUpdate": "2026-06-10",
+    "consecutiveDays": 7,
+    "totalAppearances": 22,
     "stage": "IMMINENT",
     "history": [
-      {
-        "date": "2026-05-21",
-        "gemScore": 97,
-        "price": 14.83,
-        "signals": [
-          "smart_money",
-          "momentum_acceleration",
-          "short_squeeze_loading",
-          "bb_squeeze",
-          "bullish_options",
-          "unusual_options_volume",
-          "institutions_accumulating",
-          "deep_itm_calls",
-          "near_expiry_call_rush",
-          "analyst_upgrade"
-        ],
-        "loadingSignalCount": 6,
-        "breakoutSignalCount": 1,
-        "consensus": "Strong Buy",
-        "volumeRatio": 1
-      },
       {
         "date": "2026-05-22",
         "gemScore": 100,
@@ -2739,6 +2701,26 @@
         "breakoutSignalCount": 0,
         "consensus": "Buy",
         "volumeRatio": 1
+      },
+      {
+        "date": "2026-06-10",
+        "gemScore": 100,
+        "price": 15.75,
+        "signals": [
+          "bb_squeeze",
+          "price_compression",
+          "bullish_options",
+          "unusual_options_volume",
+          "institutions_accumulating",
+          "put_call_bullish",
+          "near_expiry_call_rush",
+          "reddit_trending",
+          "social_surge"
+        ],
+        "loadingSignalCount": 5,
+        "breakoutSignalCount": 0,
+        "consensus": "Buy",
+        "volumeRatio": 1
       }
     ],
     "peakScore": 100,
@@ -2746,9 +2728,9 @@
     "companyName": "RDW",
     "explosion": {
       "expectedGainPct": 15,
-      "targetPrice": 21.35,
+      "targetPrice": 18.11,
       "daysToMove": 5,
-      "probability": 43,
+      "probability": 38,
       "explosionType": "coiled_spring",
       "factors": [
         "BB squeeze — price compressed, breakout imminent"
@@ -2758,26 +2740,11 @@
   },
   "LI": {
     "firstSeen": "2026-05-18",
-    "lastUpdate": "2026-06-09",
-    "consecutiveDays": 2,
-    "totalAppearances": 10,
+    "lastUpdate": "2026-06-10",
+    "consecutiveDays": 3,
+    "totalAppearances": 11,
     "stage": "IMMINENT",
     "history": [
-      {
-        "date": "2026-05-18",
-        "gemScore": 63,
-        "price": 16.67,
-        "signals": [
-          "multi_day_accumulation",
-          "volume_acceleration",
-          "bullish_options",
-          "unusual_options_volume"
-        ],
-        "loadingSignalCount": 4,
-        "breakoutSignalCount": 0,
-        "consensus": "Strong Buy",
-        "volumeRatio": 1
-      },
       {
         "date": "2026-05-22",
         "gemScore": 83,
@@ -2930,16 +2897,32 @@
         "breakoutSignalCount": 0,
         "consensus": "Speculative",
         "volumeRatio": 1
+      },
+      {
+        "date": "2026-06-10",
+        "gemScore": 100,
+        "price": 14.11,
+        "signals": [
+          "bb_squeeze",
+          "price_compression",
+          "bullish_options",
+          "unusual_options_volume",
+          "put_call_bullish"
+        ],
+        "loadingSignalCount": 4,
+        "breakoutSignalCount": 0,
+        "consensus": "Speculative",
+        "volumeRatio": 1
       }
     ],
     "peakScore": 100,
-    "scoreTrajectory": "rising",
+    "scoreTrajectory": "flat",
     "companyName": "LI",
     "explosion": {
       "expectedGainPct": 15,
       "targetPrice": 16.23,
       "daysToMove": 5,
-      "probability": 43,
+      "probability": 38,
       "explosionType": "coiled_spring",
       "factors": [
         "BB squeeze — price compressed, breakout imminent"
@@ -3403,10 +3386,10 @@
   },
   "AQST": {
     "firstSeen": "2026-05-28",
-    "lastUpdate": "2026-06-09",
-    "consecutiveDays": 9,
-    "totalAppearances": 9,
-    "stage": "BUILDING",
+    "lastUpdate": "2026-06-10",
+    "consecutiveDays": 10,
+    "totalAppearances": 10,
+    "stage": "LOADING",
     "history": [
       {
         "date": "2026-05-28",
@@ -3525,10 +3508,23 @@
         "breakoutSignalCount": 0,
         "consensus": "Speculative",
         "volumeRatio": 1
+      },
+      {
+        "date": "2026-06-10",
+        "gemScore": 33,
+        "price": 3.995,
+        "signals": [
+          "bb_squeeze",
+          "analyst_strong_buy"
+        ],
+        "loadingSignalCount": 1,
+        "breakoutSignalCount": 0,
+        "consensus": "Speculative",
+        "volumeRatio": 1
       }
     ],
-    "peakScore": 26,
-    "scoreTrajectory": "flat",
+    "peakScore": 33,
+    "scoreTrajectory": "rising",
     "companyName": "AQST",
     "explosion": null
   },
@@ -3768,86 +3764,6 @@
       "urgency": "BUILDING"
     }
   },
-  "NU": {
-    "firstSeen": "2026-05-29",
-    "lastUpdate": "2026-06-02",
-    "consecutiveDays": 3,
-    "totalAppearances": 3,
-    "stage": "COOLING",
-    "history": [
-      {
-        "date": "2026-05-29",
-        "gemScore": 76,
-        "price": 13.24,
-        "signals": [
-          "momentum_acceleration",
-          "bb_squeeze",
-          "price_compression",
-          "bullish_options",
-          "unusual_options_volume",
-          "put_call_bullish",
-          "near_expiry_call_rush",
-          "dark_pool_pressure",
-          "analyst_upgrade",
-          "analyst_strong_buy",
-          "analyst_momentum"
-        ],
-        "loadingSignalCount": 4,
-        "breakoutSignalCount": 1,
-        "consensus": "Strong Buy",
-        "volumeRatio": 1
-      },
-      {
-        "date": "2026-06-01",
-        "gemScore": 60,
-        "price": 13.08,
-        "signals": [
-          "bb_squeeze",
-          "price_compression",
-          "bullish_options",
-          "unusual_options_volume",
-          "dark_pool_squeeze",
-          "analyst_strong_buy"
-        ],
-        "loadingSignalCount": 4,
-        "breakoutSignalCount": 0,
-        "consensus": "Speculative",
-        "volumeRatio": 1
-      },
-      {
-        "date": "2026-06-02",
-        "gemScore": 79,
-        "price": 12.99,
-        "signals": [
-          "bb_squeeze",
-          "price_compression",
-          "volume_acceleration",
-          "bullish_options",
-          "unusual_options_volume",
-          "near_expiry_call_rush",
-          "analyst_strong_buy"
-        ],
-        "loadingSignalCount": 5,
-        "breakoutSignalCount": 0,
-        "consensus": "Strong Buy",
-        "volumeRatio": 1
-      }
-    ],
-    "peakScore": 79,
-    "scoreTrajectory": "rising",
-    "companyName": "NU",
-    "explosion": {
-      "expectedGainPct": 15,
-      "targetPrice": 14.94,
-      "daysToMove": 5,
-      "probability": 43,
-      "explosionType": "coiled_spring",
-      "factors": [
-        "BB squeeze — price compressed, breakout imminent"
-      ],
-      "urgency": "BUILDING"
-    }
-  },
   "RGTI": {
     "firstSeen": "2026-06-01",
     "lastUpdate": "2026-06-05",
@@ -3981,7 +3897,7 @@
     "lastUpdate": "2026-06-09",
     "consecutiveDays": 4,
     "totalAppearances": 6,
-    "stage": "IMMINENT",
+    "stage": "COOLING",
     "history": [
       {
         "date": "2026-06-01",
@@ -4225,100 +4141,6 @@
       "urgency": "BUILDING"
     }
   },
-  "AI": {
-    "firstSeen": "2026-06-02",
-    "lastUpdate": "2026-06-02",
-    "consecutiveDays": 1,
-    "totalAppearances": 1,
-    "stage": "BUILDING",
-    "history": [
-      {
-        "date": "2026-06-02",
-        "gemScore": 100,
-        "price": 11.76,
-        "signals": [
-          "multi_day_accumulation",
-          "smart_money",
-          "momentum_acceleration",
-          "earnings_tomorrow",
-          "volume_acceleration",
-          "bullish_options",
-          "unusual_options_volume",
-          "call_sweep_large",
-          "put_call_extreme_bullish",
-          "deep_itm_calls",
-          "near_expiry_call_rush"
-        ],
-        "loadingSignalCount": 5,
-        "breakoutSignalCount": 1,
-        "consensus": "Strong Buy",
-        "volumeRatio": 1
-      }
-    ],
-    "peakScore": 100,
-    "scoreTrajectory": "rising",
-    "companyName": "AI",
-    "explosion": {
-      "expectedGainPct": 30,
-      "targetPrice": 14.52,
-      "daysToMove": 1,
-      "probability": 52,
-      "explosionType": "earnings_catalyst",
-      "factors": [
-        "3-day accumulation — smart money loading",
-        "Earnings tomorrow — potential overnight gap"
-      ],
-      "urgency": "IMMINENT"
-    }
-  },
-  "AVGO": {
-    "firstSeen": "2026-06-02",
-    "lastUpdate": "2026-06-02",
-    "consecutiveDays": 1,
-    "totalAppearances": 1,
-    "stage": "BUILDING",
-    "history": [
-      {
-        "date": "2026-06-02",
-        "gemScore": 100,
-        "price": 481.91,
-        "signals": [
-          "multi_day_accumulation",
-          "momentum_acceleration",
-          "earnings_tomorrow",
-          "volume_acceleration",
-          "bullish_options",
-          "unusual_options_volume",
-          "call_sweep_large",
-          "options_volume_spike",
-          "deep_itm_calls",
-          "near_expiry_call_rush",
-          "analyst_strong_buy",
-          "reddit_trending",
-          "social_surge"
-        ],
-        "loadingSignalCount": 4,
-        "breakoutSignalCount": 1,
-        "consensus": "Strong Buy",
-        "volumeRatio": 1
-      }
-    ],
-    "peakScore": 100,
-    "scoreTrajectory": "rising",
-    "companyName": "AVGO",
-    "explosion": {
-      "expectedGainPct": 35,
-      "targetPrice": 650.58,
-      "daysToMove": 1,
-      "probability": 57,
-      "explosionType": "earnings_catalyst",
-      "factors": [
-        "3-day accumulation — smart money loading",
-        "Earnings tomorrow — potential overnight gap"
-      ],
-      "urgency": "IMMINENT"
-    }
-  },
   "FCEL": {
     "firstSeen": "2026-06-02",
     "lastUpdate": "2026-06-05",
@@ -4416,44 +4238,6 @@
       "factors": [
         "BB squeeze — price compressed, breakout imminent"
       ],
-      "urgency": "BUILDING"
-    }
-  },
-  "ENVX": {
-    "firstSeen": "2026-06-02",
-    "lastUpdate": "2026-06-02",
-    "consecutiveDays": 1,
-    "totalAppearances": 1,
-    "stage": "BUILDING",
-    "history": [
-      {
-        "date": "2026-06-02",
-        "gemScore": 83,
-        "price": 9.04,
-        "signals": [
-          "momentum_acceleration",
-          "short_squeeze_loading",
-          "bullish_options",
-          "unusual_options_volume",
-          "put_call_extreme_bullish",
-          "deep_itm_calls"
-        ],
-        "loadingSignalCount": 3,
-        "breakoutSignalCount": 1,
-        "consensus": "Strong Buy",
-        "volumeRatio": 1
-      }
-    ],
-    "peakScore": 83,
-    "scoreTrajectory": "rising",
-    "companyName": "ENVX",
-    "explosion": {
-      "expectedGainPct": 0,
-      "targetPrice": 8.82,
-      "daysToMove": 5,
-      "probability": 30,
-      "explosionType": "moderate_setup",
-      "factors": [],
       "urgency": "BUILDING"
     }
   },
@@ -4566,9 +4350,9 @@
   },
   "TIGR": {
     "firstSeen": "2026-06-02",
-    "lastUpdate": "2026-06-09",
-    "consecutiveDays": 2,
-    "totalAppearances": 4,
+    "lastUpdate": "2026-06-10",
+    "consecutiveDays": 3,
+    "totalAppearances": 5,
     "stage": "IMMINENT",
     "history": [
       {
@@ -4639,6 +4423,25 @@
           "unusual_options_volume",
           "put_call_extreme_bullish",
           "near_expiry_call_rush",
+          "analyst_strong_buy"
+        ],
+        "loadingSignalCount": 5,
+        "breakoutSignalCount": 0,
+        "consensus": "Speculative",
+        "volumeRatio": 1
+      },
+      {
+        "date": "2026-06-10",
+        "gemScore": 100,
+        "price": 4.72,
+        "signals": [
+          "bb_squeeze",
+          "volume_contraction",
+          "price_compression",
+          "bullish_options",
+          "unusual_options_volume",
+          "put_call_extreme_bullish",
+          "dark_pool_pressure",
           "analyst_strong_buy"
         ],
         "loadingSignalCount": 5,
@@ -4814,7 +4617,7 @@
     "lastUpdate": "2026-06-09",
     "consecutiveDays": 6,
     "totalAppearances": 6,
-    "stage": "IMMINENT",
+    "stage": "COOLING",
     "history": [
       {
         "date": "2026-06-02",
@@ -5012,9 +4815,9 @@
   },
   "REPL": {
     "firstSeen": "2026-06-03",
-    "lastUpdate": "2026-06-03",
+    "lastUpdate": "2026-06-10",
     "consecutiveDays": 1,
-    "totalAppearances": 1,
+    "totalAppearances": 2,
     "stage": "BUILDING",
     "history": [
       {
@@ -5032,14 +4835,31 @@
         "breakoutSignalCount": 0,
         "consensus": "Strong Buy",
         "volumeRatio": 1
+      },
+      {
+        "date": "2026-06-10",
+        "gemScore": 100,
+        "price": 9.24,
+        "signals": [
+          "earnings_tomorrow",
+          "price_compression",
+          "bullish_options",
+          "unusual_options_volume",
+          "institutions_accumulating",
+          "put_call_bullish"
+        ],
+        "loadingSignalCount": 4,
+        "breakoutSignalCount": 0,
+        "consensus": "Buy",
+        "volumeRatio": 1
       }
     ],
-    "peakScore": 67,
+    "peakScore": 100,
     "scoreTrajectory": "rising",
     "companyName": "REPL",
     "explosion": {
       "expectedGainPct": 15,
-      "targetPrice": 11.47,
+      "targetPrice": 10.63,
       "daysToMove": 1,
       "probability": 35,
       "explosionType": "earnings_catalyst",
@@ -5054,7 +4874,7 @@
     "lastUpdate": "2026-06-09",
     "consecutiveDays": 4,
     "totalAppearances": 4,
-    "stage": "IMMINENT",
+    "stage": "COOLING",
     "history": [
       {
         "date": "2026-06-04",
@@ -5148,7 +4968,7 @@
     "lastUpdate": "2026-06-09",
     "consecutiveDays": 4,
     "totalAppearances": 4,
-    "stage": "IMMINENT",
+    "stage": "COOLING",
     "history": [
       {
         "date": "2026-06-04",
@@ -5246,9 +5066,9 @@
   },
   "SNOW": {
     "firstSeen": "2026-06-04",
-    "lastUpdate": "2026-06-09",
-    "consecutiveDays": 2,
-    "totalAppearances": 3,
+    "lastUpdate": "2026-06-10",
+    "consecutiveDays": 3,
+    "totalAppearances": 4,
     "stage": "IMMINENT",
     "history": [
       {
@@ -5305,16 +5125,33 @@
         "breakoutSignalCount": 0,
         "consensus": "Speculative",
         "volumeRatio": 1
+      },
+      {
+        "date": "2026-06-10",
+        "gemScore": 100,
+        "price": 239.58,
+        "signals": [
+          "bb_squeeze",
+          "price_compression",
+          "unusual_options_volume",
+          "near_expiry_call_rush",
+          "analyst_upgrade",
+          "analyst_strong_buy"
+        ],
+        "loadingSignalCount": 3,
+        "breakoutSignalCount": 0,
+        "consensus": "Speculative",
+        "volumeRatio": 1
       }
     ],
     "peakScore": 100,
-    "scoreTrajectory": "rising",
+    "scoreTrajectory": "flat",
     "companyName": "SNOW",
     "explosion": {
       "expectedGainPct": 15,
       "targetPrice": 275.52,
       "daysToMove": 5,
-      "probability": 43,
+      "probability": 38,
       "explosionType": "coiled_spring",
       "factors": [
         "BB squeeze — price compressed, breakout imminent"
@@ -5521,9 +5358,9 @@
   },
   "ZS": {
     "firstSeen": "2026-06-08",
-    "lastUpdate": "2026-06-09",
-    "consecutiveDays": 2,
-    "totalAppearances": 2,
+    "lastUpdate": "2026-06-10",
+    "consecutiveDays": 3,
+    "totalAppearances": 3,
     "stage": "IMMINENT",
     "history": [
       {
@@ -5557,16 +5394,31 @@
         "breakoutSignalCount": 0,
         "consensus": "Speculative",
         "volumeRatio": 1
+      },
+      {
+        "date": "2026-06-10",
+        "gemScore": 88,
+        "price": 125.81,
+        "signals": [
+          "bb_squeeze",
+          "price_compression",
+          "unusual_options_volume",
+          "near_expiry_call_rush"
+        ],
+        "loadingSignalCount": 3,
+        "breakoutSignalCount": 0,
+        "consensus": "Speculative",
+        "volumeRatio": 1
       }
     ],
     "peakScore": 100,
-    "scoreTrajectory": "rising",
+    "scoreTrajectory": "falling",
     "companyName": "ZS",
     "explosion": {
       "expectedGainPct": 15,
       "targetPrice": 144.68,
       "daysToMove": 5,
-      "probability": 43,
+      "probability": 38,
       "explosionType": "coiled_spring",
       "factors": [
         "BB squeeze — price compressed, breakout imminent"
@@ -5576,9 +5428,9 @@
   },
   "UPST": {
     "firstSeen": "2026-06-08",
-    "lastUpdate": "2026-06-09",
-    "consecutiveDays": 2,
-    "totalAppearances": 2,
+    "lastUpdate": "2026-06-10",
+    "consecutiveDays": 3,
+    "totalAppearances": 3,
     "stage": "IMMINENT",
     "history": [
       {
@@ -5621,28 +5473,46 @@
         "breakoutSignalCount": 1,
         "consensus": "Strong Buy",
         "volumeRatio": 1
+      },
+      {
+        "date": "2026-06-10",
+        "gemScore": 100,
+        "price": 31.08,
+        "signals": [
+          "momentum_acceleration",
+          "short_squeeze_loading",
+          "bullish_options",
+          "unusual_options_volume",
+          "institutions_accumulating",
+          "put_call_bullish",
+          "near_expiry_call_rush",
+          "dark_pool_pressure",
+          "insider_heavy_buy"
+        ],
+        "loadingSignalCount": 4,
+        "breakoutSignalCount": 1,
+        "consensus": "Strong Buy",
+        "volumeRatio": 1
       }
     ],
     "peakScore": 100,
     "scoreTrajectory": "flat",
     "companyName": "UPST",
     "explosion": {
-      "expectedGainPct": 15,
-      "targetPrice": 35.74,
+      "expectedGainPct": 0,
+      "targetPrice": 31.08,
       "daysToMove": 5,
-      "probability": 38,
-      "explosionType": "coiled_spring",
-      "factors": [
-        "BB squeeze — price compressed, breakout imminent"
-      ],
+      "probability": 30,
+      "explosionType": "moderate_setup",
+      "factors": [],
       "urgency": "BUILDING"
     }
   },
   "NET": {
     "firstSeen": "2026-06-08",
-    "lastUpdate": "2026-06-08",
+    "lastUpdate": "2026-06-10",
     "consecutiveDays": 1,
-    "totalAppearances": 1,
+    "totalAppearances": 2,
     "stage": "BUILDING",
     "history": [
       {
@@ -5659,14 +5529,29 @@
         "breakoutSignalCount": 0,
         "consensus": "Speculative",
         "volumeRatio": 1
+      },
+      {
+        "date": "2026-06-10",
+        "gemScore": 88,
+        "price": 236.17,
+        "signals": [
+          "bb_squeeze",
+          "price_compression",
+          "unusual_options_volume",
+          "near_expiry_call_rush"
+        ],
+        "loadingSignalCount": 3,
+        "breakoutSignalCount": 0,
+        "consensus": "Speculative",
+        "volumeRatio": 1
       }
     ],
     "peakScore": 93,
-    "scoreTrajectory": "rising",
+    "scoreTrajectory": "flat",
     "companyName": "NET",
     "explosion": {
       "expectedGainPct": 15,
-      "targetPrice": 285.04,
+      "targetPrice": 271.6,
       "daysToMove": 5,
       "probability": 38,
       "explosionType": "coiled_spring",
@@ -5792,5 +5677,37 @@
       ],
       "urgency": "BUILDING"
     }
+  },
+  "OPEN": {
+    "firstSeen": "2026-06-10",
+    "lastUpdate": "2026-06-10",
+    "consecutiveDays": 1,
+    "totalAppearances": 1,
+    "stage": "BUILDING",
+    "history": [
+      {
+        "date": "2026-06-10",
+        "gemScore": 100,
+        "price": 4.34,
+        "signals": [
+          "short_squeeze_loading",
+          "bullish_options",
+          "unusual_options_volume",
+          "put_call_extreme_bullish",
+          "near_expiry_call_rush",
+          "dark_pool_pressure",
+          "insider_heavy_buy",
+          "reddit_trending"
+        ],
+        "loadingSignalCount": 3,
+        "breakoutSignalCount": 0,
+        "consensus": "No Trade",
+        "volumeRatio": 1
+      }
+    ],
+    "peakScore": 100,
+    "scoreTrajectory": "rising",
+    "companyName": "OPEN",
+    "explosion": null
   }
 }
