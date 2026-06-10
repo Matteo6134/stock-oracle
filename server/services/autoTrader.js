@@ -42,6 +42,8 @@ const DEFAULT_CONFIG = {
   requireOrderFlow: false,   // Don't require order flow — Yahoo can't provide this on Railway
   onlyStrongBuy: false,      // Trade "Buy" AND "Strong Buy" (was true — too strict)
   maxStockPrice: 400,        // Safety cap — allows mid/large caps like CAR, MSTR, etc.
+  maxHoldDays: 10,           // Time stop: close any position older than this (0 = off)
+  hardStopPct: 12,           // Hard stop: cut loss at -12% even if broker stop failed (0 = off)
 };
 
 // Reset old restrictive configs on first load
@@ -183,9 +185,11 @@ export async function processSignals(analyzedStocks) {
     return { skipped: true, reason: pdtBlock };
   }
 
-  // Budget = account equity (scales with account), not a fixed cap
+  // Budget = configured cap, never more than actual equity. (Was
+  // max(equity, maxBudget), which let percentage-based sizing scale to the
+  // whole account — $5k orders against a $200 maxPerStock config.)
   const accountEquity = parseFloat(account.equity) || 0;
-  const maxBudget = Math.max(accountEquity, config.maxBudget);
+  const maxBudget = Math.min(accountEquity || config.maxBudget, config.maxBudget);
 
   // Kelly-sized default amount (null when insufficient stats — falls back to config)
   const kellyPct = kellySizingPct();
@@ -292,6 +296,13 @@ export async function processSignals(analyzedStocks) {
     } else if (regimeMult != null && regimeMult > 1.0) {
       amount = Math.round(amount * regimeMult);
     }
+
+    // Hard per-stock cap — applies to every sizing path (Claude pct, Kelly,
+    // defaults, regime scaling). Previously defined in config but never enforced.
+    if (config.maxPerStock > 0) {
+      amount = Math.min(amount, config.maxPerStock);
+    }
+
     if (currentlyInvested + amount > maxBudget) {
       results.skipped.push({ symbol, reason: `Budget limit ($${Math.round(maxBudget)})`, gemScore, price });
       continue;
@@ -500,7 +511,31 @@ async function runExitCheck(config) {
       }
     };
 
-    // ── RULE #1: NEVER SELL AT A LOSS ──
+    // ── RULE #0a: HARD STOP — cut catastrophic losses ──
+    // The broker-side stop should fire first (~5-7%); this catches positions
+    // that slipped through it (partial fills, stop order rejected, gaps).
+    if (config.hardStopPct > 0 && unrealizedPLPct <= -config.hardStopPct) {
+      try {
+        console.log(`[AutoTrader] 🛑 HARD STOP ${symbol} at ${unrealizedPLPct.toFixed(1)}% (limit -${config.hardStopPct}%)`);
+        await closeWithReason(`Hard stop (${unrealizedPLPct.toFixed(1)}%)`, 'hard_stop');
+      } catch (err) { console.error(`[AutoTrader] Failed to close ${symbol}:`, err.message); }
+      continue;
+    }
+
+    // ── RULE #0b: TIME STOP — recycle capital out of dead positions ──
+    // Holding losers indefinitely ("never sell red") trapped thousands in
+    // positions down 20-50% for weeks. After maxHoldDays, exit regardless of P&L.
+    const entryTime = entry?.timestamp ? new Date(entry.timestamp).getTime() : null;
+    const heldDays = entryTime ? (Date.now() - entryTime) / 86400000 : null;
+    if (config.maxHoldDays > 0 && heldDays != null && heldDays >= config.maxHoldDays && unrealizedPLPct < targetPct) {
+      try {
+        console.log(`[AutoTrader] ⏱️ TIME STOP ${symbol} after ${Math.floor(heldDays)}d at ${unrealizedPLPct.toFixed(1)}%`);
+        await closeWithReason(`Time stop (${Math.floor(heldDays)}d held, ${unrealizedPLPct.toFixed(1)}%)`, 'time_stop');
+      } catch (err) { console.error(`[AutoTrader] Failed to close ${symbol}:`, err.message); }
+      continue;
+    }
+
+    // ── RULE #1: otherwise don't sell red — wait for recovery ──
     if (unrealizedPLPct < 0) {
       results.held.push({ symbol, pnlPct: unrealizedPLPct, reason: 'Holding (negative — waiting for recovery)' });
       continue;
