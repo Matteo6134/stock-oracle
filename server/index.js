@@ -7,7 +7,7 @@ import { fileURLToPath } from 'url';
 import { spawn } from 'child_process';
 import apiRoutes from './routes/api.js';
 import { scanPremarketMovers } from './services/premarketScanner.js';
-import { findTomorrowMovers } from './services/tomorrowMovers.js';
+import { findTomorrowMovers, calculateGemScore } from './services/tomorrowMovers.js';
 import { analyzeGem } from './services/tradingDesk.js';
 import { saveGemSnapshot } from './services/gemHistory.js';
 import * as yahooFinance from './services/yahooFinance.js';
@@ -169,10 +169,9 @@ async function runQuickScan({ force = false } = {}) {
     const result = await findTomorrowMovers();
     if (result.stats) scanCache.scanStats = result.stats;
     if (result.gems?.length > 0) {
-      const gemsWithVerdicts = result.gems.map(gem => {
-        const { verdicts, consensus, buyCount, avgConviction } = analyzeGem(gem);
-        return { ...gem, verdicts, consensus, buyCount, avgConviction, source: 'gem' };
-      });
+      // Spread the FULL analyzeGem result — destructuring only 4 fields used to
+      // drop needsClaudeReview, so the Claude validation gate never ran.
+      const gemsWithVerdicts = result.gems.map(gem => ({ ...gem, ...analyzeGem(gem), source: 'gem' }));
       saveGemSnapshot(gemsWithVerdicts).catch(() => {});
       scanCache.gems = gemsWithVerdicts;
       setShared('gems', gemsWithVerdicts);
@@ -184,10 +183,7 @@ async function runQuickScan({ force = false } = {}) {
     try {
       const pennyResult = await scanPennyStocks(5);
       if (pennyResult.stocks?.length > 0) {
-        const penniesWithVerdicts = pennyResult.stocks.map(stock => {
-          const { verdicts, consensus, buyCount, avgConviction } = analyzeGem(stock);
-          return { ...stock, verdicts, consensus, buyCount, avgConviction, source: 'penny' };
-        });
+        const penniesWithVerdicts = pennyResult.stocks.map(stock => ({ ...stock, ...analyzeGem(stock), source: 'penny' }));
         const gemSymbols = new Set(allAnalyzed.map(g => g.symbol));
         const uniquePennies = penniesWithVerdicts.filter(p => !gemSymbols.has(p.symbol));
         scanCache.pennies = uniquePennies;
@@ -232,11 +228,11 @@ if (!process.env.VERCEL) {
       const result = await findTomorrowMovers();
       if (result.stats) scanCache.scanStats = result.stats;
       if (result.gems?.length > 0) {
-        const gemsWithVerdicts = result.gems.map(gem => {
-          const { verdicts, consensus, buyCount, avgConviction } = analyzeGem(gem);
-          return { ...gem, verdicts, consensus, buyCount, avgConviction, source: 'gem' };
-        });
-        saveGemSnapshot(gemsWithVerdicts).catch(() => {});
+        // Spread the FULL analyzeGem result — destructuring only 4 fields used to
+        // drop needsClaudeReview, so the Claude validation gate never ran.
+        const gemsWithVerdicts = result.gems.map(gem => ({ ...gem, ...analyzeGem(gem), source: 'gem' }));
+        // (snapshot saved after enrichment + rescore below, so the learner
+        // sees the final signal set, not the pre-enrichment one)
         scanCache.gems = gemsWithVerdicts;
         setShared('gems', gemsWithVerdicts);
         allAnalyzed.push(...gemsWithVerdicts);
@@ -252,10 +248,7 @@ if (!process.env.VERCEL) {
       try {
         const pennyResult = await scanPennyStocks(5);
         if (pennyResult.stocks?.length > 0) {
-          const penniesWithVerdicts = pennyResult.stocks.map(stock => {
-            const { verdicts, consensus, buyCount, avgConviction } = analyzeGem(stock);
-            return { ...stock, verdicts, consensus, buyCount, avgConviction, source: 'penny' };
-          });
+          const penniesWithVerdicts = pennyResult.stocks.map(stock => ({ ...stock, ...analyzeGem(stock), source: 'penny' }));
           // Add penny stocks that aren't already in gems (avoid duplicates)
           const gemSymbols = new Set(allAnalyzed.map(g => g.symbol));
           const uniquePennies = penniesWithVerdicts.filter(p => !gemSymbols.has(p.symbol));
@@ -504,6 +497,24 @@ if (!process.env.VERCEL) {
         if (Array.isArray(stock.signals) && stock.signals.length > 0) {
           stock.signals = [...new Set(stock.signals)];
         }
+      }
+
+      // ── Re-score + re-vote with the ENRICHED signal set ──
+      // Enrichment (options, congress, insider, analyst, dark pool, social)
+      // merges signals AFTER the initial scoring/voting, so the highest-weight
+      // signals (congress_cluster 24, call_sweep_large 24, insider_cluster 24,
+      // dark_pool_squeeze 20) never influenced gemScore or consensus. Recompute
+      // both now that the signal list is final.
+      for (const stock of allAnalyzed) {
+        if (!Array.isArray(stock.signals) || stock.signals.length === 0) continue;
+        stock.gemScore = calculateGemScore(stock.signals, stock.details || {}, null);
+        stock.signalCount = stock.signals.length;
+        Object.assign(stock, analyzeGem(stock));
+      }
+
+      // Snapshot gems for outcome tracking with the final (enriched) signals
+      if (scanCache.gems?.length > 0) {
+        saveGemSnapshot(scanCache.gems).catch(() => {});
       }
 
       // Update scan cache
@@ -802,26 +813,7 @@ app.get('/health', (req, res) => {
   });
 });
 
-// ══════════════════════════════════════════
-// Serve frontend — only when NOT on Vercel
-// (Vercel handles static files + SPA routing via vercel.json)
-// ══════════════════════════════════════════
-if (!process.env.VERCEL) {
-  const distPath = path.join(__dirname, '..', 'dist');
-  try {
-    const { existsSync } = await import('fs');
-    if (existsSync(distPath)) {
-      app.use(express.static(distPath));
-      app.get('*', (req, res) => {
-        if (req.path.startsWith('/api')) {
-          return res.status(404).json({ error: 'Not found' });
-        }
-        res.sendFile(path.join(distPath, 'index.html'));
-      });
-      console.log('[Server] Serving frontend from dist/');
-    }
-  } catch {}
-}
+// (React frontend removed 2026-06 — the bot is backend-only: API + Telegram)
 
 app.use((req, res) => {
   res.status(404).json({ error: 'Not found' });

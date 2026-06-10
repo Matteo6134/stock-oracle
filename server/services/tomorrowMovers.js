@@ -192,7 +192,7 @@ function analyzeHistory(bars) {
 
 // ── Gem Score Calculator ──
 // Combines all signals into one "explosive potential" score (0-100)
-function calculateGemScore(signals, details, histAnalysis) {
+export function calculateGemScore(signals, details, histAnalysis) {
   let score = 0;
   const weights = {
     // ── LOADING signals (3-7 day predictors — STRONGEST) ──
@@ -666,15 +666,10 @@ async function _scan() {
       }
 
       // ═══════════════════════════════════════════════════════════
-      // SIGNAL 12: Oversold Bounce Setup
-      // Stock dropped significantly below 50-day MA + volume drying up
-      // = selling exhaustion, bounce likely
+      // SIGNAL 12: Oversold Bounce — REMOVED.
+      // Live outcomes: 0 wins in 15 samples, -7.06% avg return. Catching
+      // falling knives didn't work; detector deleted 2026-06-10.
       // ═══════════════════════════════════════════════════════════
-      if (price < fiftyDayAvg * 0.85 && volumeRatio < 0.7) {
-        signals.push('oversold_bounce');
-        setupScore += 8;
-        details.distanceFrom50MA = Math.round(((price / fiftyDayAvg) - 1) * 100);
-      }
 
       // ═══════════════════════════════════════════════════════════
       // SIGNAL 13: Bull Flag / Consolidation After Run
