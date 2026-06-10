@@ -26,8 +26,9 @@ const WEIGHTS_FILE = path.join(__dirname, '..', 'data', 'signalWeights.json');
 const GEM_FILE = path.join(__dirname, '..', 'data', 'gemHistory.json');
 
 // Minimum samples needed before we trust learned weights
-const MIN_SAMPLES = 5;
+const MIN_SAMPLES = 10;
 const MIN_TOTAL_SAMPLES = 20; // min total gems with outcomes before learning kicks in
+const MIN_COMBO_SAMPLES = 10; // pairs need more data — 3-sample "killer combos" were pure noise
 
 /**
  * Analyze all gem history and compute optimal signal weights.
@@ -138,9 +139,11 @@ export function learnFromOutcomes() {
 
     // Only learn weights when we have enough samples for this signal
     if (stats.count >= MIN_SAMPLES) {
-      // Weight formula: combines hit rate, avg return, and sample size confidence
-      // Higher hit10 rate = much higher weight (that's what we're optimizing for)
-      const confidence = Math.min(1, stats.count / 20); // 0-1 scale, full confidence at 20 samples
+      // Weight formula: combines hit rate, avg return, and sample size confidence.
+      // Bayesian-style shrinkage: count/(count+20) approaches 1 asymptotically,
+      // so 10 samples only get ~33% of the raw weight — small samples can no
+      // longer swing weights aggressively (old formula hit full confidence at 20).
+      const confidence = stats.count / (stats.count + 20);
       const rawWeight = (hit10Rate * 30) + (winRate * 10) + (Math.max(0, avgMaxGain) * 0.5);
       learnedWeights[sig] = Math.round(rawWeight * confidence * 100) / 100;
     }
@@ -164,7 +167,7 @@ export function learnFromOutcomes() {
   const comboPerformance = {};
   const killerCombos = []; // combos with hit10 >= 40%
   for (const [combo, stats] of Object.entries(comboStats)) {
-    if (stats.count < 3) continue; // need at least 3 samples
+    if (stats.count < MIN_COMBO_SAMPLES) continue;
     const hit10Rate = stats.count > 0 ? stats.hits10 / stats.count : 0;
     const winRate = stats.count > 0 ? stats.wins / stats.count : 0;
     const avgReturn = stats.count > 0 ? stats.totalReturn / stats.count : 0;
@@ -174,7 +177,9 @@ export function learnFromOutcomes() {
       hit10Rate: Math.round(hit10Rate * 100),
       avgReturn: Math.round(avgReturn * 100) / 100,
     };
-    if (hit10Rate >= 0.4 && stats.count >= 3) {
+    // Killer combo: needs real sample size AND a positive average return —
+    // a high "touched +10% intraday" rate with a negative avg return is a trap.
+    if (hit10Rate >= 0.4 && avgReturn > 0) {
       killerCombos.push({ combo, hit10Rate: Math.round(hit10Rate * 100), count: stats.count, avgReturn: Math.round(avgReturn * 100) / 100 });
     }
   }

@@ -318,12 +318,7 @@ async function _scan(maxPrice) {
         details.floatShares = floatShares;
       }
 
-      // Oversold bounce
-      if (price < fiftyDayAvg * 0.80 && volumeRatio < 0.8) {
-        signals.push('oversold_bounce');
-        setupScore += 8;
-        details.distanceFrom50MA = Math.round(((price / fiftyDayAvg) - 1) * 100);
-      }
+      // Oversold bounce — removed 2026-06-10: 0/15 winners, -7% avg return in live outcomes
 
       // Price compression
       if (hist && hist.priceCompression > 0.6 && !signals.includes('bb_squeeze')) {
