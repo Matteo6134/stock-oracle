@@ -70,18 +70,34 @@ export async function saveGemSnapshot(gems) {
 // ── Resolve outcomes for past gems ──
 const TIMEFRAMES = [1, 3, 5, 7]; // days
 
+// A gem is fully resolved only when EVERY timeframe has a value. Previously a
+// gem was skipped as soon as `outcomes` existed, which froze 3d/5d/7d at null
+// forever (they were written the morning after the pick, when only 1 future
+// bar existed) — the learner ended up training on 1d data only.
+function isFullyResolved(gem) {
+  if (!gem.outcomes) return false;
+  return TIMEFRAMES.every(tf => gem.outcomes[`${tf}d`] != null);
+}
+
+// Picks older than this can no longer be resolved (delisted symbols, etc.) —
+// stop retrying them so the fetch list doesn't grow forever.
+const MAX_RESOLVE_AGE_DAYS = 120;
+
 async function resolveOutcomes() {
   const history = loadHistory();
   const today = new Date().toISOString().split('T')[0];
   const dates = Object.keys(history).filter(d => d < today).sort();
+  const now = Date.now();
 
-  // Collect symbols that need resolution
+  // Collect symbols with at least one unresolved timeframe
   const needsResolution = [];
   for (const date of dates) {
     const dayData = history[date];
     if (!dayData.gems) continue;
+    const ageDays = (now - new Date(date + 'T00:00:00Z').getTime()) / 86400000;
+    if (ageDays > MAX_RESOLVE_AGE_DAYS) continue;
     for (const gem of dayData.gems) {
-      if (!gem.outcomes) {
+      if (!isFullyResolved(gem)) {
         needsResolution.push({ date, symbol: gem.symbol });
       }
     }
@@ -89,9 +105,14 @@ async function resolveOutcomes() {
 
   if (needsResolution.length === 0) return history;
 
+  // Fetch enough history to cover the oldest unresolved pick (+ buffer)
+  const oldestDate = needsResolution.reduce((min, n) => (n.date < min ? n.date : min), today);
+  const oldestAgeDays = Math.ceil((now - new Date(oldestDate + 'T00:00:00Z').getTime()) / 86400000);
+  const lookbackDays = Math.min(MAX_RESOLVE_AGE_DAYS + 15, Math.max(45, oldestAgeDays + 15));
+
   // Deduplicate symbols
   const uniqueSymbols = [...new Set(needsResolution.map(n => n.symbol))];
-  console.log(`[GemHistory] Resolving outcomes for ${uniqueSymbols.length} symbols...`);
+  console.log(`[GemHistory] Resolving outcomes for ${uniqueSymbols.length} symbols (${lookbackDays}d lookback)...`);
 
   // Use global cache for historical data
   if (!global.gemHistCache) global.gemHistCache = new Map();
@@ -100,7 +121,7 @@ async function resolveOutcomes() {
   const histMap = {};
   const toFetch = uniqueSymbols.filter(sym => {
     const cached = global.gemHistCache.get(sym);
-    if (cached && Date.now() - cached.ts < CACHE_TTL) {
+    if (cached && Date.now() - cached.ts < CACHE_TTL && cached.days >= lookbackDays) {
       histMap[sym] = cached.bars;
       return false;
     }
@@ -111,24 +132,25 @@ async function resolveOutcomes() {
   for (let i = 0; i < toFetch.length; i += 10) {
     const batch = toFetch.slice(i, i + 10);
     const results = await Promise.allSettled(
-      batch.map(sym => yahooFinance.getHistoricalData(sym).then(bars => ({ sym, bars })))
+      batch.map(sym => yahooFinance.getHistoricalData(sym, lookbackDays).then(bars => ({ sym, bars })))
     );
     for (const r of results) {
       if (r.status === 'fulfilled' && r.value.bars?.length > 0) {
         histMap[r.value.sym] = r.value.bars;
-        global.gemHistCache.set(r.value.sym, { bars: r.value.bars, ts: Date.now() });
+        global.gemHistCache.set(r.value.sym, { bars: r.value.bars, ts: Date.now(), days: lookbackDays });
       }
     }
   }
 
-  // Resolve each gem's outcomes
+  // Resolve each gem's outcomes — fill only the timeframes that are still
+  // missing; already-resolved timeframes are kept untouched.
   let updated = false;
   for (const date of dates) {
     const dayData = history[date];
     if (!dayData.gems) continue;
 
     for (const gem of dayData.gems) {
-      if (gem.outcomes) continue; // already resolved
+      if (isFullyResolved(gem)) continue;
 
       const bars = histMap[gem.symbol];
       if (!bars || bars.length === 0) continue;
@@ -138,10 +160,11 @@ async function resolveOutcomes() {
       const futureBars = bars.filter(b => new Date(b.date) > pickDate);
       if (futureBars.length === 0) continue;
 
-      const outcomes = {};
+      const outcomes = { ...(gem.outcomes || {}) };
       for (const tf of TIMEFRAMES) {
+        if (outcomes[`${tf}d`] != null) continue; // keep resolved values
         if (futureBars.length < tf) {
-          outcomes[`${tf}d`] = null;
+          outcomes[`${tf}d`] = null; // not enough bars yet — retry next run
           continue;
         }
 
@@ -160,10 +183,10 @@ async function resolveOutcomes() {
           maxGain: Math.round(maxGain * 100) / 100,
           maxDrawdown: Math.round(maxDrawdown * 100) / 100,
         };
+        updated = true;
       }
 
       gem.outcomes = outcomes;
-      updated = true;
     }
   }
 

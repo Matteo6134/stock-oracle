@@ -1,123 +1,105 @@
 {
   "learnedWeights": {
-    "momentum_acceleration": 17.04,
-    "bullish_options": 15.23,
-    "unusual_options_volume": 16.13,
-    "short_squeeze_loading": 15.51,
-    "bb_squeeze": 18.81,
+    "momentum_acceleration": 22.7,
+    "bullish_options": 21.9,
+    "unusual_options_volume": 20.38,
+    "short_squeeze_loading": 24.2,
+    "bb_squeeze": 21.37,
     "oversold_bounce": 0,
-    "institutions_accumulating": 15.53,
-    "multi_day_accumulation": 2,
-    "volume_contraction": 23.07,
-    "volume_acceleration": 12.51,
-    "price_compression": 17.26,
-    "sector_lag": 16.03,
-    "earnings_tomorrow": 2,
-    "smart_money": 15.83,
-    "stealth_accumulation": 14.56,
-    "near_expiry_call_rush": 20.51,
-    "put_call_bullish": 18.24,
-    "analyst_upgrade": 22.24,
-    "put_call_extreme_bullish": 17.7,
-    "analyst_strong_buy": 18.78,
-    "deep_itm_calls": 15.79,
-    "call_sweep_large": 18.96,
-    "dark_pool_squeeze": 20.98,
-    "dark_pool_pressure": 17.37,
-    "analyst_momentum": 19.43,
-    "options_volume_explosion": 2,
-    "reddit_trending": 2,
-    "options_volume_spike": 2,
-    "social_surge": 19.48,
-    "insider_heavy_buy": 18.86,
-    "insider_buy_recent": 13.91,
-    "call_sweep": 21.64,
-    "correlation_lag": 6.51
+    "institutions_accumulating": 20.28,
+    "multi_day_accumulation": 18.81,
+    "volume_contraction": 22.69,
+    "volume_acceleration": 19.58,
+    "price_compression": 19.41,
+    "sector_lag": 13.93,
+    "earnings_tomorrow": 11.35,
+    "smart_money": 8.14,
+    "stealth_accumulation": 8.26
   },
   "signalPerformance": {
     "unusual_volume": {
       "count": 1,
       "winRate": 0,
       "hit10Rate": 0,
-      "avgReturn": -5.45,
-      "avgMaxGain": 1.78
+      "avgReturn": -3.55,
+      "avgMaxGain": 4.76
     },
     "early_momentum": {
       "count": 1,
       "winRate": 0,
       "hit10Rate": 0,
-      "avgReturn": -5.45,
-      "avgMaxGain": 1.78
+      "avgReturn": -3.55,
+      "avgMaxGain": 4.76
     },
     "momentum_acceleration": {
       "count": 175,
-      "winRate": 49,
-      "hit10Rate": 15,
-      "avgReturn": 0.36,
-      "avgMaxGain": 3.52
+      "winRate": 52,
+      "hit10Rate": 46,
+      "avgReturn": 3.29,
+      "avgMaxGain": 12.42
     },
     "bullish_options": {
       "count": 302,
-      "winRate": 47,
-      "hit10Rate": 14,
-      "avgReturn": -0.15,
-      "avgMaxGain": 3.13
+      "winRate": 51,
+      "hit10Rate": 42,
+      "avgReturn": 2.65,
+      "avgMaxGain": 11.48
     },
     "unusual_options_volume": {
       "count": 253,
-      "winRate": 46,
-      "hit10Rate": 14,
-      "avgReturn": -0.49,
-      "avgMaxGain": 2.9
+      "winRate": 49,
+      "hit10Rate": 39,
+      "avgReturn": 2.53,
+      "avgMaxGain": 10.95
     },
     "short_squeeze_loading": {
       "count": 167,
-      "winRate": 47,
-      "hit10Rate": 19,
-      "avgReturn": -0.05,
-      "avgMaxGain": 4.27
+      "winRate": 51,
+      "hit10Rate": 49,
+      "avgReturn": 3.84,
+      "avgMaxGain": 14.44
     },
     "bb_squeeze": {
       "count": 216,
-      "winRate": 50,
-      "hit10Rate": 12,
-      "avgReturn": 0.02,
-      "avgMaxGain": 2.87
+      "winRate": 56,
+      "hit10Rate": 42,
+      "avgReturn": 3.07,
+      "avgMaxGain": 10.32
     },
     "oversold_bounce": {
       "count": 15,
-      "winRate": 0,
-      "hit10Rate": 20,
-      "avgReturn": -7.06,
-      "avgMaxGain": 3.7
+      "winRate": 13,
+      "hit10Rate": 33,
+      "avgReturn": -7.1,
+      "avgMaxGain": 5.9
     },
     "institutions_accumulating": {
       "count": 87,
-      "winRate": 45,
-      "hit10Rate": 16,
-      "avgReturn": -0.61,
-      "avgMaxGain": 3.39
+      "winRate": 55,
+      "hit10Rate": 43,
+      "avgReturn": 3.84,
+      "avgMaxGain": 13.33
     },
     "multi_day_accumulation": {
       "count": 80,
       "winRate": 48,
-      "hit10Rate": 10,
-      "avgReturn": -0.19,
-      "avgMaxGain": 3.91
+      "hit10Rate": 39,
+      "avgReturn": 2.23,
+      "avgMaxGain": 14.28
     },
     "volume_contraction": {
       "count": 65,
       "winRate": 62,
-      "hit10Rate": 15,
-      "avgReturn": 1.67,
-      "avgMaxGain": 4.3
+      "hit10Rate": 54,
+      "avgReturn": 6.84,
+      "avgMaxGain": 14.72
     },
     "volume_acceleration": {
       "count": 149,
       "winRate": 48,
-      "hit10Rate": 15,
-      "avgReturn": -0.27,
-      "avgMaxGain": 3.12
+      "hit10Rate": 38,
+      "avgReturn": 2.23,
+      "avgMaxGain": 11.93
     },
     "low_float_volume": {
       "count": 1,
@@ -128,684 +110,540 @@
     },
     "price_compression": {
       "count": 149,
-      "winRate": 52,
-      "hit10Rate": 9,
-      "avgReturn": -0.15,
-      "avgMaxGain": 1.96
+      "winRate": 56,
+      "hit10Rate": 40,
+      "avgReturn": 2.16,
+      "avgMaxGain": 8.73
     },
     "sector_lag": {
       "count": 39,
-      "winRate": 51,
-      "hit10Rate": 8,
-      "avgReturn": -0.29,
-      "avgMaxGain": 2.83
+      "winRate": 49,
+      "hit10Rate": 38,
+      "avgReturn": 1.32,
+      "avgMaxGain": 9.33
     },
     "earnings_tomorrow": {
       "count": 20,
-      "winRate": 45,
-      "hit10Rate": 10,
-      "avgReturn": -0.68,
-      "avgMaxGain": 2.69
+      "winRate": 35,
+      "hit10Rate": 40,
+      "avgReturn": 0.39,
+      "avgMaxGain": 14.39
     },
     "smart_money": {
       "count": 16,
-      "winRate": 38,
-      "hit10Rate": 6,
-      "avgReturn": 1.69,
-      "avgMaxGain": 3.47
+      "winRate": 50,
+      "hit10Rate": 31,
+      "avgReturn": 1.41,
+      "avgMaxGain": 7.89
     },
     "stealth_accumulation": {
       "count": 14,
       "winRate": 50,
-      "hit10Rate": 7,
-      "avgReturn": 0.36,
-      "avgMaxGain": 1.03
+      "hit10Rate": 36,
+      "avgReturn": 4.67,
+      "avgMaxGain": 8.7
     }
   },
   "comboPerformance": {
     "bullish_options+momentum_acceleration": {
       "count": 153,
-      "winRate": 48,
-      "hit10Rate": 15,
-      "avgReturn": 0.7
+      "winRate": 53,
+      "hit10Rate": 46,
+      "avgReturn": 2.81
     },
     "bullish_options+unusual_options_volume": {
       "count": 213,
-      "winRate": 46,
-      "hit10Rate": 14,
-      "avgReturn": -0.37
+      "winRate": 49,
+      "hit10Rate": 39,
+      "avgReturn": 2.78
     },
     "momentum_acceleration+unusual_options_volume": {
       "count": 124,
-      "winRate": 49,
-      "hit10Rate": 18,
-      "avgReturn": 0.61
+      "winRate": 51,
+      "hit10Rate": 43,
+      "avgReturn": 2.97
     },
     "bb_squeeze+bullish_options": {
       "count": 180,
-      "winRate": 50,
-      "hit10Rate": 11,
-      "avgReturn": 0.06
+      "winRate": 56,
+      "hit10Rate": 42,
+      "avgReturn": 2.84
     },
     "bb_squeeze+oversold_bounce": {
       "count": 13,
-      "winRate": 0,
-      "hit10Rate": 23,
-      "avgReturn": -7.22
+      "winRate": 15,
+      "hit10Rate": 38,
+      "avgReturn": -7.27
     },
     "bb_squeeze+short_squeeze_loading": {
       "count": 78,
-      "winRate": 50,
-      "hit10Rate": 17,
-      "avgReturn": -0.16
+      "winRate": 59,
+      "hit10Rate": 56,
+      "avgReturn": 4.77
     },
     "bb_squeeze+unusual_options_volume": {
       "count": 144,
-      "winRate": 51,
-      "hit10Rate": 13,
-      "avgReturn": -0.02
+      "winRate": 53,
+      "hit10Rate": 40,
+      "avgReturn": 2.85
     },
     "bullish_options+oversold_bounce": {
       "count": 11,
-      "winRate": 0,
-      "hit10Rate": 18,
-      "avgReturn": -5.39
+      "winRate": 18,
+      "hit10Rate": 36,
+      "avgReturn": -4.77
     },
     "bullish_options+short_squeeze_loading": {
       "count": 150,
-      "winRate": 47,
-      "hit10Rate": 18,
-      "avgReturn": 0.53
+      "winRate": 52,
+      "hit10Rate": 49,
+      "avgReturn": 4.55
     },
     "oversold_bounce+short_squeeze_loading": {
       "count": 10,
-      "winRate": 0,
-      "hit10Rate": 20,
-      "avgReturn": -8.57
+      "winRate": 10,
+      "hit10Rate": 30,
+      "avgReturn": -8.25
     },
     "oversold_bounce+unusual_options_volume": {
       "count": 10,
-      "winRate": 0,
-      "hit10Rate": 20,
-      "avgReturn": -7.24
+      "winRate": 10,
+      "hit10Rate": 30,
+      "avgReturn": -7.96
     },
     "short_squeeze_loading+unusual_options_volume": {
       "count": 126,
-      "winRate": 44,
-      "hit10Rate": 18,
-      "avgReturn": -0.55
+      "winRate": 50,
+      "hit10Rate": 45,
+      "avgReturn": 3.75
     },
     "bb_squeeze+institutions_accumulating": {
       "count": 51,
-      "winRate": 45,
-      "hit10Rate": 10,
-      "avgReturn": -0.27
+      "winRate": 61,
+      "hit10Rate": 39,
+      "avgReturn": 2.73
     },
     "bb_squeeze+momentum_acceleration": {
       "count": 88,
-      "winRate": 51,
-      "hit10Rate": 14,
-      "avgReturn": 1.25
+      "winRate": 57,
+      "hit10Rate": 48,
+      "avgReturn": 3.26
     },
     "bullish_options+institutions_accumulating": {
       "count": 72,
-      "winRate": 43,
-      "hit10Rate": 17,
-      "avgReturn": -0.56
+      "winRate": 56,
+      "hit10Rate": 43,
+      "avgReturn": 3.14
     },
     "institutions_accumulating+momentum_acceleration": {
       "count": 34,
-      "winRate": 47,
-      "hit10Rate": 26,
-      "avgReturn": 1.86
-    },
-    "institutions_accumulating+oversold_bounce": {
-      "count": 3,
-      "winRate": 0,
-      "hit10Rate": 33,
-      "avgReturn": -5.89
-    },
-    "momentum_acceleration+oversold_bounce": {
-      "count": 4,
-      "winRate": 0,
-      "hit10Rate": 0,
-      "avgReturn": -4.93
+      "winRate": 62,
+      "hit10Rate": 56,
+      "avgReturn": 6.49
     },
     "bullish_options+multi_day_accumulation": {
       "count": 70,
-      "winRate": 47,
-      "hit10Rate": 10,
-      "avgReturn": 0.06
+      "winRate": 44,
+      "hit10Rate": 40,
+      "avgReturn": 1.04
     },
     "momentum_acceleration+multi_day_accumulation": {
       "count": 46,
-      "winRate": 46,
-      "hit10Rate": 7,
-      "avgReturn": -1.38
+      "winRate": 48,
+      "hit10Rate": 39,
+      "avgReturn": 2.01
     },
     "multi_day_accumulation+unusual_options_volume": {
       "count": 65,
-      "winRate": 46,
-      "hit10Rate": 9,
-      "avgReturn": -0.05
+      "winRate": 45,
+      "hit10Rate": 32,
+      "avgReturn": 0.93
     },
     "momentum_acceleration+short_squeeze_loading": {
       "count": 87,
-      "winRate": 52,
-      "hit10Rate": 21,
-      "avgReturn": 1.27
+      "winRate": 56,
+      "hit10Rate": 53,
+      "avgReturn": 5.01
     },
     "bb_squeeze+volume_contraction": {
       "count": 65,
       "winRate": 62,
-      "hit10Rate": 15,
-      "avgReturn": 1.67
+      "hit10Rate": 54,
+      "avgReturn": 6.84
     },
     "momentum_acceleration+volume_contraction": {
       "count": 32,
-      "winRate": 63,
-      "hit10Rate": 16,
-      "avgReturn": 2.01
+      "winRate": 66,
+      "hit10Rate": 59,
+      "avgReturn": 6.89
     },
     "unusual_options_volume+volume_contraction": {
       "count": 39,
-      "winRate": 67,
-      "hit10Rate": 21,
-      "avgReturn": 1.8
+      "winRate": 54,
+      "hit10Rate": 44,
+      "avgReturn": 5.54
     },
     "institutions_accumulating+short_squeeze_loading": {
       "count": 49,
-      "winRate": 49,
-      "hit10Rate": 20,
-      "avgReturn": 0.71
+      "winRate": 59,
+      "hit10Rate": 55,
+      "avgReturn": 5.48
     },
     "short_squeeze_loading+volume_contraction": {
       "count": 24,
-      "winRate": 58,
-      "hit10Rate": 21,
-      "avgReturn": 0.83
+      "winRate": 71,
+      "hit10Rate": 71,
+      "avgReturn": 8.75
     },
     "bullish_options+volume_contraction": {
       "count": 52,
-      "winRate": 62,
-      "hit10Rate": 15,
-      "avgReturn": 1.95
+      "winRate": 60,
+      "hit10Rate": 56,
+      "avgReturn": 6.73
     },
     "bullish_options+volume_acceleration": {
       "count": 126,
-      "winRate": 48,
-      "hit10Rate": 15,
-      "avgReturn": -0.23
+      "winRate": 46,
+      "hit10Rate": 40,
+      "avgReturn": 1.8
     },
     "institutions_accumulating+multi_day_accumulation": {
       "count": 21,
-      "winRate": 38,
-      "hit10Rate": 14,
-      "avgReturn": -0.03
+      "winRate": 62,
+      "hit10Rate": 43,
+      "avgReturn": 10.9
     },
     "institutions_accumulating+unusual_options_volume": {
       "count": 51,
-      "winRate": 41,
-      "hit10Rate": 18,
-      "avgReturn": -0.37
+      "winRate": 53,
+      "hit10Rate": 35,
+      "avgReturn": 2.71
     },
     "institutions_accumulating+volume_acceleration": {
       "count": 36,
-      "winRate": 50,
-      "hit10Rate": 17,
-      "avgReturn": -0.98
+      "winRate": 58,
+      "hit10Rate": 44,
+      "avgReturn": 6.02
     },
     "multi_day_accumulation+short_squeeze_loading": {
       "count": 41,
-      "winRate": 44,
-      "hit10Rate": 10,
-      "avgReturn": 0.17
+      "winRate": 37,
+      "hit10Rate": 34,
+      "avgReturn": 0.69
     },
     "multi_day_accumulation+volume_acceleration": {
       "count": 61,
-      "winRate": 48,
-      "hit10Rate": 10,
-      "avgReturn": -1.27
+      "winRate": 46,
+      "hit10Rate": 36,
+      "avgReturn": 0.84
     },
     "short_squeeze_loading+volume_acceleration": {
       "count": 68,
-      "winRate": 46,
-      "hit10Rate": 18,
-      "avgReturn": -0.25
+      "winRate": 41,
+      "hit10Rate": 38,
+      "avgReturn": 1.17
     },
     "unusual_options_volume+volume_acceleration": {
       "count": 112,
-      "winRate": 45,
-      "hit10Rate": 13,
-      "avgReturn": -0.55
+      "winRate": 47,
+      "hit10Rate": 35,
+      "avgReturn": 1.64
     },
     "bb_squeeze+multi_day_accumulation": {
       "count": 11,
-      "winRate": 64,
-      "hit10Rate": 18,
-      "avgReturn": 8.94
+      "winRate": 82,
+      "hit10Rate": 55,
+      "avgReturn": 10.65
     },
     "bb_squeeze+volume_acceleration": {
       "count": 56,
-      "winRate": 55,
-      "hit10Rate": 13,
-      "avgReturn": 1.05
+      "winRate": 61,
+      "hit10Rate": 41,
+      "avgReturn": 4.2
     },
     "momentum_acceleration+volume_acceleration": {
       "count": 78,
       "winRate": 47,
-      "hit10Rate": 18,
-      "avgReturn": -0.64
+      "hit10Rate": 44,
+      "avgReturn": 1.98
     },
     "bb_squeeze+price_compression": {
       "count": 145,
-      "winRate": 53,
-      "hit10Rate": 10,
-      "avgReturn": -0.06
+      "winRate": 56,
+      "hit10Rate": 41,
+      "avgReturn": 2.28
     },
     "bullish_options+price_compression": {
       "count": 124,
-      "winRate": 52,
-      "hit10Rate": 9,
-      "avgReturn": -0.34
+      "winRate": 55,
+      "hit10Rate": 39,
+      "avgReturn": 1.4
     },
     "momentum_acceleration+price_compression": {
       "count": 58,
-      "winRate": 52,
-      "hit10Rate": 12,
-      "avgReturn": 0.2
+      "winRate": 55,
+      "hit10Rate": 45,
+      "avgReturn": 2.16
     },
     "price_compression+short_squeeze_loading": {
       "count": 34,
-      "winRate": 59,
-      "hit10Rate": 18,
-      "avgReturn": 0.43
+      "winRate": 62,
+      "hit10Rate": 65,
+      "avgReturn": 4.56
     },
     "price_compression+unusual_options_volume": {
       "count": 94,
-      "winRate": 52,
-      "hit10Rate": 13,
-      "avgReturn": -0.15
+      "winRate": 54,
+      "hit10Rate": 40,
+      "avgReturn": 3.13
     },
     "price_compression+volume_contraction": {
       "count": 39,
       "winRate": 67,
-      "hit10Rate": 18,
-      "avgReturn": 2.88
+      "hit10Rate": 62,
+      "avgReturn": 7.52
     },
     "bb_squeeze+sector_lag": {
       "count": 29,
-      "winRate": 62,
-      "hit10Rate": 3,
-      "avgReturn": 0.86
+      "winRate": 52,
+      "hit10Rate": 41,
+      "avgReturn": 1.81
     },
     "bullish_options+sector_lag": {
       "count": 37,
-      "winRate": 54,
-      "hit10Rate": 8,
-      "avgReturn": -0.19
+      "winRate": 51,
+      "hit10Rate": 41,
+      "avgReturn": 1.7
     },
     "institutions_accumulating+price_compression": {
       "count": 35,
-      "winRate": 49,
-      "hit10Rate": 6,
-      "avgReturn": -1.72
-    },
-    "institutions_accumulating+sector_lag": {
-      "count": 6,
-      "winRate": 50,
-      "hit10Rate": 0,
-      "avgReturn": -2.05
+      "winRate": 51,
+      "hit10Rate": 29,
+      "avgReturn": -1.45
     },
     "institutions_accumulating+volume_contraction": {
       "count": 14,
-      "winRate": 64,
-      "hit10Rate": 14,
-      "avgReturn": 1
+      "winRate": 86,
+      "hit10Rate": 57,
+      "avgReturn": 13.18
     },
     "price_compression+sector_lag": {
       "count": 18,
-      "winRate": 67,
-      "hit10Rate": 0,
-      "avgReturn": 0.72
+      "winRate": 56,
+      "hit10Rate": 44,
+      "avgReturn": 2.21
     },
     "price_compression+volume_acceleration": {
       "count": 39,
-      "winRate": 51,
-      "hit10Rate": 8,
-      "avgReturn": -0.15
+      "winRate": 54,
+      "hit10Rate": 33,
+      "avgReturn": 0.3
     },
     "sector_lag+unusual_options_volume": {
       "count": 33,
-      "winRate": 48,
-      "hit10Rate": 6,
-      "avgReturn": -1.21
+      "winRate": 45,
+      "hit10Rate": 36,
+      "avgReturn": 0.48
     },
     "sector_lag+volume_acceleration": {
       "count": 15,
       "winRate": 47,
-      "hit10Rate": 13,
-      "avgReturn": 0.91
-    },
-    "sector_lag+volume_contraction": {
-      "count": 8,
-      "winRate": 63,
-      "hit10Rate": 0,
-      "avgReturn": 1.44
+      "hit10Rate": 33,
+      "avgReturn": 1.92
     },
     "volume_acceleration+volume_contraction": {
       "count": 15,
       "winRate": 67,
-      "hit10Rate": 20,
-      "avgReturn": 2.63
+      "hit10Rate": 53,
+      "avgReturn": 6.47
     },
     "sector_lag+short_squeeze_loading": {
       "count": 11,
-      "winRate": 45,
-      "hit10Rate": 18,
-      "avgReturn": -1.49
+      "winRate": 55,
+      "hit10Rate": 45,
+      "avgReturn": 3.27
     },
     "momentum_acceleration+sector_lag": {
       "count": 10,
       "winRate": 40,
-      "hit10Rate": 10,
-      "avgReturn": 1.84
+      "hit10Rate": 40,
+      "avgReturn": -0.7
     },
     "earnings_tomorrow+momentum_acceleration": {
       "count": 17,
-      "winRate": 47,
-      "hit10Rate": 12,
-      "avgReturn": -0.83
-    },
-    "earnings_tomorrow+unusual_options_volume": {
-      "count": 9,
-      "winRate": 44,
-      "hit10Rate": 0,
-      "avgReturn": -1.14
+      "winRate": 35,
+      "hit10Rate": 41,
+      "avgReturn": 0.81
     },
     "earnings_tomorrow+volume_acceleration": {
       "count": 11,
-      "winRate": 55,
-      "hit10Rate": 9,
-      "avgReturn": -0.78
+      "winRate": 36,
+      "hit10Rate": 36,
+      "avgReturn": 1.95
     },
     "bullish_options+earnings_tomorrow": {
       "count": 16,
-      "winRate": 44,
-      "hit10Rate": 6,
-      "avgReturn": -1.13
+      "winRate": 31,
+      "hit10Rate": 38,
+      "avgReturn": -6.36
     },
     "earnings_tomorrow+multi_day_accumulation": {
       "count": 10,
-      "winRate": 70,
-      "hit10Rate": 10,
-      "avgReturn": 1.4
-    },
-    "earnings_tomorrow+price_compression": {
-      "count": 7,
-      "winRate": 14,
-      "hit10Rate": 0,
-      "avgReturn": -4.18
-    },
-    "earnings_tomorrow+short_squeeze_loading": {
-      "count": 4,
-      "winRate": 25,
-      "hit10Rate": 25,
-      "avgReturn": -0.23
-    },
-    "multi_day_accumulation+price_compression": {
-      "count": 8,
-      "winRate": 63,
-      "hit10Rate": 0,
-      "avgReturn": 1.64
-    },
-    "bb_squeeze+earnings_tomorrow": {
-      "count": 5,
-      "winRate": 20,
-      "hit10Rate": 20,
-      "avgReturn": -3.41
+      "winRate": 40,
+      "hit10Rate": 60,
+      "avgReturn": 6.07
     },
     "bullish_options+smart_money": {
       "count": 14,
-      "winRate": 36,
-      "hit10Rate": 7,
-      "avgReturn": 1.69
+      "winRate": 50,
+      "hit10Rate": 29,
+      "avgReturn": 1.28
     },
     "bullish_options+stealth_accumulation": {
       "count": 12,
-      "winRate": 50,
-      "hit10Rate": 8,
-      "avgReturn": 0.45
-    },
-    "smart_money+stealth_accumulation": {
-      "count": 9,
-      "winRate": 44,
-      "hit10Rate": 0,
-      "avgReturn": -0.62
+      "winRate": 58,
+      "hit10Rate": 42,
+      "avgReturn": 6.36
     },
     "smart_money+unusual_options_volume": {
       "count": 13,
-      "winRate": 38,
-      "hit10Rate": 8,
-      "avgReturn": 2.42
-    },
-    "smart_money+volume_acceleration": {
-      "count": 7,
-      "winRate": 14,
-      "hit10Rate": 0,
-      "avgReturn": -5.81
-    },
-    "stealth_accumulation+unusual_options_volume": {
-      "count": 9,
-      "winRate": 56,
-      "hit10Rate": 0,
-      "avgReturn": 0.59
-    },
-    "stealth_accumulation+volume_acceleration": {
-      "count": 5,
-      "winRate": 60,
-      "hit10Rate": 20,
-      "avgReturn": 3.12
+      "winRate": 46,
+      "hit10Rate": 31,
+      "avgReturn": 0.58
     },
     "bb_squeeze+smart_money": {
       "count": 10,
-      "winRate": 60,
-      "hit10Rate": 10,
-      "avgReturn": 7.14
-    },
-    "price_compression+smart_money": {
-      "count": 7,
-      "winRate": 57,
-      "hit10Rate": 0,
-      "avgReturn": 0.55
+      "winRate": 80,
+      "hit10Rate": 50,
+      "avgReturn": 7.99
     },
     "bb_squeeze+stealth_accumulation": {
       "count": 12,
-      "winRate": 50,
-      "hit10Rate": 8,
-      "avgReturn": -0.08
-    },
-    "sector_lag+smart_money": {
-      "count": 3,
-      "winRate": 100,
-      "hit10Rate": 0,
-      "avgReturn": 0.84
-    },
-    "sector_lag+stealth_accumulation": {
-      "count": 3,
-      "winRate": 100,
-      "hit10Rate": 0,
-      "avgReturn": 0.84
-    },
-    "price_compression+stealth_accumulation": {
-      "count": 9,
-      "winRate": 44,
-      "hit10Rate": 0,
-      "avgReturn": -0.96
-    },
-    "momentum_acceleration+smart_money": {
-      "count": 3,
-      "winRate": 33,
+      "winRate": 58,
       "hit10Rate": 33,
-      "avgReturn": 18.53
-    },
-    "multi_day_accumulation+smart_money": {
-      "count": 4,
-      "winRate": 25,
-      "hit10Rate": 25,
-      "avgReturn": 9
+      "avgReturn": 5.73
     }
   },
   "killerCombos": [
     {
-      "combo": "near_expiry_call_rush+stealth_accumulation",
-      "hit10Rate": 100,
-      "count": 5,
-      "avgReturn": 13.11
-    },
-    {
-      "combo": "call_sweep+volume_contraction",
-      "hit10Rate": 100,
-      "count": 5,
-      "avgReturn": 12.93
-    },
-    {
-      "combo": "analyst_upgrade+call_sweep",
-      "hit10Rate": 100,
-      "count": 5,
-      "avgReturn": 13.2
-    },
-    {
-      "combo": "institutions_accumulating+volume_contraction",
-      "hit10Rate": 90,
-      "count": 19,
-      "avgReturn": 9.36
-    },
-    {
-      "combo": "bb_squeeze+call_sweep",
-      "hit10Rate": 89,
-      "count": 9,
-      "avgReturn": 9.48
-    },
-    {
-      "combo": "bullish_options+call_sweep",
-      "hit10Rate": 88,
-      "count": 8,
-      "avgReturn": 12.09
-    },
-    {
-      "combo": "call_sweep+price_compression",
-      "hit10Rate": 88,
-      "count": 8,
-      "avgReturn": 10.74
-    },
-    {
-      "combo": "call_sweep+momentum_acceleration",
-      "hit10Rate": 86,
-      "count": 7,
-      "avgReturn": 11.13
-    },
-    {
-      "combo": "call_sweep+near_expiry_call_rush",
-      "hit10Rate": 83,
-      "count": 12,
-      "avgReturn": 10.46
-    },
-    {
-      "combo": "call_sweep+unusual_options_volume",
-      "hit10Rate": 83,
-      "count": 12,
-      "avgReturn": 10.46
-    },
-    {
-      "combo": "earnings_tomorrow+volume_contraction",
-      "hit10Rate": 83,
-      "count": 6,
-      "avgReturn": 13.36
-    },
-    {
-      "combo": "dark_pool_squeeze+earnings_tomorrow",
-      "hit10Rate": 83,
-      "count": 6,
-      "avgReturn": 2.93
-    },
-    {
-      "combo": "price_compression+smart_money",
-      "hit10Rate": 82,
-      "count": 11,
-      "avgReturn": 7.21
-    },
-    {
-      "combo": "dark_pool_squeeze+volume_contraction",
-      "hit10Rate": 80,
-      "count": 15,
-      "avgReturn": 5.35
-    },
-    {
-      "combo": "dark_pool_pressure+volume_contraction",
-      "hit10Rate": 78,
-      "count": 18,
-      "avgReturn": 7.68
-    },
-    {
       "combo": "short_squeeze_loading+volume_contraction",
-      "hit10Rate": 77,
+      "hit10Rate": 71,
+      "count": 24,
+      "avgReturn": 8.75
+    },
+    {
+      "combo": "price_compression+short_squeeze_loading",
+      "hit10Rate": 65,
+      "count": 34,
+      "avgReturn": 4.56
+    },
+    {
+      "combo": "price_compression+volume_contraction",
+      "hit10Rate": 62,
       "count": 39,
-      "avgReturn": 8.77
+      "avgReturn": 7.52
     },
     {
-      "combo": "sector_lag+short_squeeze_loading",
-      "hit10Rate": 75,
-      "count": 12,
-      "avgReturn": 9.84
-    },
-    {
-      "combo": "bb_squeeze+multi_day_accumulation",
-      "hit10Rate": 75,
-      "count": 16,
-      "avgReturn": 11.49
-    },
-    {
-      "combo": "call_sweep_large+dark_pool_squeeze",
-      "hit10Rate": 75,
-      "count": 12,
-      "avgReturn": 6.5
-    },
-    {
-      "combo": "dark_pool_squeeze+put_call_extreme_bullish",
-      "hit10Rate": 75,
-      "count": 12,
-      "avgReturn": 3.16
-    },
-    {
-      "combo": "analyst_upgrade+dark_pool_squeeze",
-      "hit10Rate": 73,
-      "count": 15,
-      "avgReturn": 3.96
-    },
-    {
-      "combo": "bullish_options+stealth_accumulation",
-      "hit10Rate": 73,
-      "count": 15,
-      "avgReturn": 7.98
-    },
-    {
-      "combo": "smart_money+stealth_accumulation",
-      "hit10Rate": 73,
-      "count": 11,
-      "avgReturn": 5.77
-    },
-    {
-      "combo": "bb_squeeze+volume_contraction",
-      "hit10Rate": 72,
-      "count": 130,
-      "avgReturn": 6.15
+      "combo": "earnings_tomorrow+multi_day_accumulation",
+      "hit10Rate": 60,
+      "count": 10,
+      "avgReturn": 6.07
     },
     {
       "combo": "momentum_acceleration+volume_contraction",
-      "hit10Rate": 71,
-      "count": 91,
-      "avgReturn": 6.01
+      "hit10Rate": 59,
+      "count": 32,
+      "avgReturn": 6.89
+    },
+    {
+      "combo": "institutions_accumulating+volume_contraction",
+      "hit10Rate": 57,
+      "count": 14,
+      "avgReturn": 13.18
+    },
+    {
+      "combo": "bb_squeeze+short_squeeze_loading",
+      "hit10Rate": 56,
+      "count": 78,
+      "avgReturn": 4.77
+    },
+    {
+      "combo": "institutions_accumulating+momentum_acceleration",
+      "hit10Rate": 56,
+      "count": 34,
+      "avgReturn": 6.49
+    },
+    {
+      "combo": "bullish_options+volume_contraction",
+      "hit10Rate": 56,
+      "count": 52,
+      "avgReturn": 6.73
+    },
+    {
+      "combo": "institutions_accumulating+short_squeeze_loading",
+      "hit10Rate": 55,
+      "count": 49,
+      "avgReturn": 5.48
+    },
+    {
+      "combo": "bb_squeeze+multi_day_accumulation",
+      "hit10Rate": 55,
+      "count": 11,
+      "avgReturn": 10.65
+    },
+    {
+      "combo": "bb_squeeze+volume_contraction",
+      "hit10Rate": 54,
+      "count": 65,
+      "avgReturn": 6.84
+    },
+    {
+      "combo": "momentum_acceleration+short_squeeze_loading",
+      "hit10Rate": 53,
+      "count": 87,
+      "avgReturn": 5.01
+    },
+    {
+      "combo": "volume_acceleration+volume_contraction",
+      "hit10Rate": 53,
+      "count": 15,
+      "avgReturn": 6.47
+    },
+    {
+      "combo": "bb_squeeze+smart_money",
+      "hit10Rate": 50,
+      "count": 10,
+      "avgReturn": 7.99
+    },
+    {
+      "combo": "bullish_options+short_squeeze_loading",
+      "hit10Rate": 49,
+      "count": 150,
+      "avgReturn": 4.55
+    },
+    {
+      "combo": "bb_squeeze+momentum_acceleration",
+      "hit10Rate": 48,
+      "count": 88,
+      "avgReturn": 3.26
+    },
+    {
+      "combo": "bullish_options+momentum_acceleration",
+      "hit10Rate": 46,
+      "count": 153,
+      "avgReturn": 2.81
+    },
+    {
+      "combo": "short_squeeze_loading+unusual_options_volume",
+      "hit10Rate": 45,
+      "count": 126,
+      "avgReturn": 3.75
+    },
+    {
+      "combo": "momentum_acceleration+price_compression",
+      "hit10Rate": 45,
+      "count": 58,
+      "avgReturn": 2.16
     }
   ],
   "loserPenalties": {
@@ -814,32 +652,30 @@
   "consensusPerformance": {
     "Speculative": {
       "count": 99,
-      "winRate": 48,
-      "hit10Rate": 20,
-      "avgReturn": 0.2
+      "winRate": 53,
+      "hit10Rate": 45,
+      "avgReturn": 4.44
     },
     "No Trade": {
       "count": 9,
-      "winRate": 44,
-      "hit10Rate": 11,
-      "avgReturn": -2.36
+      "winRate": 56,
+      "hit10Rate": 44,
+      "avgReturn": 0.33
     },
     "Buy": {
       "count": 7,
-      "winRate": 0,
-      "hit10Rate": 14,
-      "avgReturn": -9.7
+      "winRate": 29,
+      "hit10Rate": 29,
+      "avgReturn": -2.26
     },
     "Strong Buy": {
       "count": 234,
-      "winRate": 48,
-      "hit10Rate": 11,
-      "avgReturn": -0.13
+      "winRate": 51,
+      "hit10Rate": 40,
+      "avgReturn": 2.36
     }
   },
-  "totalSamples": 408,
+  "totalSamples": 349,
   "totalDays": 41,
-  "lastUpdated": "2026-06-09T21:00:05.610Z",
-  "attributionMergedAt": "2026-06-09T21:00:05.624Z",
-  "attributionSamples": 408
+  "lastUpdated": "2026-06-10T06:53:33.020Z"
 }

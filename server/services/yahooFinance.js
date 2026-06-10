@@ -178,6 +178,12 @@ try {
       interval: 2000,       // 2 second interval
       timeout: 15000,       // 15 sec timeout
     },
+    // Schema-validation warnings were flooding error.log (hundreds of lines
+    // per scan), burying real errors. Failures still throw; just don't log.
+    validation: {
+      logErrors: false,
+      logOptionsErrors: false,
+    },
   });
 } catch (e) {
   // Older versions may not support setGlobalConfig
@@ -740,20 +746,20 @@ export async function getTrendingStocks() {
   }
 }
 
-export async function getHistoricalData(symbol) {
+export async function getHistoricalData(symbol, days = 45) {
   try {
     // 1. Yahoo direct API (CONFIRMED WORKING on Railway)
-    const direct = await fetchHistoryDirect(symbol, 45);
+    const direct = await fetchHistoryDirect(symbol, days);
     if (direct.length > 5) return direct;
 
     // 2. Finnhub candles (backup — rate limited)
-    const fhCandles = await fetchCandlesFinnhub(symbol, 45);
+    const fhCandles = await fetchCandlesFinnhub(symbol, days);
     if (fhCandles.length > 5) return fhCandles;
 
     // 3. Yahoo library (least reliable)
     const end = new Date();
     const start = new Date();
-    start.setDate(start.getDate() - 45);
+    start.setDate(start.getDate() - days);
     try {
       const result = await yf.chart(symbol, {
         period1: start.toISOString().split('T')[0],
