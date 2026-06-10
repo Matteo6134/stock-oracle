@@ -151,6 +151,20 @@ export async function getOrders(status = 'all', limit = 50) {
 }
 
 /**
+ * Fetch a single order by id. Returns formatted order or null on 404.
+ */
+export async function getOrder(orderId) {
+  if (!orderId) return null;
+  try {
+    const { data } = await api.get(`/v2/orders/${orderId}`);
+    return formatOrder(data);
+  } catch (err) {
+    if (err?.response?.status === 404) return null;
+    throw err;
+  }
+}
+
+/**
  * Submit a new order.
  */
 export async function submitOrder({ symbol, qty, notional, side = 'buy', type = 'market', timeInForce = 'day', limitPrice, stopPrice }) {
@@ -184,6 +198,56 @@ export async function submitOrder({ symbol, qty, notional, side = 'buy', type = 
 }
 
 /**
+ * Wait for an order to fill, then submit a resting stop-loss for the filled qty.
+ *
+ * Why this exists: fractional/notional buys don't support `order_class: 'bracket'`
+ * on Alpaca, so we poll the parent order until filled, read the actual filled qty,
+ * then submit a separate stop sell. This gives broker-side protection for gap opens.
+ *
+ * Best-effort — returns null on any failure.
+ */
+export async function submitStopLossAfterFill({ symbol, parentOrderId, stopPrice, maxWaitMs = 30_000 }) {
+  const start = Date.now();
+  let filledQty = 0;
+  while (Date.now() - start < maxWaitMs) {
+    try {
+      const { data } = await api.get(`/v2/orders/${parentOrderId}`);
+      if (data.status === 'filled') {
+        filledQty = parseFloat(data.filled_qty || 0);
+        break;
+      }
+      if (['canceled', 'rejected', 'expired'].includes(data.status)) {
+        return null;
+      }
+    } catch { /* keep polling */ }
+    await new Promise(r => setTimeout(r, 1500));
+  }
+
+  if (filledQty <= 0) return null;
+
+  // Alpaca stop orders require whole shares; floor fractional fills
+  const wholeQty = Math.floor(filledQty);
+  if (wholeQty <= 0) return null;
+
+  try {
+    const order = {
+      symbol: symbol.toUpperCase(),
+      side: 'sell',
+      type: 'stop',
+      time_in_force: 'gtc',
+      qty: String(wholeQty),
+      stop_price: String(stopPrice),
+    };
+    const { data } = await api.post('/v2/orders', order);
+    cache.delete('orders_open');
+    return formatOrder(data);
+  } catch (err) {
+    console.error(`[Alpaca] submitStopLossAfterFill ${symbol} failed:`, err.response?.data?.message || err.message);
+    return null;
+  }
+}
+
+/**
  * Cancel a pending order.
  */
 export async function cancelOrder(orderId) {
@@ -194,11 +258,25 @@ export async function cancelOrder(orderId) {
 
 /**
  * Close an entire position (market sell).
+ * Also cancels any resting stop-loss order so it doesn't become orphaned.
  */
 export async function closePosition(symbol) {
+  // Best-effort: cancel any open stop orders for this symbol first
+  try {
+    const { data: open } = await api.get('/v2/orders', {
+      params: { status: 'open', symbols: symbol.toUpperCase(), limit: 50 },
+    });
+    for (const o of open || []) {
+      if (o.type === 'stop' || o.type === 'stop_limit') {
+        await api.delete(`/v2/orders/${o.id}`).catch(() => {});
+      }
+    }
+  } catch { /* ignore */ }
+
   const { data } = await api.delete(`/v2/positions/${symbol.toUpperCase()}`);
   cache.delete('positions');
   cache.delete('account');
+  cache.delete('orders_open');
   return formatOrder(data);
 }
 

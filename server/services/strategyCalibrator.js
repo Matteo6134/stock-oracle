@@ -22,8 +22,20 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CALIBRATION_FILE = path.join(__dirname, '..', 'data', 'strategyCalibration.json');
 const CALIBRATION_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 
-// Reference symbols — well-known, liquid, long history (Yahoo Finance has them since 1990s)
-const REFERENCE_SYMBOLS = ['SPY', 'AAPL', 'AMD'];
+// Representative basket spanning the kind of names the bot ACTUALLY trades —
+// index anchors + large high-beta + mid-cap momentum + small-cap/squeeze + a decliner.
+// (Was just SPY/AAPL/AMD — two strong multi-year uptrends that inflated win rates and
+//  gave false conviction on the small/penny/squeeze names the bot really buys.)
+const REFERENCE_SYMBOLS = [
+  'SPY', 'QQQ',                            // index anchors
+  'NVDA', 'AMD', 'TSLA',                   // large high-beta
+  'PLTR', 'COIN', 'SOFI', 'MARA', 'RIOT',  // mid-cap momentum / crypto-adjacent
+  'IONQ', 'SOUN', 'PLUG', 'NKLA',          // small-cap / squeeze / decliner
+];
+
+// A strategy must clear these before it's allowed to upgrade live conviction:
+const MIN_AGG_TRADES = 30;  // total backtest trades across all symbols
+const MIN_SYMBOLS = 4;      // distinct symbols that actually produced trades
 
 const STRATEGIES = ['gem_finder', 'volume_surge', 'momentum', 'mean_reversion'];
 
@@ -84,18 +96,24 @@ export async function runCalibration() {
       } catch (err) {
         console.warn(`[Calibrator] ${strategy}/${symbol}: ${err.message}`);
       }
+      // Gentle pacing — 14 symbols x 4 strategies must not trip Yahoo rate limits
+      await new Promise(r => setTimeout(r, 350));
     }
 
-    if (perSymbol.length > 0) {
+    const aggTrades = perSymbol.reduce((s, r) => s + r.totalTrades, 0);
+    if (perSymbol.length >= MIN_SYMBOLS && aggTrades >= MIN_AGG_TRADES) {
       const n = perSymbol.length;
       results[strategy] = {
         winRate:      Math.round(perSymbol.reduce((s, r) => s + r.winRate, 0) / n),
         cagr:         Math.round(perSymbol.reduce((s, r) => s + r.cagr, 0) / n * 10) / 10,
         profitFactor: Math.round(perSymbol.reduce((s, r) => s + r.profitFactor, 0) / n * 100) / 100,
         maxDrawdown:  Math.round(perSymbol.reduce((s, r) => s + r.maxDrawdown, 0) / n * 10) / 10,
-        totalTrades:  perSymbol.reduce((s, r) => s + r.totalTrades, 0),
+        totalTrades:  aggTrades,
+        symbolCount:  n,
         symbols:      perSymbol.map(r => r.symbol),
       };
+    } else if (perSymbol.length > 0) {
+      console.warn(`[Calibrator] ${strategy}: only ${perSymbol.length} symbols / ${aggTrades} trades — below gate (${MIN_SYMBOLS} symbols, ${MIN_AGG_TRADES} trades). Not used for conviction.`);
     }
   }
 

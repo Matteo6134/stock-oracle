@@ -1,5 +1,6 @@
 import YahooFinance from 'yahoo-finance2';
 import { getQuoteBatch, getHistoricalData } from './yahooFinance.js';
+import { getDynamicSymbols, getCachedDynamicSymbols } from './dynamicDiscovery.js';
 
 const yf = new YahooFinance({ suppressNotices: ['yahooSurvey', 'ripHistorical'] });
 
@@ -58,6 +59,40 @@ const MEME_VOLATILE = [
 const RECENT_IPOS = [
   'ARM', 'BIRK', 'CART', 'CAVA', 'KVYO', 'TOST', 'DUOL',
   'BROS', 'DNUT', 'VRT', 'SMCI', 'ONON', 'CELH',
+];
+
+// ── Popular Revolut stocks that were MISSING from our universe ──
+// These are the tickers that appear on Revolut's "Top Movers" but we never scanned
+const REVOLUT_POPULAR = [
+  // AI / Quantum — the hottest Revolut movers
+  'AI', 'SOUN', 'BBAI', 'QBTS', 'RGTI', 'QUBT', 'IONQ',
+  'GOOG', 'MSFT', 'NVDA', 'AMD', 'INTC', 'TSM', 'AVGO', 'MU', 'LRCX', 'AMAT',
+  // EV / Mobility
+  'TSLA', 'RIVN', 'LCID', 'NIO', 'XPEV', 'LI', 'NKLA', 'GOEV', 'JOBY', 'LILM',
+  // Nuclear / Energy trending
+  'SMR', 'OKLO', 'LEU', 'UEC', 'CCJ', 'DNN', 'NXE', 'UUUU',
+  // Biotech runners — FDA catalyst potential
+  'RXRX', 'REPL', 'IMMP', 'TEM', 'MDGL', 'SAVA', 'BNGO', 'NKTR', 'MNKD',
+  'APLS', 'FOLD', 'VRNA', 'KRYS', 'ARQT', 'GERN',
+  // Retail / Consumer popular on Revolut
+  'BIRD', 'GPRO', 'FIGS', 'DTC', 'PRPL', 'WRBY',
+  // Tech mid-caps popular on Revolut
+  'LUMN', 'PGY', 'IREN', 'BTDR', 'HUT', 'MARA', 'RIOT', 'CLSK',
+  'AFRM', 'UPST', 'SOFI', 'HOOD',
+  // Streaming / Media
+  'NFLX', 'DIS', 'WBD', 'PARA',
+  // Space / Defense popular
+  'RKLB', 'LUNR', 'ASTS', 'BWXT',
+  // Finance / Fintech
+  'SQ', 'PYPL', 'COIN', 'ROBH',
+  // Travel / Leisure (Revolut users love these)
+  'ABNB', 'UBER', 'LYFT', 'DAL', 'UAL', 'AAL',
+  // Meme / Social trending
+  'GME', 'AMC', 'BB', 'NOK', 'CLOV', 'WISH', 'OPEN',
+  // Healthcare popular
+  'HIMS', 'TDOC', 'DOCS', 'OSCR',
+  // AUR, OWL, SNAP (seen in Yahoo trending)
+  'AUR', 'OWL', 'SNAP',
 ];
 
 // Micro-cap gems — the kind that go from $1 to $10 overnight
@@ -125,10 +160,12 @@ function buildUniverse(earningsCalendar = []) {
 
   const all = [
     ...earningsSymbols,
+    ...getCachedDynamicSymbols(),
     ...SMALL_MID_CAPS,
     ...BIOTECH_PHARMA,
     ...MEME_VOLATILE,
     ...RECENT_IPOS,
+    ...REVOLUT_POPULAR,
     ...MICRO_CAP_GEMS,
   ];
 
@@ -184,6 +221,7 @@ export async function scanPremarketMovers(earningsCalendar = []) {
 
   inflightScanPromise = (async () => {
     try {
+      await getDynamicSymbols().catch(() => []);
       const universe = buildUniverse(earningsCalendar);
       console.log(`[PremarketScanner] Scanning ${universe.length} symbols across all categories...`);
 
@@ -263,7 +301,7 @@ export async function scanPremarketMovers(earningsCalendar = []) {
           preMarketPrice: preMarketPrice ? Math.round(preMarketPrice * 100) / 100 : null,
           gapPct: Math.round(gapPct * 100) / 100,
           preMarketVolume: preMarketVol,
-          avgVolume: Math.round(avgVol),
+          avgVolume: Math.round(avgDailyVol),
           volumeRatio: Math.round(volumeRatio * 100) / 100,
           floatShares: floatShares || null,
           floatRotation: calcFloatRotation(preMarketVol, floatShares),
@@ -715,6 +753,7 @@ export const STOCK_UNIVERSE = {
   BIOTECH_PHARMA,
   MEME_VOLATILE,
   RECENT_IPOS,
+  REVOLUT_POPULAR,
   MICRO_CAP_GEMS,
   get ALL() {
     return buildUniverse();

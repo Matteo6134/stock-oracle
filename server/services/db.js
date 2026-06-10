@@ -105,7 +105,7 @@ export async function saveExplosionPrediction(gem) {
     const { data, error } = await db.from('predictions').insert({
       symbol: gem.symbol,
       action: gem.consensus === 'Strong Buy' || gem.consensus === 'Buy' ? 'BUY' : 'WATCH',
-      confidence: gem.avgConviction || 3,
+      confidence: Math.round(gem.avgConviction || 3),
       thesis,
       risk_level: gem.risk || 'moderate',
       target_pct: expl.expectedGainPct || 10,
@@ -150,7 +150,8 @@ export async function resolveExplosionPredictions(getQuoteFn) {
     for (const pred of unresolved) {
       const createdAt = new Date(pred.created_at);
       const ageInDays = (Date.now() - createdAt.getTime()) / 86400000;
-      const predictedDays = pred.predicted_days || 5;
+      // FIX: schema column is `timeframe_days` (not `predicted_days`) — see saveExplosionPrediction
+      const predictedDays = pred.timeframe_days || pred.predicted_days || 5;
 
       // Only resolve if enough time has passed (predicted days + 1 buffer day)
       if (ageInDays < predictedDays + 1) continue;
@@ -162,8 +163,11 @@ export async function resolveExplosionPredictions(getQuoteFn) {
         if (!currentPrice || !pred.entry_price) continue;
 
         const actualPct = Math.round(((currentPrice - pred.entry_price) / pred.entry_price) * 10000) / 100;
-        const hit = actualPct >= (pred.target_pct || 10) * 0.5; // Hit if got 50%+ of predicted gain
-        const outcome = actualPct > 0 ? 'win' : 'loss';
+        const targetPct = pred.target_pct || 10;
+        // Hit if got 50%+ of predicted gain (e.g. predicted +10% → hit if actual >= +5%)
+        const hit = actualPct >= targetPct * 0.5;
+        // Outcome reflects target attainment, not just direction — feeds signalLearner correctly
+        const outcome = hit ? 'win' : (actualPct > 0 ? 'partial' : 'loss');
 
         await db.from('predictions').update({
           outcome,
@@ -337,83 +341,171 @@ export async function getPredictionStats() {
 }
 
 // ═══════════════════════════════════════════════════════════
+// Daily Picks (1-day MOO/MOC bot)
+// ═══════════════════════════════════════════════════════════
+
+/**
+ * Upsert a daily pick into Supabase. Idempotent on (pick_date, symbol).
+ * Order ids and dollar allocation are added by submitDayTradeOrders → updateDailyPickOrderIds.
+ *
+ * @param {Object} pick                The DailyPick object from dailyPicker.js
+ * @param {number} [rank=1]            1 = top pick, 2 = second, etc.
+ * @returns {Promise<Object|null>}     The inserted/updated row, or null on failure
+ */
+export async function saveDailyPick(pick, rank = 1) {
+  const db = getClient();
+  if (!db) return null;
+  try {
+    const row = {
+      pick_date: pick.pickDate,
+      symbol: pick.symbol,
+      rank,
+      composite_score: pick.compositeScore,
+      gem_score: pick.gemScore,
+      claude_confidence: pick.claudeConfidence,
+      explosion_prob: pick.explosionProb,
+      entry_price: pick.entryPrice,
+      expected_return_pct: pick.expectedReturnPct,
+      reasoning: pick.reasoning,
+      signals: pick.signals || [],
+    };
+    const { data, error } = await db
+      .from('daily_picks')
+      .upsert(row, { onConflict: 'pick_date,symbol' })
+      .select();
+    if (error) throw error;
+    return data?.[0] || null;
+  } catch (err) {
+    console.error('[DB] saveDailyPick error:', err.message);
+    return null;
+  }
+}
+
+/**
+ * Attach Alpaca order ids + dollar allocation to a previously-saved pick.
+ * Called by dailyPicker after MOO/MOC submission succeeds.
+ */
+export async function updateDailyPickOrderIds(pickDate, symbol, { buyOrderId, sellOrderId, dollarAllocated }) {
+  const db = getClient();
+  if (!db) return;
+  try {
+    const { error } = await db
+      .from('daily_picks')
+      .update({
+        alpaca_buy_order_id: buyOrderId,
+        alpaca_sell_order_id: sellOrderId,
+        dollar_allocated: dollarAllocated,
+        outcome: 'pending',
+      })
+      .eq('pick_date', pickDate)
+      .eq('symbol', symbol);
+    if (error) throw error;
+  } catch (err) {
+    console.error('[DB] updateDailyPickOrderIds error:', err.message);
+  }
+}
+
+/**
+ * Settle a daily pick after MOC fills. Computes realized P&L net of slippage.
+ */
+export async function settleDailyPick(pickDate, symbol, { fillOpen, fillClose, qty }) {
+  const db = getClient();
+  if (!db) return;
+  try {
+    if (!fillOpen || !fillClose || !qty) {
+      await db.from('daily_picks')
+        .update({ outcome: 'pending', settled_at: null })
+        .eq('pick_date', pickDate).eq('symbol', symbol);
+      return;
+    }
+    const realizedPnl = (fillClose - fillOpen) * qty;
+    const realizedPct = ((fillClose - fillOpen) / fillOpen) * 100;
+    // 'win' if >= +1% (covers slippage); 'partial' if positive but < 1%; 'loss' if <= 0
+    const outcome = realizedPct >= 1 ? 'win' : (realizedPct > 0 ? 'partial' : 'loss');
+    const { error } = await db
+      .from('daily_picks')
+      .update({
+        outcome,
+        fill_price_open: fillOpen,
+        fill_price_close: fillClose,
+        realized_pnl: Math.round(realizedPnl * 100) / 100,
+        realized_pct: Math.round(realizedPct * 100) / 100,
+        settled_at: new Date().toISOString(),
+      })
+      .eq('pick_date', pickDate)
+      .eq('symbol', symbol);
+    if (error) throw error;
+  } catch (err) {
+    console.error('[DB] settleDailyPick error:', err.message);
+  }
+}
+
+/**
+ * Resolve daily picks against Alpaca's actual fills. Called by cron after MOC settles.
+ *
+ * @param {Object} alpacaModule  The alpaca service (so this file stays decoupled)
+ * @returns {Promise<{ resolved: number, results: Array }>}
+ */
+export async function resolveDailyPickFills(alpacaModule) {
+  const db = getClient();
+  if (!db) return { resolved: 0, results: [] };
+  try {
+    // Get pending picks from the last 5 trading days
+    const { data: pending } = await db
+      .from('daily_picks')
+      .select('*')
+      .in('outcome', ['pending'])
+      .not('alpaca_buy_order_id', 'is', null)
+      .order('pick_date', { ascending: true })
+      .limit(50);
+    if (!pending?.length) return { resolved: 0, results: [] };
+
+    const results = [];
+    for (const p of pending) {
+      try {
+        const buy = await alpacaModule.getOrder(p.alpaca_buy_order_id);
+        const sell = await alpacaModule.getOrder(p.alpaca_sell_order_id);
+        if (!buy?.filledAt || !sell?.filledAt) continue;   // not yet filled, skip
+        const fillOpen = Number(buy.filledAvgPrice);
+        const fillClose = Number(sell.filledAvgPrice);
+        const qty = Number(buy.filledQty);
+        await settleDailyPick(p.pick_date, p.symbol, { fillOpen, fillClose, qty });
+        // Mirror to legacy stock_trade table for unified P&L queries
+        try {
+          await db.from('stock_trade').insert({
+            symbol: p.symbol,
+            side: 'buy',
+            qty,
+            entry_price: fillOpen,
+            exit_price: fillClose,
+            exit_reason: 'MOC settled',
+            pnl: Math.round((fillClose - fillOpen) * qty * 100) / 100,
+            signals: p.signals || [],
+            gem_score: p.gem_score,
+            claude_confidence: p.claude_confidence,
+          });
+        } catch (mirrorErr) {
+          // non-fatal; daily_picks is the source of truth
+          console.warn('[DB] stock_trade mirror skip:', mirrorErr.message);
+        }
+        results.push({ symbol: p.symbol, pickDate: p.pick_date, fillOpen, fillClose, pnlPct: ((fillClose - fillOpen) / fillOpen * 100).toFixed(2) });
+      } catch (err) {
+        console.warn(`[DB] resolve failed ${p.symbol} ${p.pick_date}:`, err.message);
+      }
+    }
+    return { resolved: results.length, results };
+  } catch (err) {
+    console.error('[DB] resolveDailyPickFills error:', err.message);
+    return { resolved: 0, results: [] };
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
 // Polymarket Bets
 // ═══════════════════════════════════════════════════════════
 
-export async function savePolyBet(bet) {
-  const db = getClient();
-  if (!db) return null;
-
-  try {
-    const { data, error } = await db.from('poly_bets').insert({
-      market_id: bet.marketId,
-      question: bet.question,
-      outcome: bet.outcome,
-      shares: bet.shares,
-      entry_price: bet.entryPrice,
-      amount: bet.amount,
-      confidence: bet.confidence,
-      thesis: bet.thesis,
-      strategy: bet.strategy,
-      edge_pct: bet.edgePct,
-    }).select();
-
-    if (error) throw error;
-    return data?.[0];
-  } catch (err) {
-    console.error('[DB] savePolyBet error:', err.message);
-    return null;
-  }
-}
-
-export async function settlePolyBet(id, won, settlementPrice) {
-  const db = getClient();
-  if (!db) return;
-
-  try {
-    const { error } = await db.from('poly_bets')
-      .update({
-        status: won ? 'won' : 'lost',
-        settlement_price: settlementPrice,
-        pnl: won ? (1.0 - (settlementPrice || 0)) * 100 : -(settlementPrice || 0) * 100,
-        settled_at: new Date().toISOString(),
-      })
-      .eq('id', id);
-
-    if (error) throw error;
-  } catch (err) {
-    console.error('[DB] settlePolyBet error:', err.message);
-  }
-}
-
-export async function getPolyStats() {
-  const db = getClient();
-  if (!db) return null;
-
-  try {
-    const { data } = await db.from('poly_bets')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .limit(100);
-
-    if (!data) return null;
-
-    const settled = data.filter(b => b.status === 'won' || b.status === 'lost');
-    const wins = settled.filter(b => b.status === 'won');
-
-    return {
-      totalBets: data.length,
-      openBets: data.filter(b => b.status === 'open').length,
-      settledBets: settled.length,
-      winRate: settled.length > 0 ? Math.round((wins.length / settled.length) * 100) : 0,
-      totalPnl: settled.reduce((s, b) => s + (b.pnl || 0), 0),
-      recentBets: data.slice(0, 10),
-    };
-  } catch (err) {
-    console.error('[DB] getPolyStats error:', err.message);
-    return null;
-  }
-}
+// Polymarket helpers (savePolyBet / settlePolyBet / getPolyStats) removed —
+// the poly* services were deleted and nothing referenced these. Dead code.
 
 // ═══════════════════════════════════════════════════════════
 // Stock Trades (Alpaca auto-trades)

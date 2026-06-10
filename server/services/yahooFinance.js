@@ -4,6 +4,7 @@ import axios from 'axios';
 const yf = new YahooFinance({
   suppressNotices: ['yahooSurvey', 'ripHistorical'],
   validation: { logErrors: false, logOptionsErrors: false },
+  queue: { concurrency: 4 },
 });
 
 // ── ALPACA market data (most reliable — already authenticated, never blocked) ──
@@ -607,44 +608,56 @@ export async function getQuoteBatch(symbols) {
   // Strategy 1: Alpaca snapshots (MOST RELIABLE — authenticated, never blocked)
   if (ALPACA_KEY && ALPACA_SECRET) {
     try {
-      // Alpaca supports batch snapshots — up to 200 symbols at once
-      const symStr = symbols.join(',');
-      const { data } = await axios.get(`${ALPACA_DATA}/v2/stocks/snapshots?symbols=${encodeURIComponent(symStr)}`, {
-        headers: { 'APCA-API-KEY-ID': ALPACA_KEY, 'APCA-API-SECRET-KEY': ALPACA_SECRET },
-        timeout: 15000,
-      });
-      if (data && typeof data === 'object') {
-        for (const [sym, snap] of Object.entries(data)) {
-          const bar = snap.dailyBar || snap.latestBar || {};
-          const prevBar = snap.prevDailyBar || {};
-          const price = bar.c || 0;
-          const prevClose = prevBar.c || 0;
-          if (price > 0) {
-            allQuotes.push({
-              symbol: sym,
-              shortName: sym,
-              regularMarketPrice: price,
-              regularMarketChange: prevClose ? price - prevClose : 0,
-              regularMarketChangePercent: prevClose ? ((price - prevClose) / prevClose) * 100 : 0,
-              regularMarketVolume: bar.v || 0,
-              regularMarketPreviousClose: prevClose,
-              regularMarketOpen: bar.o || 0,
-              regularMarketDayHigh: bar.h || 0,
-              regularMarketDayLow: bar.l || 0,
-              fiftyTwoWeekHigh: 0,
-              fiftyTwoWeekLow: 0,
-              marketCap: 0,
-              currentSessionPrice: price,
-            });
+      // Alpaca supports batch snapshots — up to 200 symbols at once (limit for free tier)
+      const validSymbols = symbols.filter(s => /^[A-Z]{1,5}$/.test(s));
+      const BATCH_SIZE = 200;
+
+      for (let i = 0; i < validSymbols.length; i += BATCH_SIZE) {
+        const chunk = validSymbols.slice(i, i + BATCH_SIZE);
+        const symStr = chunk.join(',');
+
+        const { data } = await axios.get(`${ALPACA_DATA}/v2/stocks/snapshots?symbols=${encodeURIComponent(symStr)}`, {
+          headers: { 'APCA-API-KEY-ID': ALPACA_KEY, 'APCA-API-SECRET-KEY': ALPACA_SECRET },
+          timeout: 15000,
+        });
+
+        if (data && typeof data === 'object') {
+          for (const [sym, snap] of Object.entries(data)) {
+            const bar = snap.dailyBar || snap.latestBar || {};
+            const prevBar = snap.prevDailyBar || {};
+            const price = bar.c || 0;
+            const prevClose = prevBar.c || 0;
+            if (price > 0) {
+              allQuotes.push({
+                symbol: sym,
+                shortName: sym,
+                regularMarketPrice: price,
+                regularMarketChange: prevClose ? price - prevClose : 0,
+                regularMarketChangePercent: prevClose ? ((price - prevClose) / prevClose) * 100 : 0,
+                regularMarketVolume: bar.v || 0,
+                regularMarketPreviousClose: prevClose,
+                regularMarketOpen: bar.o || 0,
+                regularMarketDayHigh: bar.h || 0,
+                regularMarketDayLow: bar.l || 0,
+                fiftyTwoWeekHigh: 0,
+                fiftyTwoWeekLow: 0,
+                marketCap: 0,
+                currentSessionPrice: price,
+              });
+            }
           }
         }
-        if (allQuotes.length > 0) {
-          console.log(`[Data] Alpaca batch: ${allQuotes.length}/${symbols.length} quotes`);
-          return allQuotes;
-        }
+        // Small delay between chunks to avoid 429
+        if (i + BATCH_SIZE < validSymbols.length) await new Promise(r => setTimeout(r, 500));
+      }
+
+      if (allQuotes.length > 0) {
+        console.log(`[Data] Alpaca batch: ${allQuotes.length}/${symbols.length} quotes`);
+        return allQuotes;
       }
     } catch (err) {
       console.warn('[Data] Alpaca batch failed:', err.message);
+      // fallback to strategy 2
     }
   }
 
@@ -771,12 +784,38 @@ export async function getHistoricalData(symbol) {
 
 export async function getDailyGainers() {
   try {
-    // dailyGainers is deprecated — use screener instead
-    const result = await yf.screener({ scrIds: 'day_gainers', count: 10 }, { validateResult: false });
+    const result = await yf.screener({ scrIds: 'day_gainers', count: 50 }, { validateResult: false });
     const quotes = result?.quotes || result?.result?.[0]?.quotes || [];
     return quotes.map(q => ({ symbol: q.symbol, name: q.shortName || q.symbol, price: q.regularMarketPrice, change: q.regularMarketChangePercent }));
   } catch (err) {
-    // If screener also fails, return empty (non-critical)
+    return [];
+  }
+}
+
+/**
+ * Get small-cap gainers — these are the 20-50%+ movers the user sees on Revolut.
+ * Returns up to 50 stocks.
+ */
+export async function getSmallCapGainers() {
+  try {
+    const result = await yf.screener({ scrIds: 'small_cap_gainers', count: 50 }, { validateResult: false });
+    const quotes = result?.quotes || result?.result?.[0]?.quotes || [];
+    return quotes.map(q => ({ symbol: q.symbol, name: q.shortName || q.symbol, price: q.regularMarketPrice, change: q.regularMarketChangePercent, marketCap: q.marketCap }));
+  } catch (err) {
+    return [];
+  }
+}
+
+/**
+ * Get most active stocks by volume — captures high-interest names.
+ * Returns up to 50 stocks.
+ */
+export async function getMostActive() {
+  try {
+    const result = await yf.screener({ scrIds: 'most_actives', count: 50 }, { validateResult: false });
+    const quotes = result?.quotes || result?.result?.[0]?.quotes || [];
+    return quotes.map(q => ({ symbol: q.symbol, name: q.shortName || q.symbol, price: q.regularMarketPrice, change: q.regularMarketChangePercent, volume: q.regularMarketVolume }));
+  } catch (err) {
     return [];
   }
 }

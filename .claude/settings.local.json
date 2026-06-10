@@ -88,7 +88,30 @@
       "mcp__plugin_context7_context7__resolve-library-id",
       "mcp__plugin_context7_context7__query-docs",
       "Bash(node -c server/services/db.js)",
-      "Bash(node -c server/services/claudeTracker.js)"
+      "Bash(node -c server/services/claudeTracker.js)",
+      "Bash(curl -s --max-time 10 https://web-production-7dbdc.up.railway.app/api/poly/portfolio)",
+      "Bash(curl -s --max-time 15 https://web-production-7dbdc.up.railway.app/api/auto-trader/status)",
+      "Bash(curl -s --max-time 15 https://web-production-7dbdc.up.railway.app/api/gems)",
+      "Bash(curl -s --max-time 15 https://web-production-7dbdc.up.railway.app/api/scan-cache)",
+      "Bash(curl -s --max-time 15 https://web-production-7dbdc.up.railway.app/api/poly/portfolio)",
+      "Bash(node -c server/services/premarketScanner.js)",
+      "Bash(node -c server/services/tomorrowMovers.js)",
+      "Bash(grep -E '^d|\\\\.js$|\\\\.json$')",
+      "Bash(npx vite:*)",
+      "Bash(find /c/Users/pc2/Desktop/binance-bot -name *gem* -o -name *finder* -o -name *scanner*)",
+      "Bash(ls -la /c/Users/pc2/Desktop/binance-bot/server/services/*.js)",
+      "Bash(curl -s --max-time 15 https://web-production-7dbdc.up.railway.app/api/tomorrow)",
+      "Bash(curl -sv --max-time 15 https://web-production-7dbdc.up.railway.app/api/tomorrow)",
+      "Bash(node -c server/services/sharedCache.js)",
+      "Bash(curl -s --max-time 25 https://web-production-7dbdc.up.railway.app/api/tomorrow)",
+      "Bash(curl -s --max-time 10 \"https://web-production-7dbdc.up.railway.app/api/debug-env\")",
+      "Bash(curl -s --max-time 20 \"https://web-production-7dbdc.up.railway.app/api/status\")",
+      "Bash(curl -s --max-time 10 https://web-production-7dbdc.up.railway.app/api/diag)",
+      "Bash(curl -s --max-time 15 https://web-production-7dbdc.up.railway.app/api/diag)",
+      "Bash(curl -s --max-time 10 \"https://query1.finance.yahoo.com/v8/finance/chart/AAPL?interval=1d&range=1d\" -H \"User-Agent: Mozilla/5.0\" -H \"Origin: https://finance.yahoo.com\" -H \"Referer: https://finance.yahoo.com/\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(''''gems:'''', len\\(d.get\\(''''gems'''',[]\\)\\), ''''source:'''', d.get\\(''''source'''',''''?''''\\), ''''keys:'''', list\\(d.keys\\(\\)\\)[:10]\\)\")",
+      "Bash(curl -s --max-time 20 https://web-production-7dbdc.up.railway.app/api/tomorrow)",
+      "Bash(node -e \"const d=require\\(''''fs''''\\).readFileSync\\(0,''''utf8''''\\); try{const j=JSON.parse\\(d\\); console.log\\(''''keys:'''', Object.keys\\(j\\)\\); console.log\\(''''gems:'''', \\(j.gems||[]\\).length\\); console.log\\(''''predictions:'''', \\(j.predictions||[]\\).length\\); console.log\\(''''source:'''', j.source||''''none''''\\);} catch\\(e\\){console.log\\(''''RAW:'''', d.slice\\(0,300\\)\\)}\")"
     ]
   }
 }

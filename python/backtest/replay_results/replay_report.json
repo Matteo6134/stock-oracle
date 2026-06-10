@@ -1,0 +1,84 @@
+{
+  "window": {
+    "start": "2024-01-01",
+    "end": "2026-04-30"
+  },
+  "filters": {
+    "min_price": 1.0,
+    "max_price": 400.0,
+    "min_dollar_volume": 20000000
+  },
+  "spy_benchmark": {
+    "benchmark": "SPY",
+    "start": "2024-01-02 00:00:00",
+    "end": "2026-04-30 00:00:00",
+    "total_return_pct": 52.049,
+    "win_rate": 0.57,
+    "sharpe_annualized": 1.206,
+    "max_drawdown_pct": -18.999
+  },
+  "monkey_distribution": {
+    "n_monkeys": 10000,
+    "n_days": 584,
+    "mean_total_return_pct": 16.602,
+    "median_total_return_pct": -17.2,
+    "p5_pct": -78.697,
+    "p25_pct": -52.423,
+    "p75_pct": 43.319,
+    "p95_pct": 222.559
+  },
+  "strategies": {
+    "momentum": {
+      "strategy": "momentum",
+      "n_picks": 584,
+      "slippage_pct_per_trade": 0.1,
+      "total_return_pct": -87.859,
+      "annualized_return_pct": -59.743,
+      "win_rate": 0.471,
+      "avg_daily_return_pct": 0.1332,
+      "daily_std_pct": 10.0705,
+      "sharpe_annualized": 0.21,
+      "max_drawdown_pct": -95.86,
+      "monkey_percentile": 1.2
+    },
+    "volume_spike": {
+      "strategy": "volume_spike",
+      "n_picks": 571,
+      "slippage_pct_per_trade": 0.1,
+      "total_return_pct": -82.642,
+      "annualized_return_pct": -53.829,
+      "win_rate": 0.466,
+      "avg_daily_return_pct": 0.0303,
+      "daily_std_pct": 8.2296,
+      "sharpe_annualized": 0.059,
+      "max_drawdown_pct": -88.538,
+      "monkey_percentile": 3.2
+    },
+    "composite": {
+      "strategy": "composite",
+      "n_picks": 584,
+      "slippage_pct_per_trade": 0.1,
+      "total_return_pct": -31.284,
+      "annualized_return_pct": -14.947,
+      "win_rate": 0.493,
+      "avg_daily_return_pct": 0.376,
+      "daily_std_pct": 9.4414,
+      "sharpe_annualized": 0.632,
+      "max_drawdown_pct": -84.539,
+      "monkey_percentile": 41.6
+    },
+    "random": {
+      "strategy": "random",
+      "n_picks": 584,
+      "slippage_pct_per_trade": 0.1,
+      "total_return_pct": -52.502,
+      "annualized_return_pct": -27.476,
+      "win_rate": 0.481,
+      "avg_daily_return_pct": -0.0617,
+      "daily_std_pct": 3.6208,
+      "sharpe_annualized": -0.271,
+      "max_drawdown_pct": -79.939,
+      "monkey_percentile": 25.6
+    }
+  }
+}

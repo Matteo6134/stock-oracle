@@ -22,7 +22,7 @@ const DEFAULT_AGENTS = [
     emoji: '🚀',
     enabled: true,
     description: 'Rides breakouts and momentum acceleration. Buys when price is moving UP with volume confirmation.',
-    targetSignals: ['early_momentum', 'momentum_acceleration', 'near_52w_high', 'bull_flag', 'golden_cross'],
+    targetSignals: ['early_momentum', 'momentum_acceleration', 'near_52w_high', 'bull_flag', 'golden_cross', 'volume_acceleration'],
     targetGainRange: [15, 30],
     timeframeDays: [3, 5],
     stopPct: 7,
@@ -44,7 +44,7 @@ const DEFAULT_AGENTS = [
     emoji: '📊',
     enabled: true,
     description: 'Follows smart money. Buys when institutions are quietly loading shares before a big push.',
-    targetSignals: ['unusual_volume', 'multi_day_accumulation', 'smart_money'],
+    targetSignals: ['unusual_volume', 'multi_day_accumulation', 'smart_money', 'volume_acceleration', 'institutions_accumulating'],
     targetGainRange: [10, 20],
     timeframeDays: [3, 7],
     stopPct: 8,
@@ -122,8 +122,9 @@ function momentumMike(gem) {
   // Conviction: 1 signal = WATCH(2), 2+ signals = BUY(3-5)
   const volConfirm = gem.volumeRatio >= 1.5;
   const strongMomentum = gem.details?.momentumAccel > 3;
+  const hasOptionsFlow = (gem.signals || []).some(s => ['bullish_options', 'unusual_options_volume'].includes(s));
 
-  if (matches.length === 1 && !volConfirm) {
+  if (matches.length === 1 && !volConfirm && !hasOptionsFlow) {
     const reasons = [`${matches[0].replace(/_/g, ' ')} detected`];
     if (!volConfirm) reasons.push('but volume not yet confirming');
     return { ...base, action: 'WATCH', conviction: 2, targetGain: `${profile.targetGainRange[0]}%`, timeframe: `${profile.timeframeDays[1]} days`, reasoning: reasons.join(' — ') + '.', stopLoss: round(gem.price * (1 - profile.stopPct / 100)), targetPrice: round(gem.price * (1 + profile.targetGainRange[0] / 100)) };
@@ -132,6 +133,7 @@ function momentumMike(gem) {
   let conviction = Math.min(5, 2 + matches.length);
   if (volConfirm) conviction = Math.min(5, conviction + 1);
   if (strongMomentum) conviction = Math.min(5, conviction + 1);
+  if (hasOptionsFlow) conviction = Math.min(5, conviction + 1);
 
   const targetPct = conviction >= 4 ? profile.targetGainRange[1] : profile.targetGainRange[0];
   const days = conviction >= 4 ? profile.timeframeDays[0] : profile.timeframeDays[1];
@@ -206,11 +208,13 @@ function volumeVictor(gem) {
   const smartMoney = gem.signals.includes('smart_money');
   const streakDays = gem.details?.volumeStreakDays || 0;
   const closingStrength = gem.details?.closingStrength || 0;
+  const hasOptionsFlow = (gem.signals || []).some(s => ['bullish_options', 'unusual_options_volume'].includes(s));
 
   let conviction = Math.min(5, 1 + matches.length);
   if (multiDay && streakDays >= 4) conviction = Math.min(5, conviction + 1);
   if (smartMoney && closingStrength > 75) conviction = Math.min(5, conviction + 1);
   if (gem.volumeRatio >= 3) conviction = Math.min(5, conviction + 1);
+  if (hasOptionsFlow) conviction = Math.min(5, conviction + 1);
 
   const action = conviction >= 3 ? 'BUY' : 'WATCH';
   const targetPct = conviction >= 4 ? profile.targetGainRange[1] : profile.targetGainRange[0];
@@ -282,11 +286,13 @@ function contrarianCarlos(gem) {
   const isSectorLag = gem.signals.includes('sector_lag');
   const bigDrop = gem.changePct < -3;
   const lowFloat = gem.floatShares && gem.floatShares < 50e6;
+  const hasOptionsFlow = (gem.signals || []).some(s => ['bullish_options', 'unusual_options_volume'].includes(s));
 
   let conviction = Math.min(5, 1 + matches.length);
   if (isOversold && bigDrop) conviction = Math.min(5, conviction + 1);
   if (isSectorLag && gem.details?.sectorChange > 2) conviction = Math.min(5, conviction + 1);
   if (lowFloat) conviction = Math.min(5, conviction + 1);
+  if (hasOptionsFlow) conviction = Math.min(5, conviction + 1);
 
   const action = conviction >= 3 ? 'BUY' : 'WATCH';
   const targetPct = conviction >= 4 ? profile.targetGainRange[1] : profile.targetGainRange[0];

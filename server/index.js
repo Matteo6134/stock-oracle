@@ -4,6 +4,7 @@ import cors from 'cors';
 import cron from 'node-cron';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { spawn } from 'child_process';
 import apiRoutes from './routes/api.js';
 import { scanPremarketMovers } from './services/premarketScanner.js';
 import { findTomorrowMovers } from './services/tomorrowMovers.js';
@@ -12,18 +13,19 @@ import { saveGemSnapshot } from './services/gemHistory.js';
 import * as yahooFinance from './services/yahooFinance.js';
 import { scanPennyStocks } from './services/pennyScanner.js';
 import { processSignals, checkExitSignals } from './services/autoTrader.js';
-import { initTelegramBot, setScanCache, notifyBuyAlerts, notifyNewTrade } from './services/telegram.js';
+import { initTelegramBot, setScanCache, setOnDemandScan, notifyBuyAlerts, notifyNewTrade, notifyEarlyWarnings, notifyTradeRejected, notifyMoverAlerts, sendMessage } from './services/telegram.js';
+import { getShortSqueezeSetups, getBreakoutSetups } from './services/premarketScanner.js';
+import { updateSignalTracker } from './services/signalTracker.js';
+import { filterRevolutStocks } from './services/revolut.js';
 import { setShared } from './services/sharedCache.js';
 import { runCalibration, getCalibration } from './services/strategyCalibrator.js';
 import { analyzeStock, getMarketBriefing, isClaudeConfigured, getMarketContext } from './services/claudeBrain.js';
 import { logPrediction } from './services/claudeTracker.js';
-import { saveExplosionPrediction, resolveExplosionPredictions } from './services/db.js';
-import { getTopMarkets } from './services/polymarket.js';
-import { findBestBets } from './services/polyBrain.js';
-import { getPortfolio, placeBet, calculateKellyBet, shouldBet, getCategoryMultiplier } from './services/polySimulator.js';
+import { saveExplosionPrediction, resolveExplosionPredictions, resolveDailyPickFills } from './services/db.js';
+import * as alpacaService from './services/alpaca.js';
 import { getAllIntelligence, getMarketRegime, getSectorRotation } from './services/stockIntel.js';
-import { startNewsMonitor, matchNewsToMarkets } from './services/newsEdge.js';
 import { getRedditTrending, getSurgingStocks } from './services/socialSentiment.js';
+import { runDailyPicker } from './services/dailyPicker.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -36,9 +38,61 @@ process.on('unhandledRejection', (err) => {
   console.error('[FATAL] Unhandled rejection:', err?.message || err);
 });
 
+// Extend the OHLCV price archive FORWARD so backtests always reach "today".
+// Policy: backtests run the full 2016->present window, so the archive must stay current.
+function refreshPriceArchive() {
+  const pyBin = process.env.PYTHON_BIN || 'C:\\Python312\\python.exe';
+  const cwd = path.join(__dirname, '..', 'python', 'backtest');
+  const since = new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10); // ~12d overlap
+  console.log(`[Archive] Extending price archive forward since ${since}...`);
+  let stderr = '';
+  let proc;
+  try {
+    proc = spawn(pyBin, ['build_price_archive.py', '--refresh-since', since], { cwd });
+  } catch (err) {
+    console.error('[Archive] Could not spawn python:', err.message);
+    return;
+  }
+  proc.stderr.on('data', (d) => { stderr += d.toString(); });
+  proc.on('error', (err) => console.error('[Archive] python error:', err.message));
+  proc.on('close', (code) => {
+    if (code === 0) console.log('[Archive] Price archive extended forward to today.');
+    else console.error(`[Archive] build_price_archive exited ${code}: ${stderr.slice(-300)}`);
+  });
+}
+
+// Run the Supabase signal-attribution backtest (python), then blend the
+// larger-sample fitted weights into the live signalWeights.json.
+function runBacktestRefresh() {
+  const pyBin = process.env.PYTHON_BIN || 'C:\\Python312\\python.exe';
+  const cwd = path.join(__dirname, '..', 'python', 'backtest');
+  console.log('[Backtest] Running Supabase signal-attribution refresh...');
+  let stderr = '';
+  let proc;
+  try {
+    proc = spawn(pyBin, ['backtest_predictions.py'], { cwd });
+  } catch (err) {
+    console.error('[Backtest] Could not spawn python:', err.message);
+    return;
+  }
+  proc.stderr.on('data', (d) => { stderr += d.toString(); });
+  proc.on('error', (err) => console.error('[Backtest] python error:', err.message));
+  proc.on('close', async (code) => {
+    if (code !== 0) {
+      console.error(`[Backtest] python exited ${code}: ${stderr.slice(-300)}`);
+      return;
+    }
+    try {
+      const { mergeAttributionWeights } = await import('./services/attributionWeights.js');
+      console.log('[Backtest] Attribution refreshed →', JSON.stringify(mergeAttributionWeights()));
+    } catch (err) {
+      console.error('[Backtest] Merge error:', err.message);
+    }
+  });
+}
+
 // ── Scan mutex: prevent overlapping cron jobs from piling up ──
 let gemScanRunning = false;
-let polyScanRunning = false;
 
 // ── Memory monitor: log usage every 5 min, GC hint if high ──
 setInterval(() => {
@@ -56,53 +110,31 @@ setInterval(() => {
 const app = express();
 const PORT = process.env.PORT || 4000;
 
+// CORS whitelist — trading endpoints must not accept arbitrary origins
+const CORS_ALLOWLIST = (process.env.CORS_ORIGINS || '')
+  .split(',')
+  .map(s => s.trim())
+  .filter(Boolean);
+const DEFAULT_ALLOWED = [
+  /^http:\/\/localhost(:\d+)?$/,
+  /^http:\/\/127\.0\.0\.1(:\d+)?$/,
+  /\.vercel\.app$/,
+  /\.railway\.app$/,
+];
 app.use(cors({
-  origin: true, // Allow all origins — Vercel + Railway + localhost
+  origin: (origin, cb) => {
+    if (!origin) return cb(null, true); // same-origin / curl / server-to-server
+    if (CORS_ALLOWLIST.includes(origin)) return cb(null, true);
+    if (DEFAULT_ALLOWED.some(re => re.test(origin))) return cb(null, true);
+    console.warn(`[CORS] Blocked origin: ${origin}`);
+    return cb(new Error('Origin not allowed'));
+  },
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true
 }));
 
 app.use(express.json());
 app.use('/api', apiRoutes);
-
-// ══════════════════════════════════════════
-// SSE — Server-Sent Events for real-time data
-// ══════════════════════════════════════════
-const sseClients = new Set();
-
-app.get('/api/stream', (req, res) => {
-  res.writeHead(200, {
-    'Content-Type': 'text/event-stream',
-    'Cache-Control': 'no-cache',
-    Connection: 'keep-alive',
-    'Access-Control-Allow-Origin': '*',
-  });
-
-  // Send initial heartbeat
-  res.write(`data: ${JSON.stringify({ type: 'connected', timestamp: new Date().toISOString() })}\n\n`);
-
-  sseClients.add(res);
-  console.log(`[SSE] Client connected (${sseClients.size} total)`);
-
-  req.on('close', () => {
-    sseClients.delete(res);
-    console.log(`[SSE] Client disconnected (${sseClients.size} total)`);
-  });
-
-  // Keep alive every 30s
-  const keepAlive = setInterval(() => {
-    res.write(': keepalive\n\n');
-  }, 30000);
-
-  req.on('close', () => clearInterval(keepAlive));
-});
-
-function broadcastSSE(event) {
-  const data = `data: ${JSON.stringify(event)}\n\n`;
-  for (const client of sseClients) {
-    try { client.write(data); } catch { sseClients.delete(client); }
-  }
-}
 
 // ══════════════════════════════════════════
 // Background jobs (only on Railway/local, not Vercel)
@@ -115,50 +147,69 @@ const scanCache = {
   movers: [],
   lastScanTime: null,
   lastMoversTime: null,
+  scanStats: null,  // { totalScanned, setupsFound, gemsFound, highConviction }
 };
 
-if (!process.env.VERCEL) {
-  // Track symbols users are watching (populated by SSE connections + API calls)
-  const watchedSymbols = new Set([
-    'AAPL', 'MSFT', 'NVDA', 'GOOGL', 'AMZN', 'META', 'TSLA', 'AMD', 'PLTR', 'ARM',
-  ]);
-
-  // ── Price refresh every 15 seconds during market hours ──
-  cron.schedule('*/15 * * * * *', async () => {
-    if (sseClients.size === 0) return; // No listeners, skip
-
-    // Check if US market is open (9:30-16:00 ET, weekdays)
-    const now = new Date();
-    const et = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
-    const hour = et.getHours();
-    const min = et.getMinutes();
-    const day = et.getDay();
-    const marketOpen = day >= 1 && day <= 5 && (hour > 9 || (hour === 9 && min >= 30)) && hour < 16;
-    // Also run in pre-market (4-9:30 AM) and after-hours (16-20)
-    const extendedHours = day >= 1 && day <= 5 && ((hour >= 4 && hour < 9) || (hour === 9 && min < 30) || (hour >= 16 && hour < 20));
-
-    if (!marketOpen && !extendedHours) return;
-
-    try {
-      const symbols = [...watchedSymbols];
-      const quotes = await yahooFinance.getQuoteBatch(symbols.slice(0, 30));
-      const prices = {};
-      for (const q of quotes) {
-        if (!q?.symbol) continue;
-        prices[q.symbol] = {
-          price: q.regularMarketPrice,
-          change: q.regularMarketChangePercent,
-          volume: q.regularMarketVolume,
-          preMarketPrice: q.preMarketPrice,
-          preMarketChange: q.preMarketChangePercent,
-        };
-      }
-      broadcastSSE({ type: 'prices', prices, timestamp: new Date().toISOString() });
-    } catch (err) {
-      console.error('[Cron] Price refresh error:', err.message);
+// ── Quick scan function for on-demand /scan from Telegram ──
+// Runs only the core gem + penny analysis (fast ~15-30s)
+// Skips slow enrichment layers (options, congress, dark pool, etc.)
+async function runQuickScan({ force = false } = {}) {
+  if (gemScanRunning && !force) {
+    console.log('[QuickScan] Full scan already running, waiting...');
+    for (let i = 0; i < 60 && gemScanRunning; i++) {
+      await new Promise(r => setTimeout(r, 1000));
     }
-  });
+    return;
+  }
+  gemScanRunning = true;
+  try {
+    console.log('[QuickScan] On-demand scan triggered via Telegram...');
+    const allAnalyzed = [];
 
+    const result = await findTomorrowMovers();
+    if (result.stats) scanCache.scanStats = result.stats;
+    if (result.gems?.length > 0) {
+      const gemsWithVerdicts = result.gems.map(gem => {
+        const { verdicts, consensus, buyCount, avgConviction } = analyzeGem(gem);
+        return { ...gem, verdicts, consensus, buyCount, avgConviction, source: 'gem' };
+      });
+      saveGemSnapshot(gemsWithVerdicts).catch(() => {});
+      scanCache.gems = gemsWithVerdicts;
+      setShared('gems', gemsWithVerdicts);
+      allAnalyzed.push(...gemsWithVerdicts);
+      console.log(`[QuickScan] ${gemsWithVerdicts.length} gems found`);
+    }
+
+    // Penny stocks
+    try {
+      const pennyResult = await scanPennyStocks(5);
+      if (pennyResult.stocks?.length > 0) {
+        const penniesWithVerdicts = pennyResult.stocks.map(stock => {
+          const { verdicts, consensus, buyCount, avgConviction } = analyzeGem(stock);
+          return { ...stock, verdicts, consensus, buyCount, avgConviction, source: 'penny' };
+        });
+        const gemSymbols = new Set(allAnalyzed.map(g => g.symbol));
+        const uniquePennies = penniesWithVerdicts.filter(p => !gemSymbols.has(p.symbol));
+        scanCache.pennies = uniquePennies;
+        allAnalyzed.push(...uniquePennies);
+        console.log(`[QuickScan] ${uniquePennies.length} penny setups`);
+      }
+    } catch (err) {
+      console.error('[QuickScan] Penny scan error:', err.message);
+    }
+
+    scanCache.allAnalyzed = allAnalyzed;
+    scanCache.lastScanTime = new Date().toISOString();
+    setShared('allAnalyzed', allAnalyzed);
+    console.log(`[QuickScan] Complete: ${allAnalyzed.length} stocks analyzed`);
+  } catch (err) {
+    console.error('[QuickScan] Error:', err.message);
+  } finally {
+    gemScanRunning = false;
+  }
+}
+
+if (!process.env.VERCEL) {
   // ── Gem scan every 5 minutes during market hours ──
   cron.schedule('*/5 * * * *', async () => {
     const now = new Date();
@@ -179,6 +230,7 @@ if (!process.env.VERCEL) {
 
       // Scan gems
       const result = await findTomorrowMovers();
+      if (result.stats) scanCache.scanStats = result.stats;
       if (result.gems?.length > 0) {
         const gemsWithVerdicts = result.gems.map(gem => {
           const { verdicts, consensus, buyCount, avgConviction } = analyzeGem(gem);
@@ -186,18 +238,14 @@ if (!process.env.VERCEL) {
         });
         saveGemSnapshot(gemsWithVerdicts).catch(() => {});
         scanCache.gems = gemsWithVerdicts;
-        // Save to shared cache so /api/tomorrow can use it as fallback
         setShared('gems', gemsWithVerdicts);
         allAnalyzed.push(...gemsWithVerdicts);
-        broadcastSSE({
-          type: 'gems_update',
-          gemsCount: gemsWithVerdicts.length,
-          topGems: gemsWithVerdicts.slice(0, 3).map(g => ({
-            symbol: g.symbol, gemScore: g.gemScore, consensus: g.consensus,
-          })),
-          timestamp: new Date().toISOString(),
-        });
         console.log(`[Cron] Gem scan: ${gemsWithVerdicts.length} gems found`);
+      } else {
+        // Clear gems from shared cache if none found today (ensures freshness)
+        scanCache.gems = [];
+        setShared('gems', []);
+        console.log('[Cron] Gem scan: No gems found (score >= 60)');
       }
 
       // Scan penny stocks and run agents on them too
@@ -276,6 +324,146 @@ if (!process.env.VERCEL) {
         console.error('[StockIntel] Error:', err.message);
       }
 
+      // ── Options Flow: unusual call sweeps, high-volume calls ──
+      // The #1 predictor of big moves — institutions show up in options first
+      try {
+        const { batchScanOptions } = await import('./services/optionsScanner.js');
+        const topSymbols = allAnalyzed.slice(0, 40).map(s => s.symbol);
+        const quoteMap = {};
+        for (const stock of allAnalyzed) {
+          if (stock.symbol) {
+            quoteMap[stock.symbol] = {
+              regularMarketPrice: stock.price,
+              regularMarketVolume: stock.volume,
+              averageDailyVolume10Day: stock.avgVolume,
+            };
+          }
+        }
+        const optionsMap = await batchScanOptions(topSymbols, quoteMap);
+        let optionsHits = 0;
+        for (const stock of allAnalyzed) {
+          const opt = optionsMap.get(stock.symbol);
+          if (!opt || !opt.signals?.length) continue;
+          stock.optionsFlow = {
+            signals: opt.signals,
+            score: opt.score,
+            putCallRatio: opt.putCallRatio,
+            maxCallSweep: opt.maxCallSweep,
+          };
+          // Merge options signals into main signals array
+          stock.signals = [...(stock.signals || []), ...opt.signals];
+          optionsHits++;
+        }
+        if (optionsHits > 0) {
+          console.log(`[OptionsFlow] ${optionsHits} stocks with unusual options activity`);
+        }
+      } catch (err) {
+        console.error('[OptionsFlow] Error:', err.message);
+      }
+
+      // ── Congress Trading: political insider buys (Quiver Quant) ──
+      // Senators/Reps often trade on privileged info — historically beats market
+      try {
+        const { getCongressSignals } = await import('./services/congressTracker.js');
+        const symbols = allAnalyzed.map(s => s.symbol).filter(Boolean);
+        const congressMap = await getCongressSignals(symbols);
+        let congressHits = 0;
+        for (const stock of allAnalyzed) {
+          const cg = congressMap.get(stock.symbol);
+          if (!cg) continue;
+          stock.congress = {
+            buyCount: cg.buyCount,
+            senators: cg.senators,
+            politicians: cg.politicians,
+            signal: cg.signal,
+          };
+          stock.signals = [...(stock.signals || []), cg.signal];
+          congressHits++;
+        }
+        if (congressHits > 0) {
+          console.log(`[Congress] ${congressHits} stocks match recent congressional buys`);
+        }
+      } catch (err) {
+        console.error('[Congress] Error:', err.message);
+      }
+
+      // ── Dark Pool / FINRA Short Volume ──
+      // High short volume + price holding = shorts trapped = squeeze setup
+      try {
+        const { batchScanDarkPool, getDarkPoolSignals } = await import('./services/darkPool.js');
+        // Only scan top candidates to conserve rate limits
+        const topSymbols = allAnalyzed
+          .filter(s => (s.gemScore || 0) >= 40)
+          .slice(0, 25)
+          .map(s => s.symbol);
+        const dpMap = await batchScanDarkPool(topSymbols);
+        const dpQuoteMap = {};
+        for (const stock of allAnalyzed) {
+          if (stock.symbol) {
+            dpQuoteMap[stock.symbol] = {
+              regularMarketChangePercent: stock.changePct,
+              changePct: stock.changePct,
+            };
+          }
+        }
+        const dpSignals = getDarkPoolSignals(dpMap, dpQuoteMap);
+        for (const sig of dpSignals) {
+          const stock = allAnalyzed.find(s => s.symbol === sig.symbol);
+          if (!stock) continue;
+          stock.darkPool = {
+            shortRatio: sig.shortRatio,
+            shortTrend: sig.shortTrend,
+            reason: sig.reason,
+          };
+          stock.signals = [...(stock.signals || []), sig.signal];
+        }
+        if (dpSignals.length > 0) {
+          console.log(`[DarkPool] ${dpSignals.length} squeeze/pressure signals detected`);
+        }
+      } catch (err) {
+        console.error('[DarkPool] Error:', err.message);
+      }
+
+      // ── Insider Intel: Finnhub executive buy clusters (SEC Form 4) ──
+      // When multiple executives buy their own company's stock = strongest signal
+      try {
+        const { getInsiderSignals } = await import('./services/insiderIntel.js');
+        const topSymbols = allAnalyzed.slice(0, 25).map(s => s.symbol);
+        const insiderMap = await getInsiderSignals(topSymbols);
+        for (const stock of allAnalyzed) {
+          const ins = insiderMap.get(stock.symbol);
+          if (!ins) continue;
+          stock.insiderIntel = {
+            uniqueInsiders: ins.uniqueInsiders,
+            totalValue: ins.totalValue,
+            insiderNames: ins.insiderNames,
+          };
+          stock.signals = [...(stock.signals || []), ...ins.signals];
+        }
+      } catch (err) {
+        console.error('[InsiderIntel] Error:', err.message);
+      }
+
+      // ── Analyst Recommendations: Finnhub upgrade/momentum detection ──
+      // When analysts shift from Hold → Buy, stocks move 5-10%
+      try {
+        const { getAnalystSignals } = await import('./services/analystTracker.js');
+        const topSymbols = allAnalyzed.slice(0, 25).map(s => s.symbol);
+        const analystMap = await getAnalystSignals(topSymbols);
+        for (const stock of allAnalyzed) {
+          const a = analystMap.get(stock.symbol);
+          if (!a) continue;
+          stock.analyst = {
+            bullPct: a.bullPct,
+            totalAnalysts: a.totalAnalysts,
+            signals: a.signals,
+          };
+          stock.signals = [...(stock.signals || []), ...a.signals];
+        }
+      } catch (err) {
+        console.error('[AnalystTracker] Error:', err.message);
+      }
+
       // ── Social Sentiment: ApeWisdom Reddit mentions ──
       try {
         const trending = await getRedditTrending();
@@ -307,6 +495,15 @@ if (!process.env.VERCEL) {
         }
       } catch (err) {
         // Silent — social is bonus data, not critical
+      }
+
+      // ── Deduplicate signals: same signal can be emitted by multiple enrichers
+      // (e.g. `insider_buying` from both stockIntel and insiderIntel). Duplicates
+      // inflate gem score and agent conviction artificially.
+      for (const stock of allAnalyzed) {
+        if (Array.isArray(stock.signals) && stock.signals.length > 0) {
+          stock.signals = [...new Set(stock.signals)];
+        }
       }
 
       // Update scan cache
@@ -344,6 +541,25 @@ if (!process.env.VERCEL) {
         }
       }
 
+      // ── Signal Tracker: track multi-day signal evolution ──
+      // This is the key to early detection — stocks that appear for 2-5 consecutive
+      // days with rising scores are exponentially more likely to explode
+      if (allAnalyzed.length > 0) {
+        try {
+          const revolutFiltered = filterRevolutStocks(allAnalyzed);
+          updateSignalTracker(revolutFiltered);
+          console.log(`[SignalTracker] Updated ${revolutFiltered.length} Revolut stocks`);
+        } catch (err) {
+          console.error('[SignalTracker] Error:', err.message);
+        }
+      }
+
+      // ── Early Warning Alerts: progressive Telegram notifications ──
+      // Sends BUILDING → LOADING → IMMINENT alerts for Revolut stocks
+      notifyEarlyWarnings().catch(err =>
+        console.error('[Cron] Early warning alert error:', err.message)
+      );
+
       // ── Proactive Telegram buy alerts (independent of auto-trading) ──
       // Fires for every new strong setup so user can buy manually before it moves
       if (allAnalyzed.length > 0) {
@@ -372,14 +588,16 @@ if (!process.env.VERCEL) {
           console.log(`[AutoTrader] Results: ${tradeResult.bought?.length || 0} bought, ${tradeResult.skipped?.length || 0} filtered, ${tradeResult.errors?.length || 0} errors`);
           if (Array.isArray(tradeResult.skipped) && tradeResult.skipped.length > 0) {
             console.log(`[AutoTrader] Skip reasons:`, tradeResult.skipped.slice(0, 5).map(s => `${s.symbol}: ${s.reason}`).join(' | '));
+            
+            // Notify user of highly-scored gems that failed safety checks
+            const highConvictionSkips = tradeResult.skipped.filter(s => s.gemScore >= 60 && !s.reason.includes('Already holding') && !s.reason.includes('Insufficient'));
+            for (const skip of highConvictionSkips) {
+              notifyTradeRejected(skip).catch(() => {});
+            }
           }
         }
         if (tradeResult.bought?.length > 0) {
-          broadcastSSE({
-            type: 'auto_trade',
-            trades: tradeResult.bought,
-            timestamp: new Date().toISOString(),
-          });
+          console.log(`[AutoTrader] Bought: ${tradeResult.bought.map(t => t.symbol).join(', ')}`);
         }
       }
     } catch (err) {
@@ -394,9 +612,10 @@ if (!process.env.VERCEL) {
     try {
       console.log('[PredictionResolver] Checking old predictions against actual prices...');
       const result = await resolveExplosionPredictions(yahooFinance.getQuote);
+      // NOTE: pinned to America/New_York — was firing at 17:00 local time previously
+      // which is mid-trading day in ET. Other crons in this file have the same bug.
       if (result.resolved > 0) {
         console.log(`[PredictionResolver] Resolved ${result.resolved} predictions`);
-        // Log results for learning
         for (const r of (result.results || [])) {
           console.log(`  ${r.symbol}: predicted ${r.predicted}, actual ${r.actual} → ${r.hit ? 'HIT' : 'MISS'}`);
         }
@@ -404,7 +623,100 @@ if (!process.env.VERCEL) {
     } catch (err) {
       console.error('[PredictionResolver] Error:', err.message);
     }
-  });
+
+    // Also resolve gem history outcomes (3d, 5d, 7d returns)
+    try {
+      const { getGemBacktestData } = await import('./services/gemHistory.js');
+      const bt = await getGemBacktestData();
+      console.log(`[GemOutcomes] Resolved outcomes for ${bt.totalGems} gems across ${bt.totalDays} days`);
+    } catch (err) {
+      console.error('[GemOutcomes] Error:', err.message);
+    }
+
+    // Run signal learning after outcomes are resolved
+    try {
+      const { learnFromOutcomes } = await import('./services/signalLearner.js');
+      const result = learnFromOutcomes();
+      console.log(`[SignalLearner] Updated weights from ${result.totalSamples} samples`);
+    } catch (err) {
+      console.error('[SignalLearner] Error:', err.message);
+    }
+    // Blend in the larger Supabase-derived sample — independent of learner success
+    try {
+      const { mergeAttributionWeights } = await import('./services/attributionWeights.js');
+      const m = mergeAttributionWeights();
+      if (m.merged) console.log(`[Attribution] Blended ${m.signals} signals (n=${m.samples}); ${m.changes} changed, ${m.suppressed} losers suppressed`);
+    } catch (err) {
+      console.error('[Attribution] Merge error:', err.message);
+    }
+  }, { timezone: 'America/New_York' });
+
+  // ── Also resolve gem outcomes at 10 AM ET (catch yesterday's 1d outcomes) ──
+  cron.schedule('0 10 * * 1-5', async () => {
+    try {
+      const { getGemBacktestData } = await import('./services/gemHistory.js');
+      await getGemBacktestData();
+      console.log('[GemOutcomes] Morning outcome resolution complete');
+    } catch (err) {
+      console.error('[GemOutcomes] Morning resolution error:', err.message);
+    }
+  }, { timezone: 'America/New_York' });
+
+  // ── Resolve daily pick fills from Alpaca → Supabase ──
+  // Runs at 16:30 ET (after MOC settles) on weekdays. Pulls each pending pick's
+  // buy/sell order ids from Supabase, fetches actual fill prices from Alpaca,
+  // computes realized P&L, writes to daily_picks + mirrors to stock_trade.
+  cron.schedule('30 16 * * 1-5', async () => {
+    try {
+      console.log('[DailyPickResolver] checking pending fills...');
+      const result = await resolveDailyPickFills(alpacaService);
+      if (result.resolved > 0) {
+        console.log(`[DailyPickResolver] settled ${result.resolved} picks`);
+        for (const r of result.results) {
+          console.log(`  ${r.symbol} ${r.pickDate}: ${r.fillOpen} -> ${r.fillClose} (${r.pnlPct}%)`);
+        }
+      }
+    } catch (err) {
+      console.error('[DailyPickResolver] error:', err.message);
+    }
+  }, { timezone: 'America/New_York' });
+
+  // ── DAILY PICKER — one stock per day, MOO/MOC via Alpaca ──
+  // ── Evening PREVIEW at 16:05 ET (22:05 Italy) — tentative plan, NO orders ──
+  // The authoritative buy decision moved to the fresh 07:50 ET morning run (which uses the
+  // overnight-refreshed archive + pre-market data). This evening run only sends a heads-up
+  // preview so you can eyeball the tentative shortlist the night before.
+  cron.schedule('5 16 * * 1-5', async () => {
+    try {
+      console.log('[DailyPicker] evening preview (no orders)...');
+      const result = await runDailyPicker({
+        autoTrade: false,
+        telegramNotifier: sendMessage,
+      });
+      console.log(`[DailyPicker] evening preview: ${result.picks.length} tentative picks`);
+    } catch (err) {
+      console.error('[DailyPicker] evening preview error:', err.message);
+    }
+  }, { timezone: 'America/New_York' });
+
+  // ── MORNING fresh pick + brief at 07:50 ET (13:50 Italy) — the AUTHORITATIVE buy run ──
+  // ~100 min before the 09:30 open and AFTER the 04:00 ET archive refresh: force a fresh gem
+  // scan on overnight + pre-market data, then run the picker with autoTrade ON so MOO orders
+  // queue for TODAY's open and the buy list reaches Telegram before your ~14:00 Italy window.
+  cron.schedule('50 7 * * 1-5', async () => {
+    try {
+      console.log('[MorningBrief] fresh pre-open scan + pick selection...');
+      await runQuickScan({ force: true });   // fresh gems on overnight/pre-market data → shared cache
+      const result = await runDailyPicker({
+        autoTrade: true,
+        telegramNotifier: sendMessage,
+      });
+      const ok = (result.orderResults || []).filter(r => r.ok).length;
+      console.log(`[MorningBrief] ${result.picks.length} picks, ${ok} MOO orders queued for today's open`);
+    } catch (err) {
+      console.error('[MorningBrief] error:', err.message);
+    }
+  }, { timezone: 'America/New_York' });
 
   // ── Auto-trader exit check every 2 minutes during market hours ──
   cron.schedule('*/2 * * * *', async () => {
@@ -439,17 +751,40 @@ if (!process.env.VERCEL) {
       if (result.length > 0) {
         scanCache.movers = result;
         scanCache.lastMoversTime = new Date().toISOString();
-        broadcastSSE({
-          type: 'movers_update',
-          count: result.length,
-          topMovers: result.slice(0, 5).map(m => ({
-            symbol: m.symbol, gapPct: m.gapPct, volumeRatio: m.volumeRatio,
-          })),
-          timestamp: new Date().toISOString(),
-        });
       }
+
+      // ── Proactive Telegram alerts on urgent setups (squeeze/gap/coil) ──
+      const [squeezes, breakouts] = await Promise.all([
+        getShortSqueezeSetups().catch(() => []),
+        getBreakoutSetups().catch(() => []),
+      ]);
+      notifyMoverAlerts({ movers: result || [], squeezes, breakouts }).catch(err =>
+        console.error('[Cron] Mover alert error:', err.message)
+      );
     } catch (err) {
       console.error('[Cron] Movers scan error:', err.message);
+    }
+  });
+
+  // ── Intraday squeeze/mover scan every 5 min during market hours ──
+  cron.schedule('*/5 * * * *', async () => {
+    const now = new Date();
+    const et = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+    const hour = et.getHours();
+    const min = et.getMinutes();
+    const day = et.getDay();
+    const marketOpen = day >= 1 && day <= 5 && ((hour === 9 && min >= 30) || (hour >= 10 && hour < 16));
+    if (!marketOpen) return;
+
+    try {
+      const [movers, squeezes, breakouts] = await Promise.all([
+        scanPremarketMovers().catch(() => []),
+        getShortSqueezeSetups().catch(() => []),
+        getBreakoutSetups().catch(() => []),
+      ]);
+      await notifyMoverAlerts({ movers, squeezes, breakouts });
+    } catch (err) {
+      console.error('[Cron] Intraday mover alert error:', err.message);
     }
   });
 
@@ -462,7 +797,6 @@ if (!process.env.VERCEL) {
 app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
-    sseClients: sseClients.size,
     timestamp: new Date().toISOString(),
     uptime: Math.round(process.uptime()),
   });
@@ -505,8 +839,9 @@ export default app;
 if (!process.env.VERCEL) {
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`[StockOracle] Server running on http://0.0.0.0:${PORT}`);
-    // Initialize Telegram bot + share scan cache
+    // Initialize Telegram bot + share scan cache + on-demand scan
     setScanCache(scanCache);
+    setOnDemandScan(runQuickScan);
     initTelegramBot();
 
     // Run strategy calibration 30s after startup (non-blocking background task)
@@ -523,6 +858,19 @@ if (!process.env.VERCEL) {
     // Re-calibrate every Sunday at 2 AM ET (fresh weekly data)
     cron.schedule('0 2 * * 0', () => {
       runCalibration().catch(err => console.error('[Calibrator] Weekly run failed:', err.message));
+    }, { timezone: 'America/New_York' });
+
+    // Refresh Supabase signal attribution + blend into live weights — Sunday 3 AM ET
+    cron.schedule('0 3 * * 0', () => {
+      try { runBacktestRefresh(); } catch (err) { console.error('[Backtest] Weekly refresh failed:', err.message); }
+    }, { timezone: 'America/New_York' });
+
+    // Keep the OHLCV archive CURRENT — extend it forward daily at 4 AM ET. Runs overnight
+    // when interactive apps are closed and RAM is free (the 1500-symbol x 10y archive is
+    // too large to process while the desktop is in active use). This is the "stay on the
+    // same level as the market as days pass" job: backtests always reach today.
+    cron.schedule('0 4 * * 1-6', () => {
+      try { refreshPriceArchive(); } catch (err) { console.error('[Archive] Daily refresh failed:', err.message); }
     }, { timezone: 'America/New_York' });
 
     // ── Claude hourly market briefing (weekdays, 8 AM - 4 PM ET) ──
@@ -545,256 +893,18 @@ if (!process.env.VERCEL) {
       }, { timezone: 'America/New_York' });
       console.log('[Claude] AI brain active — hourly briefings + per-stock analysis enabled');
 
-      // ── Polymarket Oracle: 13-strategy scan every 15 min, auto-bet ──
-      cron.schedule('*/15 * * * *', async () => {
-        if (polyScanRunning) {
-          console.log('[PolyCron] Already running, skipping');
-          return;
-        }
-        polyScanRunning = true;
-        try {
-          console.log('[PolyCron] Running 13-strategy scan...');
-          const markets = await getTopMarkets(30);
-          if (markets.length === 0) {
-            console.log('[PolyCron] No markets returned from Polymarket API');
-            return;
-          }
-          console.log(`[PolyCron] Fetched ${markets.length} markets`);
-
-          // Record prices for momentum tracking
-          try {
-            const { recordPrices } = await import('./services/polyMomentum.js');
-            recordPrices(markets);
-          } catch (err) {
-            console.error('[PolyCron] Momentum record error:', err.message);
-          }
-          const rawPicks = await findBestBets(markets);
-          // Filter out garbage: NaN prices, NaN edges, missing questions
-          const picks = rawPicks.filter(p => {
-            if (!p.question || p.question.startsWith('[ARB]') || p.question.startsWith('[WHALE]')) {
-              // Clean up question prefix
-              if (p.question) p.question = p.question.replace(/^\[(ARB|WHALE|CHAIN)\]\s*/, '');
-            }
-            if (isNaN(p.edge) || isNaN(p.confidence)) return false;
-            if (isNaN(p.marketYesPrice) && isNaN(p.marketNoPrice)) return false;
-            // Fix missing price fields
-            if (!p.marketYesPrice && p.marketNoPrice) p.marketYesPrice = 1 - p.marketNoPrice;
-            if (!p.marketNoPrice && p.marketYesPrice) p.marketNoPrice = 1 - p.marketYesPrice;
-            if (!p.realProbability) p.realProbability = p.action === 'BET_YES' ? 0.7 : 0.3;
-            return true;
-          });
-          if (picks.length === 0) { console.log('[PolyCron] No edge found'); return; }
-
-          console.log(`[PolyCron] ${picks.length} valid opportunities (${rawPicks.length} raw)`);
-          const portfolio = getPortfolio();
-
-          // Auto-bet rules — each strategy has its own quality gate
-          // Claude ONLY bets when the math is right. Not every scan = a bet.
-          let betsPlaced = 0;
-          for (const pick of picks.slice(0, 5)) {
-            let minConf, minEdge, maxSizePct;
-            switch (pick.strategy) {
-              case 'safe_bet':
-                minConf = 5; minEdge = 1; maxSizePct = 30; break;     // Safe: very low bar, near-certain
-              case 'arbitrage':
-              case 'cross_platform_arb':
-                minConf = 5; minEdge = 2; maxSizePct = 15; break;     // Arb: near risk-free
-              case 'cross_platform_edge':
-                minConf = 5; minEdge = 3; maxSizePct = 12; break;     // Cross-plat price gap
-              case 'conditional_chain':
-                minConf = 6; minEdge = 6; maxSizePct = 10; break;     // Chain: needs some confidence
-              case 'whale_follow':
-                minConf = 5; minEdge = 2; maxSizePct = 10; break;     // Whale: follow smart money
-              case 'longshot_sell':
-                minConf = 6; minEdge = 8; maxSizePct = 10; break;     // Longshot: still careful
-              case 'resolution_snipe':
-                minConf = 6; minEdge = 3; maxSizePct = 20; break;     // Snipe: near-certain, bigger bets
-              case 'momentum':
-                minConf = 6; minEdge = 6; maxSizePct = 10; break;     // Momentum: needs decent signal
-              default: // edge_detection
-                minConf = 6; minEdge = 6; maxSizePct = 20; break;     // Edge: decent edge is enough
-            }
-
-            if (pick.confidence < minConf || Math.abs(pick.edge) < minEdge) {
-              console.log(`[PolyCron] SKIP: ${pick.question?.slice(0, 50)} — conf:${pick.confidence}<${minConf} or edge:${Math.abs(pick.edge).toFixed(1)}<${minEdge}`);
-              continue;
-            }
-
-            // Growth phase gate — skip strategies not allowed in current phase
-            const phaseCheck = shouldBet(pick, portfolio.balance);
-            if (!phaseCheck.allowed) {
-              console.log(`[PolyCron] PHASE BLOCK: ${pick.question?.slice(0, 50)} — ${phaseCheck.reason}`);
-              continue;
-            }
-
-            // Category accuracy gate — reduce or block bets on bad categories
-            const catMult = getCategoryMultiplier(pick.category);
-            if (catMult === 0) continue;
-
-            const outcome = pick.action === 'BET_YES' ? 'Yes' : 'No';
-            const price = pick.action === 'BET_YES'
-              ? (pick.marketYesPrice || 0.5)
-              : (pick.marketNoPrice || 0.5);
-
-            if (price <= 0 || price >= 1) continue;
-
-            const amount = calculateKellyBet(
-              portfolio.balance, price,
-              pick.realProbability || (pick.action === 'BET_YES' ? 0.7 : 0.3),
-              maxSizePct
-            );
-            if (amount < 5 || amount > portfolio.balance) continue;
-
-            const betResult = placeBet({
-              marketId: pick.marketId,
-              question: pick.question || pick.thesis?.slice(0, 100),
-              outcome,
-              price,
-              amount,
-              claudeConfidence: pick.confidence,
-              claudeThesis: pick.thesis,
-              claudeProb: pick.realProbability || 0.5,
-              category: pick.category,
-              strategy: pick.strategy,
-              daysLeft: pick.daysLeft || pick._daysLeft || null,
-            });
-
-            // Send Telegram alert for each auto-bet
-            if (betResult.success) {
-              betsPlaced++;
-              const stratLabels = {
-                edge_detection: '\uD83D\uDD0D Edge',
-                arbitrage: '\uD83D\uDD04 Arb',
-                cross_platform_arb: '\uD83C\uDF10 Cross-Arb',
-                cross_platform_edge: '\uD83C\uDF10 Cross-Edge',
-                longshot_sell: '\uD83C\uDFB0 Longshot',
-                safe_bet: '\uD83D\uDEE1 Safe',
-                conditional_chain: '\uD83D\uDD17 Chain',
-                whale_follow: '\uD83D\uDC33 Whale',
-              };
-              const stratLabel = stratLabels[pick.strategy] || pick.strategy;
-              const dl = pick.daysLeft || pick._daysLeft;
-              const dlStr = dl != null ? `\u23F0 Resolves in ~${Math.round(dl)} days` : '';
-              const potentialWin = outcome === 'Yes'
-                ? Math.round((amount / price) - amount)
-                : Math.round((amount / (1 - price)) - amount);
-              const msg = [
-                `\uD83E\uDDE0 *AUTO-BET* [${stratLabel}]`,
-                '',
-                `${pick.action === 'BET_YES' ? '\uD83D\uDFE2' : '\uD83D\uDD34'} *${outcome}* \u2014 "${(pick.question || '').replace(/^\[(ARB|CHAIN|WHALE)\] /, '').slice(0, 60)}"`,
-                `\uD83D\uDCB5 *$${Math.round(amount)}* at ${Math.round(price * 100)}\u00A2 \u2192 Win: +$${potentialWin}`,
-                `\uD83D\uDCC8 Edge: ${pick.edge}% \u00B7 Conf: ${pick.confidence}/10`,
-                dlStr,
-                `\uD83D\uDCDD ${(pick.thesis || '').slice(0, 120)}`,
-              ].filter(Boolean).join('\n');
-              notifyNewTrade(msg).catch(() => {});
-            }
-          }
-
-          // Report scan result — even if no bets placed
-          if (betsPlaced === 0 && picks.length > 0) {
-            console.log(`[PolyCron] Found ${picks.length} opportunities but none passed quality gates`);
-          } else if (betsPlaced > 0) {
-            const p = getPortfolio();
-            console.log(`[PolyCron] Placed ${betsPlaced} bets. Balance: $${p.balance.toFixed(2)}, ${p.openPositions.length} positions`);
-          }
-        } catch (err) {
-          console.error('[PolyCron] Scan error:', err.message);
-        } finally {
-          polyScanRunning = false;
-        }
-      });
-      console.log('[PolyOracle] 11-strategy scanner active — every 15 min');
-
-      // ── News Speed Edge: breaking news triggers immediate poly scan ──
-      startNewsMonitor(async (newsItem) => {
-        try {
-          console.log(`[NewsEdge] BREAKING: ${newsItem.title} (${newsItem.source})`);
-          const markets = await getTopMarkets(30);
-          if (markets.length === 0) return;
-
-          const matches = matchNewsToMarkets(newsItem, markets);
-          if (matches.length === 0) {
-            console.log('[NewsEdge] No matching markets for this headline');
-            return;
-          }
-
-          console.log(`[NewsEdge] ${matches.length} markets affected — running Claude analysis...`);
-          const affectedMarkets = matches.map(m => m.market);
-          const picks = await findBestBets(affectedMarkets);
-          if (picks.length === 0) { console.log('[NewsEdge] No edge found on affected markets'); return; }
-
-          const portfolio = getPortfolio();
-          for (const pick of picks.slice(0, 3)) {
-            // Growth phase check
-            const phaseCheck = shouldBet(pick, portfolio.balance);
-            if (!phaseCheck.allowed) { console.log(`[NewsEdge] Skipped: ${phaseCheck.reason}`); continue; }
-
-            const outcome = pick.action === 'BET_YES' ? 'Yes' : 'No';
-            const price = pick.action === 'BET_YES'
-              ? (pick.marketYesPrice || 0.5)
-              : (pick.marketNoPrice || 0.5);
-            if (price <= 0 || price >= 1) continue;
-
-            const amount = calculateKellyBet(portfolio.balance, price, pick.realProbability || 0.5, 15);
-            if (amount < 5 || amount > portfolio.balance) continue;
-
-            const betResult = placeBet({
-              marketId: pick.marketId,
-              question: pick.question || pick.thesis?.slice(0, 100),
-              outcome, price, amount,
-              claudeConfidence: pick.confidence,
-              claudeThesis: `[NEWS] ${newsItem.title.slice(0, 80)} — ${(pick.thesis || '').slice(0, 200)}`,
-              claudeProb: pick.realProbability || 0.5,
-              category: pick.category,
-              strategy: pick.strategy,
-              daysLeft: pick.daysLeft || null,
-            });
-
-            if (betResult.success) {
-              const potentialWin = outcome === 'Yes'
-                ? Math.round((amount / price) - amount)
-                : Math.round((amount / (1 - price)) - amount);
-              const msg = [
-                `\u26A1 *BREAKING NEWS BET*`,
-                '',
-                `\uD83D\uDCF0 ${newsItem.title.slice(0, 80)}`,
-                `${pick.action === 'BET_YES' ? '\uD83D\uDFE2' : '\uD83D\uDD34'} *${outcome}* — "${(pick.question || '').slice(0, 60)}"`,
-                `\uD83D\uDCB5 *$${Math.round(amount)}* at ${Math.round(price * 100)}\u00A2 \u2192 Win: +$${potentialWin}`,
-                `\uD83D\uDCC8 Edge: ${pick.edge}% \u00B7 Conf: ${pick.confidence}/10`,
-                `\uD83D\uDCDD ${(pick.thesis || '').slice(0, 120)}`,
-              ].filter(Boolean).join('\n');
-              notifyNewTrade(msg).catch(() => {});
-            }
-          }
-        } catch (err) {
-          console.error('[NewsEdge] Callback error:', err.message);
-        }
-      });
-      console.log('[NewsEdge] Breaking news monitor active');
-
     } else {
       console.log('[Claude] No ANTHROPIC_API_KEY — running rule-based only');
     }
 
-    // Warm up gem + penny cache 15s after start so first page load is fast
+    // Run full gem + penny scan 5s after startup (force=true bypasses mutex)
     setTimeout(async () => {
-      console.log('[Startup] Pre-warming scan cache...');
+      console.log('[Startup] Running initial gem scan...');
       try {
-        const result = await findTomorrowMovers();
-        if (result.gems?.length > 0) {
-          const gemsWithVerdicts = result.gems.map(gem => {
-            const { verdicts, consensus, buyCount, avgConviction } = analyzeGem(gem);
-            return { ...gem, verdicts, consensus, buyCount, avgConviction, source: 'gem' };
-          });
-          scanCache.gems = gemsWithVerdicts;
-          scanCache.allAnalyzed = gemsWithVerdicts;
-          scanCache.lastScanTime = new Date().toISOString();
-          console.log(`[Startup] Cache warmed: ${gemsWithVerdicts.length} gems`);
-        }
+        await runQuickScan({ force: true });
       } catch (err) {
-        console.warn('[Startup] Warm-up failed (will retry on next cron tick):', err.message);
+        console.error('[Startup] Initial scan failed:', err.message);
       }
-    }, 15000);
+    }, 5000);
   });
 }

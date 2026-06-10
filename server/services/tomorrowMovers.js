@@ -20,10 +20,11 @@
  * Gem Score = weighted combination → higher = more explosive potential
  */
 
-import { getQuoteBatch, getHistoricalData, getEarningsCalendar, getTrendingStocks, getDailyGainers } from './yahooFinance.js';
+import { getQuoteBatch, getHistoricalData, getEarningsCalendar, getTrendingStocks, getDailyGainers, getSmallCapGainers, getMostActive } from './yahooFinance.js';
 import { getShortSqueezeSetups, getBreakoutSetups, STOCK_UNIVERSE } from './premarketScanner.js';
 import { classifySector, getSectorTrends } from './sectorAnalysis.js';
 import { getOrderFlow } from './orderFlow.js';
+import { getLearnedWeight, getComboBonus } from './signalLearner.js';
 
 // ── Cache ──
 let cache = { data: null, ts: 0 };
@@ -195,40 +196,71 @@ function calculateGemScore(signals, details, histAnalysis) {
   let score = 0;
   const weights = {
     // ── LOADING signals (3-7 day predictors — STRONGEST) ──
-    volume_acceleration: 22,      // NEW: volume ramping up day-over-day
-    stealth_accumulation: 22,     // NEW: buying dips on high volume (smart money loading)
+    volume_acceleration: 22,      // volume ramping up day-over-day
+    stealth_accumulation: 22,     // buying dips on high volume (smart money loading)
     multi_day_accumulation: 20,   // consecutive days of above-avg volume
     insider_buying: 20,           // SEC Form 4 insider purchases
+    // ── Congress / political insider signals (NEW) ──
+    congress_cluster: 24,         // NEW: 3+ congress members buying same stock (strongest political signal)
+    senate_buy: 20,               // NEW: senator buying (higher info access than House)
+    congress_buy: 14,             // NEW: single congress member buy
+    // ── Options flow signals (NEW — highest alpha) ──
+    call_sweep_large: 24,         // NEW: >=1000-contract call sweep (institutional)
+    options_volume_explosion: 20, // NEW: options volume 5x+ normal
+    call_sweep: 16,               // NEW: 500+ contract call sweep
+    deep_itm_calls: 18,           // NEW: deep ITM call buying = institutional conviction
+    put_call_extreme_bullish: 18, // NEW: P/C ratio <0.3 with high volume
+    near_expiry_call_rush: 14,    // NEW: heavy near-expiry call buying
+    options_volume_spike: 12,     // NEW: options volume 3x normal
+    put_call_bullish: 10,         // NEW: P/C ratio <0.5
+    // ── Insider Intel (Finnhub SEC Form 4) ──
+    insider_cluster: 24,          // 3+ executives buying own stock in 30 days (strongest)
+    insider_heavy_buy: 18,        // single $100K+ executive purchase
+    insider_buy_recent: 12,       // any executive purchase in last 14 days
+    // ── Analyst recommendations (Finnhub) ──
+    analyst_upgrade: 16,          // buy count increased vs prior month
+    analyst_strong_buy: 14,       // >80% of analysts say Buy/Strong Buy
+    analyst_momentum: 18,         // 3 consecutive months increasing bull count
+    // ── Dark pool / short volume signals ──
+    dark_pool_squeeze: 20,        // >60% short vol + price holding = shorts trapped
+    dark_pool_pressure: 14,       // >50% short vol + green price
+    shorts_covering: 16,          // short volume declining + price rising
     // ── Squeeze signals ──
     short_squeeze_loading: 16,
     bb_squeeze: 14,
     // ── Smart money / flow signals ──
-    smart_money: 16,              // closing near highs on volume (reduced from 18)
+    smart_money: 16,              // closing near highs on volume
     bullish_options: 16,
     institutions_accumulating: 14,
     unusual_options_volume: 12,
     // ── Volume signals ──
-    unusual_volume: 14,           // reduced from 15 (too reactive)
-    volume_contraction: 10,       // increased — vol dry-up before explosion is strong
+    unusual_volume: 14,
+    volume_contraction: 10,       // vol dry-up before explosion is strong
     // ── Momentum signals ──
-    early_breakout: 16,           // NEW: small move after compression (day 1-2)
-    early_momentum: 10,           // reduced — too reactive
-    momentum_acceleration: 12,    // reduced — detects moves already happening
-    near_52w_high: 8,             // reduced — not predictive by itself
+    early_breakout: 16,           // small move after compression (day 1-2)
+    early_momentum: 10,
+    momentum_acceleration: 12,
+    near_52w_high: 8,
     // ── Structural signals ──
     low_float_volume: 12,
-    earnings_tomorrow: 8,         // reduced from 12 — not reliable predictor
-    sector_lag: 8,                // increased — sector catch-up is real
-    pair_divergence: 14,          // NEW: correlated stock lagging its pair
+    earnings_tomorrow: 8,
+    sector_lag: 8,
+    pair_divergence: 14,
     oversold_bounce: 6,
     bull_flag: 8,
     golden_cross: 5,
-    price_compression: 10,        // NEW: tight range about to break
+    price_compression: 10,
   };
 
   for (const sig of signals) {
-    score += weights[sig] || 5;
+    const defaultWeight = weights[sig] || 5;
+    // Blend learned weight (from backtest outcomes) with default — self-learning kicks in after 20+ samples
+    score += getLearnedWeight(sig, defaultWeight);
   }
+
+  // ── Killer combo bonus: signal pairs that historically produce 10%+ moves ──
+  const comboBonus = getComboBonus(signals);
+  score += comboBonus;
 
   // Multi-signal bonus — stocks with 3+ signals are exponentially more likely to explode
   if (signals.length >= 4) score *= 1.3;
@@ -373,18 +405,19 @@ function predictExplosion(signals, details, hist, price, volumeRatio, floatShare
 
 async function _scan() {
   try {
-    // Build full symbol universe
+    // Build full symbol universe (static: ~300 symbols including Revolut popular)
     const allSymbols = [
       ...STOCK_UNIVERSE.SMALL_MID_CAPS,
       ...STOCK_UNIVERSE.BIOTECH_PHARMA,
       ...STOCK_UNIVERSE.MEME_VOLATILE,
       ...STOCK_UNIVERSE.RECENT_IPOS,
+      ...STOCK_UNIVERSE.REVOLUT_POPULAR,
       ...STOCK_UNIVERSE.MICRO_CAP_GEMS,
     ];
     const unique = [...new Set(allSymbols)];
 
-    // Fetch data in parallel
-    const [quotes, sectorTrends, earningsCal, squeezeData, breakoutData, trending, gainers] = await Promise.all([
+    // Fetch data in parallel (including 3 Yahoo screeners for dynamic discovery)
+    const [quotes, sectorTrends, earningsCal, squeezeData, breakoutData, trending, gainers, smallCapGainers, mostActive] = await Promise.all([
       fetchAllQuotes(unique),
       getSectorTrends().catch(() => []),
       getEarningsCalendar().catch(() => []),
@@ -392,17 +425,22 @@ async function _scan() {
       getBreakoutSetups(unique.slice(0, 80)).catch(() => []),
       getTrendingStocks().catch(() => []),
       getDailyGainers().catch(() => []),
+      getSmallCapGainers().catch(() => []),   // 50 small-cap movers (the 40-50% Revolut movers)
+      getMostActive().catch(() => []),         // 50 most-traded stocks
     ]);
 
-    // Add trending and gainer stocks to the universe for this scan
+    // Add ALL dynamic stocks to the universe for this scan
     const dynamicSymbols = [
       ...trending.map(t => t.symbol),
-      ...gainers.map(g => g.symbol)
-    ].filter(s => !!s);
-    
+      ...gainers.map(g => g.symbol),
+      ...smallCapGainers.map(g => g.symbol),
+      ...mostActive.map(g => g.symbol),
+    ].filter(s => !!s && !unique.includes(s)); // only add NEW symbols
+
     if (dynamicSymbols.length > 0) {
-      console.log(`[GemFinder] Adding ${dynamicSymbols.length} trending/gainer stocks to the scan universe...`);
-      const dynamicQuotes = await fetchAllQuotes(dynamicSymbols);
+      const dedupDynamic = [...new Set(dynamicSymbols)];
+      console.log(`[GemFinder] Adding ${dedupDynamic.length} dynamic stocks (trending + gainers + small-cap + most-active)...`);
+      const dynamicQuotes = await fetchAllQuotes(dedupDynamic);
       Object.assign(quotes, dynamicQuotes);
     }
 

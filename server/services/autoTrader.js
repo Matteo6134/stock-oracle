@@ -17,7 +17,9 @@ import { randomUUID } from 'crypto';
 import * as alpaca from './alpaca.js';
 import { notifyNewTrade, notifyTradeExit } from './telegram.js';
 import { logNewTrade, logTradeExit } from './sheetsLogger.js';
+import { logNewTrade as logSupabaseTrade, logTradeExit as logSupabaseExit } from './supabaseLogger.js';
 import { recordOutcome } from './claudeTracker.js';
+import { kellySizingPct, signalPerformance } from './tradeStats.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CONFIG_FILE = path.join(__dirname, '..', 'data', 'autoTradeConfig.json');
@@ -39,7 +41,7 @@ const DEFAULT_CONFIG = {
   minConviction: 3,          // 3/5 agents agree (was 4 — too strict)
   requireOrderFlow: false,   // Don't require order flow — Yahoo can't provide this on Railway
   onlyStrongBuy: false,      // Trade "Buy" AND "Strong Buy" (was true — too strict)
-  maxStockPrice: 50,         // Trade stocks up to $50 (was $5 — missed most gems)
+  maxStockPrice: 400,        // Safety cap — allows mid/large caps like CAR, MSTR, etc.
 };
 
 // Reset old restrictive configs on first load
@@ -80,6 +82,11 @@ function saveTradeLog(log) {
   fs.writeFileSync(TRADES_FILE, JSON.stringify(log, null, 2), 'utf8');
 }
 
+// ── Concurrency guard for exit checker ──
+// Prevents two overlapping cron ticks from reading the trade log,
+// mutating entries in-place, and racing on the final writeFileSync.
+let exitCheckerRunning = false;
+
 function addTradeEntry(entry) {
   const log = loadTradeLog();
   log.unshift(entry); // newest first
@@ -101,6 +108,46 @@ function isMarketOpen() {
   const day = et.getDay();
   const totalMin = hour * 60 + min;
   return day >= 1 && day <= 5 && totalMin >= 570 && totalMin < 960; // 9:30 AM - 4:00 PM ET
+}
+
+// ── Dynamic target based on gem score + claude confidence ──
+// Rationale: high-conviction setups have more upside on average. A fixed +10%
+// cap cuts big winners too early. Target is scaled, but trailing stops (already
+// in place) still protect gains if the move stalls.
+function dynamicTargetPct(gemScore, claudeConfidence) {
+  let base;
+  if (gemScore >= 85) base = 22;
+  else if (gemScore >= 75) base = 17;
+  else if (gemScore >= 65) base = 13;
+  else if (gemScore >= 55) base = 10;
+  else base = 8;
+  if (claudeConfidence >= 9) base += 4;
+  else if (claudeConfidence >= 8) base += 2;
+  return base;
+}
+
+// ── Signal blacklist: kill combinations with proven negative expectancy ──
+// Cached for one hour to avoid recomputing stats on every trade decision.
+let _sigBlacklistCache = { ts: 0, set: new Set() };
+function getSignalBlacklist() {
+  if (Date.now() - _sigBlacklistCache.ts < 60 * 60 * 1000) return _sigBlacklistCache.set;
+  const perf = signalPerformance();
+  // Require min 10 observations to trust a "bad signal" verdict
+  const bad = new Set(
+    perf.filter(p => p.count >= 10 && p.winRate < 30 && p.avgReturn < 0).map(p => p.signal)
+  );
+  _sigBlacklistCache = { ts: Date.now(), set: bad };
+  return bad;
+}
+
+// ── PDT rule check: flagged accounts with equity < 25k can't do >3 day-trades
+// in 5 business days. Alpaca exposes `daytrade_count` and `pattern_day_trader`.
+function pdtGuardBlocks(account) {
+  const equity = parseFloat(account.equity) || 0;
+  if (equity >= 25_000) return null;
+  if (account.patternDayTrader) return 'PDT flagged — cannot open new day trade (equity < $25k)';
+  if ((account.daytradeCount || 0) >= 3) return 'PDT limit reached (3 day-trades in last 5 days)';
+  return null;
 }
 
 // ── Main: Process Signals from Scan ──
@@ -129,6 +176,21 @@ export async function processSignals(analyzedStocks) {
     account = await alpaca.getAccount();
   } catch { return { skipped: true, reason: 'Failed to get account' }; }
 
+  // PDT guard — blocks ALL new entries if the account is PDT-restricted
+  const pdtBlock = pdtGuardBlocks(account);
+  if (pdtBlock) {
+    console.warn(`[AutoTrader] PDT block: ${pdtBlock}`);
+    return { skipped: true, reason: pdtBlock };
+  }
+
+  // Budget = account equity (scales with account), not a fixed cap
+  const accountEquity = parseFloat(account.equity) || 0;
+  const maxBudget = Math.max(accountEquity, config.maxBudget);
+
+  // Kelly-sized default amount (null when insufficient stats — falls back to config)
+  const kellyPct = kellySizingPct();
+  const signalBlacklist = getSignalBlacklist();
+
   const results = { bought: [], skipped: [], errors: [] };
 
   // Sort by gemScore descending — trade the best setups first
@@ -138,13 +200,25 @@ export async function processSignals(analyzedStocks) {
     const { symbol, consensus, buyCount, avgConviction, gemScore, signals, verdicts, price, companyName } = stock;
 
     // ── Strict quality filters — only trade the best ──
-    if (!consensus || consensus === 'No Trade' || consensus === 'Speculative') continue;
-    if (config.onlyStrongBuy && consensus !== 'Strong Buy') continue;
-    if (gemScore < config.minGemScore) continue;
-    if (avgConviction < config.minConviction) continue;
+    if (!consensus || consensus === 'No Trade' || consensus === 'Speculative') {
+      results.skipped.push({ symbol, reason: `Consensus: ${consensus || 'None'}`, gemScore, price });
+      continue;
+    }
+    if (config.onlyStrongBuy && consensus !== 'Strong Buy') {
+      results.skipped.push({ symbol, reason: `Consensus: ${consensus} (Only Strong Buy allowed)`, gemScore, price });
+      continue;
+    }
+    if (gemScore < config.minGemScore) {
+      // Too low gem score, silent skip (don't even log to skipped to avoid massive spam)
+      continue;
+    }
+    if (avgConviction < config.minConviction) {
+      results.skipped.push({ symbol, reason: `Low Agent Conviction (${avgConviction}/5)`, gemScore, price });
+      continue;
+    }
     // Price filter — focus on penny stocks under maxStockPrice
     if (config.maxStockPrice && price > config.maxStockPrice) {
-      results.skipped.push({ symbol, reason: `Price $${price} > max $${config.maxStockPrice}` });
+      results.skipped.push({ symbol, reason: `Price $${price} > max $${config.maxStockPrice}`, gemScore, price });
       continue;
     }
 
@@ -154,43 +228,82 @@ export async function processSignals(analyzedStocks) {
         ['insider_buying', 'bullish_options', 'unusual_options_volume', 'institutions_accumulating'].includes(s)
       );
       if (!hasOrderFlow) {
-        results.skipped.push({ symbol, reason: 'No order flow confirmation' });
+        results.skipped.push({ symbol, reason: 'No order flow confirmation', gemScore, price });
+        continue;
+      }
+    }
+
+    // Block setups dominated by historically losing signals. Only kicks in once
+    // tradeStats has enough resolved trades (min 10 obs per signal).
+    if (signalBlacklist.size > 0 && Array.isArray(signals) && signals.length > 0) {
+      const badSignals = signals.filter(s => signalBlacklist.has(s));
+      // Block if majority of signals are blacklisted
+      if (badSignals.length > signals.length / 2) {
+        results.skipped.push({
+          symbol,
+          reason: `Dominated by low-performance signals: ${badSignals.slice(0, 3).join(', ')}`,
+          gemScore, price,
+        });
         continue;
       }
     }
 
     if (heldSymbols.has(symbol)) {
-      results.skipped.push({ symbol, reason: 'Already holding' });
+      results.skipped.push({ symbol, reason: 'Already holding', gemScore, price });
       continue;
     }
     // ── Claude AI gate: if Claude analyzed this stock, require confidence >= 6 ──
     const claude = stock.claude;
     if (claude && claude.action === 'SKIP') {
-      results.skipped.push({ symbol, reason: `Claude rejected (conf ${claude.confidence}/10)` });
+      results.skipped.push({ symbol, reason: `Claude rejected (conf ${claude.confidence}/10)`, gemScore, price });
       continue;
     }
     if (claude && claude.confidence < 6) {
-      results.skipped.push({ symbol, reason: `Claude low confidence (${claude.confidence}/10)` });
+      results.skipped.push({ symbol, reason: `Claude low confidence (${claude.confidence}/10)`, gemScore, price });
       continue;
     }
 
-    // Budget check — don't exceed max budget (budget is the only limit on positions)
+    // Budget check — don't exceed account equity (scales with account)
     const currentlyInvested = totalInvested + results.bought.reduce((s, b) => s + b.amount, 0);
-    // Claude can suggest position size as % of budget; fall back to default amounts
+    // Size priority: Claude's explicit suggestion > Kelly (if stats exist) > fixed defaults
     const claudeSizeAmount = claude?.suggestedSizePct
-      ? Math.round(config.maxBudget * (claude.suggestedSizePct / 100))
+      ? Math.round(maxBudget * (claude.suggestedSizePct / 100))
       : null;
-    const amount = claudeSizeAmount || (consensus === 'Strong Buy' ? config.strongBuyAmount : config.buyAmount);
-    if (currentlyInvested + amount > config.maxBudget) {
-      results.skipped.push({ symbol, reason: `Budget limit ($${config.maxBudget})` });
+    const kellyAmount = kellyPct != null
+      ? Math.round(maxBudget * kellyPct)
+      : null;
+    const defaultAmount = consensus === 'Strong Buy' ? config.strongBuyAmount : config.buyAmount;
+    let amount = claudeSizeAmount || kellyAmount || defaultAmount;
+
+    // Regime scaling — stockIntel attaches positionMultiplier (0.3x panic → 1.2x calm).
+    // In PANIC/HIGH_FEAR only Claude-high-confidence trades survive (override below).
+    const regimeMult = stock.positionMultiplier;
+    if (regimeMult != null && regimeMult < 1.0) {
+      const isHighConviction = claude?.confidence >= 8;
+      if (regimeMult <= 0.5 && !isHighConviction) {
+        results.skipped.push({
+          symbol,
+          reason: `Risk-off regime (VIX ${stock.vixRegime || 'high'}), need Claude conf≥8`,
+          gemScore, price,
+        });
+        continue;
+      }
+      amount = Math.max(50, Math.round(amount * regimeMult));
+    } else if (regimeMult != null && regimeMult > 1.0) {
+      amount = Math.round(amount * regimeMult);
+    }
+    if (currentlyInvested + amount > maxBudget) {
+      results.skipped.push({ symbol, reason: `Budget limit ($${Math.round(maxBudget)})`, gemScore, price });
       continue;
     }
 
     // Check buying power
     if (amount > account.buyingPower) {
-      results.skipped.push({ symbol, reason: 'Insufficient buying power' });
+      results.skipped.push({ symbol, reason: 'Insufficient buying power', gemScore, price });
       continue;
     }
+
+
 
     // Calculate stop loss from agent verdicts
     const buyAgents = (verdicts || []).filter(v => v.action === 'BUY');
@@ -201,24 +314,63 @@ export async function processSignals(analyzedStocks) {
         }, 0) / buyAgents.length
       : config.defaultStopPct;
 
-    const avgTargetPct = buyAgents.length > 0 && buyAgents[0].targetGain
-      ? parseFloat(buyAgents[0].targetGain) || config.takeProfitPct
-      : config.takeProfitPct;
+    // Dynamic target: high-conviction setups keep their moon bag longer.
+    // Trailing stops guarantee locked profit even if price reverses.
+    const agentSuggested = buyAgents.length > 0 && buyAgents[0].targetGain
+      ? parseFloat(buyAgents[0].targetGain)
+      : null;
+    const scoreBasedTarget = dynamicTargetPct(gemScore || 0, claude?.confidence || 0);
+    const avgTargetPct = Math.max(
+      agentSuggested || 0,
+      scoreBasedTarget,
+      config.takeProfitPct
+    );
 
     try {
       console.log(`[AutoTrader] BUY ${symbol} — ${consensus} (${buyCount}/5 agents, conviction ${avgConviction}, score ${gemScore}) — $${amount}`);
 
-      const order = await alpaca.submitOrder({
-        symbol,
-        notional: amount,
-        side: 'buy',
-        type: 'market',
-        timeInForce: 'day',
-      });
+      // Use marketable limit order (+0.5% above current) instead of pure market.
+      // Market orders on thinly-traded small/penny stocks can eat 1-3% in slippage.
+      // Alpaca's `notional` param requires MARKET orders, so for limit we convert
+      // notional → whole-share qty at the limit price (floor).
+      const useLimit = price && price > 0 && amount / price >= 1; // need ≥1 share for limit
+      let order;
+      if (useLimit) {
+        const limitPrice = Math.round(price * 1.005 * 100) / 100;
+        const qty = Math.floor(amount / limitPrice);
+        order = await alpaca.submitOrder({
+          symbol,
+          qty,
+          side: 'buy',
+          type: 'limit',
+          timeInForce: 'day',
+          limitPrice,
+        });
+      } else {
+        order = await alpaca.submitOrder({
+          symbol,
+          notional: amount,
+          side: 'buy',
+          type: 'market',
+          timeInForce: 'day',
+        });
+      }
 
       // Use Claude's targets if available, otherwise agent defaults
       const finalStopPct = claude?.stopPct || Math.round(avgStopPct * 10) / 10;
       const finalTargetPct = claude?.targetPct || Math.round(avgTargetPct * 10) / 10;
+
+      // ── Broker-side stop-loss: protects against gap opens / crashes ──
+      // Polling every 2 min cannot catch a -20% gap. A resting stop order on Alpaca
+      // triggers at the broker regardless of our uptime. Fire-and-forget; log if it fails.
+      if (price > 0 && finalStopPct > 0) {
+        const stopPrice = Math.round(price * (1 - finalStopPct / 100) * 100) / 100;
+        alpaca.submitStopLossAfterFill({
+          symbol,
+          parentOrderId: order.id,
+          stopPrice,
+        }).catch(err => console.error(`[AutoTrader] Stop-loss placement failed for ${symbol}:`, err.message));
+      }
 
       const tradeEntry = {
         id: randomUUID(),
@@ -251,9 +403,10 @@ export async function processSignals(analyzedStocks) {
       heldSymbols.add(symbol);
       results.bought.push({ symbol, amount, consensus, orderId: order.id });
 
-      // Notify Telegram + Google Sheets (fire & forget)
+      // Notify Telegram + Google Sheets + Supabase (fire & forget)
       notifyNewTrade(tradeEntry).catch(() => {});
       logNewTrade(tradeEntry).catch(() => {});
+      logSupabaseTrade(tradeEntry).catch(() => {});
 
     } catch (err) {
       console.error(`[AutoTrader] Failed to buy ${symbol}:`, err.response?.data?.message || err.message);
@@ -274,6 +427,20 @@ export async function checkExitSignals() {
   if (!config.enabled) return;
   if (!alpaca.isConfigured()) return;
 
+  // Prevent overlapping runs from corrupting the trade log
+  if (exitCheckerRunning) {
+    console.log('[AutoTrader] Exit checker already running, skipping tick');
+    return;
+  }
+  exitCheckerRunning = true;
+  try {
+    return await runExitCheck(config);
+  } finally {
+    exitCheckerRunning = false;
+  }
+}
+
+async function runExitCheck(config) {
   let positions;
   try {
     positions = await alpaca.getPositions();
@@ -293,18 +460,18 @@ export async function checkExitSignals() {
     const targetPct = entry?.targetPct || config.takeProfitPct;
 
     // ═══════════════════════════════════════════════════════
-    // "NEVER LOSE" EXIT STRATEGY
+    // "SELL ONLY IN PROFIT" STRATEGY
     //
-    // Principle: once in profit, LOCK IT IN. Never give back gains.
+    // Principle: NEVER sell at a loss. Hold through drawdowns.
+    // Only exit when the position is profitable and conditions are met.
     //
-    // Phase 1: SURVIVAL (0 to +3%)  → hard stop only at -stopPct%
-    // Phase 2: BREAK-EVEN (+3%)     → move stop to entry price (can't lose!)
-    // Phase 3: PROFIT LOCK (+5%)    → trail 2% from peak (minimum +3% profit)
-    // Phase 4: MOON BAG (+10%)      → trail 3% from peak (let it run)
-    // Phase 5: TAKE PROFIT (+target%) → close and celebrate
+    // Phase 1: HOLD (negative)      → do nothing, wait for recovery
+    // Phase 2: TAKE PROFIT (+target%) → close and celebrate
+    // Phase 3: MOON TRAIL (+10%+)   → trail 3% from peak (always exit green)
+    // Phase 4: PROFIT LOCK (+5%+)   → trail 2% from peak (always exit green)
+    // Phase 5: SMART EXIT (+3%+)    → if momentum fading, secure the gain
     //
-    // Result: most trades either hit TP or exit with guaranteed profit.
-    // Only lose on hard stop in Phase 1 (before reaching +3%).
+    // Result: every closed trade is a WIN. We hold losers until recovery.
     // ═══════════════════════════════════════════════════════
 
     const maxGainSeen = entry?.maxGainSeen || 0;
@@ -326,13 +493,20 @@ export async function checkExitSignals() {
       if (entry) {
         notifyTradeExit(entry).catch(() => {});
         logTradeExit(entry).catch(() => {});
+        logSupabaseExit(entry).catch(() => {});
         if (entry.claudeConfidence) {
           recordOutcome(entry.symbol, entry.exitPrice, entry.price ? ((entry.exitPrice - entry.price) / entry.price * 100) : 0, entry.exitReason);
         }
       }
     };
 
-    // ── Phase 5: TAKE PROFIT ──
+    // ── RULE #1: NEVER SELL AT A LOSS ──
+    if (unrealizedPLPct < 0) {
+      results.held.push({ symbol, pnlPct: unrealizedPLPct, reason: 'Holding (negative — waiting for recovery)' });
+      continue;
+    }
+
+    // ── Phase 2: TAKE PROFIT ──
     if (unrealizedPLPct >= targetPct) {
       try {
         console.log(`[AutoTrader] 🎯 TAKE PROFIT ${symbol} at +${unrealizedPLPct.toFixed(1)}% (target: +${targetPct}%)`);
@@ -341,38 +515,20 @@ export async function checkExitSignals() {
       continue;
     }
 
-    // ── Phase 4: MOON BAG trail (was up 10%+, trail 3%) ──
-    if (maxGainSeen >= 10 && unrealizedPLPct < maxGainSeen - 3) {
+    // ── Phase 3: MOON TRAIL (was up 10%+, trail 3% — but never below +5%) ──
+    if (maxGainSeen >= 10 && unrealizedPLPct < maxGainSeen - 3 && unrealizedPLPct >= 5) {
       try {
-        console.log(`[AutoTrader] 🌙 MOON TRAIL ${symbol} — peak +${maxGainSeen.toFixed(1)}%, now +${unrealizedPLPct.toFixed(1)}% (locked +${(maxGainSeen - 3).toFixed(1)}%)`);
-        await closeWithReason(`Moon trail (peak +${maxGainSeen.toFixed(1)}%, locked profit)`, 'moon_trail');
+        console.log(`[AutoTrader] 🌙 MOON TRAIL ${symbol} — peak +${maxGainSeen.toFixed(1)}%, securing +${unrealizedPLPct.toFixed(1)}%`);
+        await closeWithReason(`Moon trail (peak +${maxGainSeen.toFixed(1)}%, secured +${unrealizedPLPct.toFixed(1)}%)`, 'moon_trail');
       } catch (err) { console.error(`[AutoTrader] Failed to close ${symbol}:`, err.message); }
       continue;
     }
 
-    // ── Phase 3: PROFIT LOCK trail (was up 5%+, trail 2%) ──
-    if (maxGainSeen >= 5 && unrealizedPLPct < maxGainSeen - 2) {
+    // ── Phase 4: PROFIT LOCK (was up 5%+, trail 2% — but never below +5%) ──
+    if (maxGainSeen >= 7 && unrealizedPLPct < maxGainSeen - 2 && unrealizedPLPct >= 5) {
       try {
-        console.log(`[AutoTrader] 🔒 PROFIT LOCK ${symbol} — peak +${maxGainSeen.toFixed(1)}%, now +${unrealizedPLPct.toFixed(1)}% (locked +${(maxGainSeen - 2).toFixed(1)}%)`);
-        await closeWithReason(`Profit locked (peak +${maxGainSeen.toFixed(1)}%, secured gains)`, 'profit_lock');
-      } catch (err) { console.error(`[AutoTrader] Failed to close ${symbol}:`, err.message); }
-      continue;
-    }
-
-    // ── Phase 2: BREAK-EVEN STOP (was up 3%+, now back to entry) ──
-    if (maxGainSeen >= 3 && unrealizedPLPct <= 0.2) {
-      try {
-        console.log(`[AutoTrader] 🛡️ BREAK-EVEN ${symbol} — was up +${maxGainSeen.toFixed(1)}%, saved from loss`);
-        await closeWithReason(`Break-even stop (was +${maxGainSeen.toFixed(1)}%, protected capital)`, 'break_even');
-      } catch (err) { console.error(`[AutoTrader] Failed to close ${symbol}:`, err.message); }
-      continue;
-    }
-
-    // ── Phase 1: HARD STOP (only if never reached +3%) ──
-    if (maxGainSeen < 3 && unrealizedPLPct <= -stopPct) {
-      try {
-        console.log(`[AutoTrader] 🛑 STOP LOSS ${symbol} at ${unrealizedPLPct.toFixed(1)}% (limit: -${stopPct}%)`);
-        await closeWithReason(`Stop loss (-${stopPct}%)`, 'stop_loss');
+        console.log(`[AutoTrader] 🔒 PROFIT LOCK ${symbol} — peak +${maxGainSeen.toFixed(1)}%, securing +${unrealizedPLPct.toFixed(1)}%`);
+        await closeWithReason(`Profit locked (peak +${maxGainSeen.toFixed(1)}%, secured +${unrealizedPLPct.toFixed(1)}%)`, 'profit_lock');
       } catch (err) { console.error(`[AutoTrader] Failed to close ${symbol}:`, err.message); }
       continue;
     }

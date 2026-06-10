@@ -20,13 +20,14 @@ import { getOrderFlow } from '../services/orderFlow.js';
 import { scanPennyStocks } from '../services/pennyScanner.js';
 import * as alpaca from '../services/alpaca.js';
 import { getAutoTradeConfig, updateAutoTradeConfig, getAutoTradeLog } from '../services/autoTrader.js';
+import { computeStats, signalPerformance } from '../services/tradeStats.js';
 import { runHistoricalBacktest } from '../services/historicalBacktest.js';
 import { isClaudeConfigured, getMarketContext, getDailySpend, askClaude } from '../services/claudeBrain.js';
 import { getClaudeAccuracy, getClaudeHistory } from '../services/claudeTracker.js';
-import { getTopMarkets } from '../services/polymarket.js';
-import { getPortfolio, placeBet, getTradeHistory as getPolyHistory, calculateKellyBet, resetPortfolio } from '../services/polySimulator.js';
-import { analyzeMarket, findBestBets, getStrategyStatus, findCorrelatedArbitrage, findSafeBets } from '../services/polyBrain.js';
 import { getAllIntelligence, getMarketRegime as getVixRegime, getSectorRotation, getHighShortInterest, getCorrelationPairs } from '../services/stockIntel.js';
+import { getEarlyWarnings } from '../services/earlyWarning.js';
+import { getTrackedStocks } from '../services/signalTracker.js';
+import { getDynamicSymbols, getDynamicDiscoveryStats } from '../services/dynamicDiscovery.js';
 
 const router = express.Router();
 
@@ -2004,6 +2005,17 @@ router.get('/auto-trade/log', (req, res) => {
   res.json(getAutoTradeLog());
 });
 
+// ── Trade statistics: win rate, expectancy, Kelly, exit mix ──
+router.get('/stats', (req, res) => {
+  try {
+    const overall = computeStats();
+    const perSignal = signalPerformance();
+    res.json({ overall, perSignal, timestamp: new Date().toISOString() });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ── Agent Profiles (per-agent settings) ──
 router.get('/agents/profiles', (req, res) => {
   res.json(getAgentProfiles());
@@ -2095,66 +2107,6 @@ router.get('/claude/history', (req, res) => {
   res.json(getClaudeHistory());
 });
 
-// ── Polymarket Oracle ──
-router.get('/poly/markets', async (req, res) => {
-  try {
-    const markets = await getTopMarkets(parseInt(req.query.limit) || 20);
-    res.json({ markets });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-router.get('/poly/portfolio', (req, res) => {
-  res.json(getPortfolio());
-});
-
-router.get('/poly/history', (req, res) => {
-  res.json(getPolyHistory(parseInt(req.query.limit) || 50));
-});
-
-router.post('/poly/bet', (req, res) => {
-  const { marketId, question, outcome, price, amount, claudeConfidence, claudeThesis, claudeProb } = req.body || {};
-  if (!marketId || !outcome || !price || !amount) {
-    return res.status(400).json({ error: 'Missing required fields: marketId, outcome, price, amount' });
-  }
-  const result = placeBet({ marketId, question, outcome, price, amount, claudeConfidence, claudeThesis, claudeProb });
-  res.json(result);
-});
-
-router.get('/poly/brain', async (req, res) => {
-  try {
-    const markets = await getTopMarkets(15);
-    const bets = await findBestBets(markets);
-    res.json({ picks: bets, portfolio: getPortfolio() });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-router.post('/poly/reset', (req, res) => {
-  resetPortfolio();
-  res.json({ success: true, portfolio: getPortfolio() });
-});
-
-router.get('/poly/strategies', (req, res) => {
-  res.json(getStrategyStatus());
-});
-
-router.get('/poly/arbitrage', async (req, res) => {
-  try {
-    const markets = await getTopMarkets(30);
-    res.json(findCorrelatedArbitrage(markets));
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
-router.get('/poly/safe-bets', async (req, res) => {
-  try {
-    const markets = await getTopMarkets(30);
-    res.json(findSafeBets(markets));
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
-
 // ── Stock Intelligence ──
 router.get('/intel', async (req, res) => {
   try {
@@ -2205,6 +2157,52 @@ router.get('/historical-backtest', async (req, res) => {
     res.json(result);
   } catch (err) {
     console.error('[HistoricalBacktest]', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ══════════════════════════════════════════
+// Early Warning System (Revolut-filtered)
+// ══════════════════════════════════════════
+
+router.get('/early-warnings', (req, res) => {
+  try {
+    const revolutOnly = req.query.revolut !== 'false';
+    const minScore = parseInt(req.query.minScore) || 40;
+    const stage = req.query.stage; // optional: BUILDING, LOADING, IMMINENT
+    const stages = stage ? [stage.toUpperCase()] : null;
+
+    const warnings = getEarlyWarnings({ revolutOnly, minScore, stages });
+    const tracked = getTrackedStocks();
+
+    res.json({
+      warnings,
+      stats: {
+        total: tracked.length,
+        imminent: tracked.filter(s => s.stage === 'IMMINENT').length,
+        loading: tracked.filter(s => s.stage === 'LOADING').length,
+        building: tracked.filter(s => s.stage === 'BUILDING').length,
+        revolutFiltered: warnings.length,
+      },
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.error('[EarlyWarning]', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+router.get('/discovery/dynamic', async (req, res) => {
+  try {
+    const force = req.query.force === 'true';
+    const symbols = await getDynamicSymbols({ force });
+    res.json({
+      symbols,
+      stats: getDynamicDiscoveryStats(),
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    console.error('[DynamicDiscovery]', err.message);
     res.status(500).json({ error: err.message });
   }
 });

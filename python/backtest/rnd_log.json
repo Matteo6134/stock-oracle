@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "description": "Strategy R&D run log for stock-oracle historical replay. Each entry records a focus, candidates tried, per-variant metrics, the winner verdict, and any news rule proposal. Append-only; preserve prior entries.",
+  "runs": [
+    {
+      "runId": "2026-06-03-squeeze-family-01",
+      "date": "2026-06-03",
+      "focus": "Low-drawdown 'coil/squeeze' replacements for the catastrophic existing replay strategies. All 4 prior live strategies (momentum, volume_spike, composite, random) lose money and trail SPY; composite is the only one near median monkey but does so with a lottery-style -79% drawdown. Goal: a strategy that is positive, beats SPY (+52%), clears the p75 monkey, AND has a survivable drawdown.",
+      "harnessFile": "C:/Users/pc2/Desktop/binance-bot/python/backtest/historical_replay_rnd.py",
+      "reportFile": "C:/Users/pc2/Desktop/binance-bot/python/backtest/replay_results_rnd/replay_report_rnd.json",
+      "window": { "start": "2024-01-01", "end": "2026-04-30" },
+      "filters": { "minPrice": 1.0, "maxPrice": 400.0, "minDollarVolume": 20000000.0, "slippagePctPerTrade": 0.1 },
+      "benchmarks": {
+        "spyReturnPct": 52.049,
+        "spySharpe": 1.206,
+        "spyMaxDrawdownPct": -18.999,
+        "monkey": { "nMonkeys": 10000, "nDays": 584, "meanPct": 18.542, "medianPct": -1.901, "p5Pct": -62.523, "p25Pct": -33.39, "p75Pct": 49.22, "p95Pct": 164.899 }
+      },
+      "candidatesTried": [
+        { "name": "mega_liquid_bb_squeeze", "spec": "Tightest 5d/20d range coil (compress = range_5d_pct/range_20d_pct) among $500M+ ADV uptrending (dist_sma20_pct>0) names; pick 1/day." },
+        { "name": "squeeze_ultraliquid_750m", "spec": "Same squeeze mechanic with a higher $750M ADV liquidity floor (robustness check on liquidity sensitivity)." },
+        { "name": "squeeze_breakout_confirmed", "spec": "Squeeze ($500M) additionally requiring price near its 20d high (dist_high20_pct > -5) to confirm upward resolution." },
+        { "name": "squeeze_spy_regime_gated", "spec": "Candidate-1 squeeze gated to only trade when SPY > its own lagged 20d SMA (defensive market-regime overlay; SPY sourced from yfinance, +1d lag, look-ahead-safe)." },
+        { "name": "squeeze_volcontraction_combo", "spec": "Squeeze ($500M) restricted to quiet/contracting volume (0.5 <= volume_ratio <= 1.2), pairing the coil with the volume_contraction signal." },
+        { "name": "composite", "spec": "Existing baseline strategy, re-run for apples-to-apples comparison in this window." },
+        { "name": "random", "spec": "Monkey-style random pick, harness wiring sanity check." }
+      ],
+      "results": [
+        { "name": "mega_liquid_bb_squeeze", "totalReturnPct": 136.544, "sharpe": 1.036, "winRate": 0.483, "maxDrawdownPct": -30.017, "monkeyPercentile": 93.1, "nTrades": 584 },
+        { "name": "squeeze_ultraliquid_750m", "totalReturnPct": 127.096, "sharpe": 1.09, "winRate": 0.497, "maxDrawdownPct": -30.271, "monkeyPercentile": 92.2, "nTrades": 583 },
+        { "name": "squeeze_volcontraction_combo", "totalReturnPct": 109.082, "sharpe": 0.915, "winRate": 0.483, "maxDrawdownPct": -30.976, "monkeyPercentile": 89.9, "nTrades": 582 },
+        { "name": "squeeze_spy_regime_gated", "totalReturnPct": 91.135, "sharpe": 1.06, "winRate": 0.468, "maxDrawdownPct": -19.255, "monkeyPercentile": 87.0, "nTrades": 423 },
+        { "name": "squeeze_breakout_confirmed", "totalReturnPct": 30.896, "sharpe": 0.501, "winRate": 0.501, "maxDrawdownPct": -31.521, "monkeyPercentile": 68.8, "nTrades": 583 },
+        { "name": "composite", "totalReturnPct": 342.046, "sharpe": 1.167, "winRate": 0.521, "maxDrawdownPct": -79.019, "monkeyPercentile": 98.9, "nTrades": 584 },
+        { "name": "random", "totalReturnPct": -85.545, "sharpe": -2.055, "winRate": 0.44, "maxDrawdownPct": -86.511, "monkeyPercentile": 0.0, "nTrades": 584 }
+      ],
+      "winner": {
+        "name": "squeeze_ultraliquid_750m (conditional / risk-adjusted)",
+        "verdict": "NO candidate beats the composite baseline on the literal blended metric (composite is higher on return AND Sharpe AND percentile). On a drawdown-aware/survivable-capital basis the squeeze family is the real win: squeeze_ultraliquid_750m has the best Sharpe (1.09) and win-rate (0.497) of the family with a -30% drawdown vs composite's account-ending -79%. squeeze_spy_regime_gated is the safest (maxDD -19.3%, ~SPY level) if drawdown is the hard constraint. Treat as a forward-test candidate, NOT applied live.",
+        "beatsCompositeOnBlend": false,
+        "beatsSpy": true,
+        "clearsP50Monkey": true,
+        "overfitRisk": "MEDIUM. n>=423 trades on all kept candidates (not noise), and 5 sibling variants moving coherently with parameters argues against a single lucky fit. But: single tested window (2024-01..2026-04) was a strong-tape AI bull market; no walk-forward/out-of-sample split; squeeze edge is leveraged to that regime. The gated variant's yfinance SPY dependency is a runtime fragility, not overfit."
+      },
+      "newsRule": {
+        "proposedRule": "Two-part per-stock news gate in autoTrader.processSignals: (1) hard veto on dilution/offering/regulatory blocklist regex or avg 48h sentiment <= -0.4 over >=3 articles; (2) soft positive-catalyst boost relaxing the risk-off regime gate one notch when avg 24h sentiment >= +0.5 over >=3 articles. Market-wide getMarketNews() avg < -0.3 bumps minGemScore +5 for the cycle. All thresholds in autoTradeConfig.json defaulting OFF (ships dark).",
+        "codeLocation": "Producer: server/index.js scan loop (~L247-280); Consumer: server/services/autoTrader.js processSignals (~L254 after heldSymbols, before Claude gate; regime relaxation at ~L281-291).",
+        "historicallyBacktestable": false,
+        "forwardTestPlan": "Point-in-time news unavailable (archive is OHLCV-only; Finnhub/Google return today's headlines -> look-ahead leak). Telegram-only SHADOW for 4-6 weeks with newsBlockEnabled=false: log would-be decisions to server/data/newsShadow.json, join to resolved outcomes, promote BLOCK only if blocked-trade win-rate is materially below baseline over >=20 samples; promote BOOST only if boosted entries beat baseline over >=20 samples.",
+        "appliedLive": false
+      }
+    }
+  ]
+}

@@ -59,16 +59,39 @@ export async function getNewsForStock(symbol, companyName) {
     const articles = [];
     const q = encodeURIComponent(`${symbol} ${companyName || ''} stock`.trim());
 
+    // 1. Google News RSS (Fallback — often blocked on cloud)
     try {
       const { data } = await axios.get(`https://news.google.com/rss/search?q=${q}&hl=en-US&gl=US&ceid=US:en`, { timeout: 10000, headers: { 'User-Agent': 'StockOracle/1.0' } });
       parseRss(data).forEach(item => articles.push({ ...item, sentiment: scoreSentiment(item.title, symbol) }));
-    } catch (e) { console.error(`[News] Google RSS error ${symbol}:`, e.message); }
+    } catch (e) { /* silent */ }
 
-    if (process.env.NEWS_API_KEY) {
+    // 2. NewsAPI (Needs key)
+    if (process.env.NEWS_API_KEY && process.env.NEWS_API_KEY !== 'your_newsapi_key_here') {
       try {
         const { data } = await axios.get(`https://newsapi.org/v2/everything?q=${q}&sortBy=publishedAt&pageSize=10&apiKey=${process.env.NEWS_API_KEY}`, { timeout: 10000 });
         (data?.articles || []).forEach(a => articles.push({ title: a.title || '', url: a.url || '', source: a.source?.name || 'NewsAPI', publishedAt: a.publishedAt || '', sentiment: scoreSentiment(a.title || '', symbol) }));
       } catch (e) { console.error(`[News] NewsAPI error ${symbol}:`, e.message); }
+    }
+
+    // 3. Finnhub News (Reliable fallback since we have a working key)
+    if (process.env.FINNHUB_API_KEY) {
+      try {
+        const today = new Date().toISOString().split('T')[0];
+        const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
+        const { data } = await axios.get(`https://finnhub.io/api/v1/company-news`, {
+          params: { symbol: symbol.toUpperCase(), from: weekAgo, to: today, token: process.env.FINNHUB_API_KEY },
+          timeout: 10000,
+        });
+        (data || []).slice(0, 10).forEach(n => {
+          articles.push({
+            title: n.headline || '',
+            url: n.url || '',
+            source: n.source || 'Finnhub',
+            publishedAt: new Date(n.datetime * 1000).toISOString(),
+            sentiment: scoreSentiment(n.headline || '', symbol)
+          });
+        });
+      } catch (e) { /* silent */ }
     }
 
     const seen = new Set();
@@ -82,10 +105,32 @@ export async function getNewsForStock(symbol, companyName) {
 export async function getMarketNews() {
   try {
     const articles = [];
+
+    // 1. Google News RSS
     try {
       const { data } = await axios.get('https://news.google.com/rss/search?q=stock+market+today&hl=en-US&gl=US&ceid=US:en', { timeout: 10000, headers: { 'User-Agent': 'StockOracle/1.0' } });
       parseRss(data).forEach(item => articles.push({ ...item, sentiment: scoreSentiment(item.title) }));
-    } catch (e) { console.error('[News] Market news RSS error:', e.message); }
+    } catch (e) { /* silent */ }
+
+    // 2. Finnhub Market News (Reliable fallback)
+    if (process.env.FINNHUB_API_KEY && articles.length < 5) {
+      try {
+        const { data } = await axios.get('https://finnhub.io/api/v1/news', {
+          params: { category: 'general', token: process.env.FINNHUB_API_KEY },
+          timeout: 10000,
+        });
+        (data || []).slice(0, 15).forEach(n => {
+          articles.push({
+            title: n.headline || '',
+            url: n.url || '',
+            source: n.source || 'Finnhub',
+            publishedAt: new Date(n.datetime * 1000).toISOString(),
+            sentiment: scoreSentiment(n.headline || '')
+          });
+        });
+      } catch (e) { /* silent */ }
+    }
+
     return articles.slice(0, 20);
   } catch (err) {
     console.error('[News] Market news error:', err.message);

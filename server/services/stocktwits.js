@@ -60,39 +60,52 @@ export async function getStockTwitsSentiment(symbol) {
       return { bullish: 0, bearish: 0, total: 0, sentiment: 0 };
     }
 
-    const { data } = await throttledGet(`${BASE}/streams/symbol/${symbol}.json`);
-    recordSuccess();
+    try {
+      const { data } = await throttledGet(`${BASE}/streams/symbol/${symbol}.json`);
+      recordSuccess();
 
-    if (!data?.messages) {
-      const empty = { bullish: 0, bearish: 0, total: 0, sentiment: 0 };
-      sentimentCache.set(symbol, { data: empty, ts: Date.now() });
-      return empty;
+      if (data?.messages) {
+        let bullish = 0, bearish = 0;
+        const topMessages = [];
+        data.messages.forEach(m => {
+          const s = m.entities?.sentiment?.basic;
+          if (s === 'Bullish') bullish++;
+          else if (s === 'Bearish') bearish++;
+          if (topMessages.length < 2 && m.body) topMessages.push(m.body);
+        });
+
+        const st = bullish + bearish;
+        const result = {
+          bullish, bearish,
+          total: data.messages.length,
+          sentiment: st > 0 ? Math.round(((bullish - bearish) / st) * 100) / 100 : 0,
+          topMessages
+        };
+        sentimentCache.set(symbol, { data: result, ts: Date.now() });
+        return result;
+      }
+    } catch (err) {
+      // Direct call failed (likely 403/429) — fall back to ApeWisdom for "mentions" at least
+      recordFailure();
+      try {
+        const { data: apeData } = await axios.get('https://apewisdom.io/api/v1.0/filter/all-stocks', { timeout: 5000 });
+        const match = (apeData?.results || []).find(d => d.ticker === symbol.toUpperCase());
+        if (match) {
+          const result = {
+            bullish: Math.round(match.mentions * 0.6), // Estimate 60/40 split if unknown
+            bearish: Math.round(match.mentions * 0.4),
+            total: match.mentions,
+            sentiment: 0.2, // Default neutral-bullish
+            isApeFallback: true
+          };
+          sentimentCache.set(symbol, { data: result, ts: Date.now() });
+          return result;
+        }
+      } catch (apeErr) { /* both failed */ }
     }
 
-    let bullish = 0, bearish = 0;
-    data.messages.forEach(m => {
-      const s = m.entities?.sentiment?.basic;
-      if (s === 'Bullish') bullish++;
-      else if (s === 'Bearish') bearish++;
-    });
-
-    const st = bullish + bearish;
-    const result = {
-      bullish, bearish,
-      total: data.messages.length,
-      sentiment: st > 0 ? Math.round(((bullish - bearish) / st) * 100) / 100 : 0
-    };
-    sentimentCache.set(symbol, { data: result, ts: Date.now() });
-    return result;
+    return { bullish: 0, bearish: 0, total: 0, sentiment: 0 };
   } catch (err) {
-    recordFailure();
-    // On 403/429, return cached or empty (don't spam logs)
-    if (err.response?.status === 403 || err.response?.status === 429) {
-      const cached = sentimentCache.get(symbol);
-      if (cached) return cached.data;
-    } else {
-      console.error(`[StockTwits] Sentiment error ${symbol}:`, err.message);
-    }
     return { bullish: 0, bearish: 0, total: 0, sentiment: 0 };
   }
 }

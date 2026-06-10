@@ -1400,5 +1400,73 @@
   },
   "2026-03-23": {
     "trending": []
+  },
+  "2026-04-20": {
+    "tomorrow": [
+      {
+        "symbol": "EQT",
+        "name": "EQT",
+        "entryPrice": 56.99,
+        "reason": "Earnings report scheduled for tomorrow. 73% analyst buy rating. Analyst target $69 (+20% upside).",
+        "score": 60,
+        "confidence": "MEDIUM",
+        "entrySignal": "enter",
+        "earningsTiming": "AMC",
+        "atr": 1.89,
+        "breakdown": {
+          "catalyst": 8,
+          "earningsQuality": 25,
+          "revision": 3,
+          "social": 0,
+          "news": 8,
+          "technical": 12,
+          "pead": 7,
+          "overextension": 0,
+          "liquidity": 0,
+          "prePostMarket": 0,
+          "meanReversion": 0,
+          "vixAdj": 0,
+          "squeeze": 0,
+          "float": 0,
+          "breakout": 0,
+          "dataQualityPenalty": -3
+        },
+        "timestamp": "2026-04-20T22:51:02.178Z"
+      }
+    ]
+  },
+  "2026-05-06": {
+    "trending": [
+      {
+        "symbol": "CVS",
+        "name": "CVS",
+        "entryPrice": 86.855,
+        "reason": "",
+        "score": 53,
+        "confidence": "MEDIUM",
+        "entrySignal": "gap_fade",
+        "earningsTiming": "BMO",
+        "atr": 2.4,
+        "breakdown": {
+          "catalyst": 11,
+          "earningsQuality": 25,
+          "revision": 3,
+          "social": 0,
+          "news": 10,
+          "technical": 9,
+          "pead": 4,
+          "overextension": -6,
+          "liquidity": 0,
+          "prePostMarket": 0,
+          "meanReversion": 0,
+          "vixAdj": 0,
+          "squeeze": 0,
+          "float": 0,
+          "breakout": 0,
+          "dataQualityPenalty": -3
+        },
+        "timestamp": "2026-05-06T23:18:20.767Z"
+      }
+    ]
   }
 }
