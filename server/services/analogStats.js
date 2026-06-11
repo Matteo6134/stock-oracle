@@ -16,6 +16,7 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SETUP_FILE = path.join(__dirname, '..', '..', 'python', 'backtest', 'archive', 'setup_stats.json');
 const MACRO_FILE = path.join(__dirname, '..', '..', 'python', 'backtest', 'archive', 'macro_stats.json');
+const INTRADAY_FILE = path.join(__dirname, '..', '..', 'python', 'backtest', 'archive', 'intraday_stats.json');
 
 // Live signal names → backtestable setup families
 const SIGNAL_MAP = {
@@ -152,4 +153,16 @@ export function getMacroRadar() {
   const macro = loadMacroStats();
   if (!macro?.today) return null;
   return { today: macro.today, bucket: macro.buckets?.[macro.today.bucket_key] || null };
+}
+
+const loadIntradayStats = cachedLoader(INTRADAY_FILE);
+
+/**
+ * Entry-timing evidence from the minute-bar archive (Alpaca 1-min data):
+ * { best: {time, n, avg_to_close_pct, win_rate}, byEntry: {...}, nSetupDays }
+ */
+export function getIntradayTiming() {
+  const stats = loadIntradayStats();
+  if (!stats?.best_entry) return null;
+  return { best: stats.best_entry, byEntry: stats.by_entry, nSetupDays: stats.n_setup_days };
 }

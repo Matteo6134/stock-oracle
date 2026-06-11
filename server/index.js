@@ -123,6 +123,31 @@ function runSetupStats() {
   });
 }
 
+// Weekly: refresh the rolling 60-day minute-bar archive (Alpaca 1-min data,
+// top-150 liquid symbols), then recompute intraday entry-timing stats.
+function runMinuteRefresh() {
+  const pyBin = process.env.PYTHON_BIN || 'C:\\Python312\\python.exe';
+  const cwd = path.join(__dirname, '..', 'python', 'backtest');
+  console.log('[Minute] Refreshing minute-bar archive...');
+  let proc;
+  try {
+    proc = spawn(pyBin, ['build_minute_archive.py'], { cwd });
+  } catch (err) { console.error('[Minute] spawn failed:', err.message); return; }
+  proc.on('error', (err) => console.error('[Minute] python error:', err.message));
+  proc.on('close', (code) => {
+    if (code !== 0) { console.error(`[Minute] archive build exited ${code}`); return; }
+    let statsProc;
+    try {
+      statsProc = spawn(pyBin, ['intraday_stats.py'], { cwd });
+    } catch (err) { console.error('[Minute] stats spawn failed:', err.message); return; }
+    statsProc.on('error', (err) => console.error('[Minute] stats error:', err.message));
+    statsProc.on('close', (c) => {
+      if (c === 0) console.log('[Minute] Intraday entry-timing stats refreshed.');
+      else console.error(`[Minute] intraday_stats exited ${c}`);
+    });
+  });
+}
+
 // Weekly: strategy R&D replay — squeeze-family variants vs SPY vs monkeys on
 // the full archive. Telegram summary of the leaderboard.
 function runWeeklyRnd() {
@@ -161,7 +186,7 @@ function runWeeklyRnd() {
 // 1998 (dot-com, 2008, 2020, 2022 included) + Claude's read on current risks.
 async function runMacroRadar() {
   try {
-    const { getMacroRadar, recommendedExitTarget } = await import('./services/analogStats.js');
+    const { getMacroRadar, recommendedExitTarget, getIntradayTiming } = await import('./services/analogStats.js');
     const radar = getMacroRadar();
     if (!radar?.today) { console.log('[MacroRadar] no macro_stats.json yet'); return; }
     const t = radar.today;
@@ -176,9 +201,25 @@ async function runMacroRadar() {
         `What followed: 1 month later SPY median ${b.fwd21_med > 0 ? '+' : ''}${b.fwd21_med}% (worst 10%: ${b.fwd21_p10}%, best 10%: +${b.fwd21_p90}%);`,
         b.fwd63_med != null ? `3 months later median ${b.fwd63_med > 0 ? '+' : ''}${b.fwd63_med}% (worst 10%: ${b.fwd63_p10}%).` : '',
       ].join(' '));
+      // Plain-language read of those numbers
+      const mood = b.fwd21_med >= 1 ? 'usually kept drifting UP over the following month'
+        : b.fwd21_med >= 0 ? 'usually went more or less sideways over the following month'
+        : 'more often than not LOST ground over the following month';
+      const tail = b.fwd21_p10 <= -8
+        ? `But beware: in the worst cases the market dropped ${b.fwd21_p10}% — days like today CAN precede big falls.`
+        : `Big crashes from this exact picture were rare — only 1 day in 10 was followed by a fall worse than ${b.fwd21_p10}%.`;
+      lines.push(`💬 _In plain words: after days that looked like today, the market ${mood}. ${tail}_`);
     }
     const exit = recommendedExitTarget();
-    if (exit) lines.push('', `🎯 Exit sweep: best historical take-profit is *+${exit.target_pct}%* (avg ${exit.avg_realized_pct > 0 ? '+' : ''}${exit.avg_realized_pct}%/trade incl. held losers)`);
+    if (exit) {
+      lines.push('', `🎯 Exit sweep: best historical take-profit is *+${exit.target_pct}%* (avg ${exit.avg_realized_pct > 0 ? '+' : ''}${exit.avg_realized_pct}%/trade incl. held losers)`);
+      lines.push(`💬 _In plain words: when our kind of setup works, it tends to run further than +10% — selling too early leaves money on the table; +${exit.target_pct}% was the sweet spot over 28 years._`);
+    }
+    const timing = getIntradayTiming();
+    if (timing?.best) {
+      lines.push('', `⏰ Intraday timing (1-min data, ${timing.nSetupDays.toLocaleString('en-US')} setup-days): best entry around *${timing.best.time} ET* (${timing.best.avg_to_close_pct > 0 ? '+' : ''}${timing.best.avg_to_close_pct}% avg to close, win ${Math.round(timing.best.win_rate * 100)}%)`);
+      lines.push(`💬 _In plain words: on days we trade, buying around ${timing.best.time} New York time has historically given the best result by the closing bell._`);
+    }
     if (isClaudeConfigured()) {
       try {
         const q = `Weekly macro check, 3-4 sentences max: SPY $${t.spy}, ${regimeLabel}. Historical analogs since 1998 show 1-month median ${b?.fwd21_med}%. Markets are debating an AI/space bubble and possible S&P drawdown. What are the 2-3 biggest risks to watch this week, and does history justify panic or patience?`;
@@ -1030,6 +1071,11 @@ if (!process.env.VERCEL) {
     // ── Weekly strategy R&D replay — Saturday 6 AM ET ──
     cron.schedule('0 6 * * 6', () => {
       try { runWeeklyRnd(); } catch (err) { console.error('[RnD] weekly run failed:', err.message); }
+    }, { timezone: 'America/New_York' });
+
+    // ── Weekly minute-bar refresh + intraday entry-timing stats — Saturday 8 AM ET ──
+    cron.schedule('0 8 * * 6', () => {
+      try { runMinuteRefresh(); } catch (err) { console.error('[Minute] weekly run failed:', err.message); }
     }, { timezone: 'America/New_York' });
 
     // ── Weekly macro radar — Sunday 12:00 ET (18:00 Italy) ──

@@ -1258,6 +1258,26 @@ const sigLabels = {
 const predictionAlerted = new Map(); // symbol → ts
 const PREDICTION_COOLDOWN = 12 * 60 * 60 * 1000;
 
+// Plain-language interpretation of the analog stats — what the numbers MEAN.
+function analogPlainWords(analog) {
+  const oneIn = analog.hitRate > 0 ? Math.max(2, Math.round(1 / analog.hitRate)) : null;
+  const parts = ['_In plain words:'];
+  if (analog.avgFwd5 >= 0.5) {
+    parts.push(`setups like this have been genuinely good — on average they gained ${analog.avgFwd5 > 0 ? '+' : ''}${analog.avgFwd5}% within a week.`);
+  } else if (analog.avgFwd5 > 0) {
+    parts.push(`setups like this drift slightly up on average (+${analog.avgFwd5}% in a week) — a small but real edge.`);
+  } else {
+    parts.push(`setups like this have NOT made money on average historically — be careful.`);
+  }
+  if (oneIn) {
+    parts.push(`Roughly 1 out of every ${oneIn} jumped the full +10% — ${oneIn <= 7 ? 'good odds for this kind of bet' : 'most do not jump that far, the big win is the exception'}.`);
+  }
+  if (analog.stable === false) {
+    parts.push('Note: this pattern worked better in past years than recently.');
+  }
+  return parts.join(' ') + '_';
+}
+
 function buildPredictionMessage(stock, orderInfo, fund, analog) {
   const claude = stock.claude || {};
   const e = stock.explosion || {};
@@ -1293,6 +1313,7 @@ function buildPredictionMessage(stock, orderInfo, fund, analog) {
       `📊 *History (since 1998):* ${Math.round(analog.hitRate * 100)}% of ${analog.n.toLocaleString('en-US')} similar setups (${setupLabel}) hit +10% within 5 days`,
       `· avg move ${analog.avgFwd5 > 0 ? '+' : ''}${analog.avgFwd5}%/5d${analog.regime ? ' in this VIX regime' : ''}${analog.stable === false ? ' · ⚠️ edge weaker since 2023' : ''}`,
     ].join(' '));
+    lines.push(`💬 ${analogPlainWords(analog)}`);
   }
 
   const factors = (e.factors || []).slice(0, 3);
