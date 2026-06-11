@@ -798,6 +798,18 @@ if (!process.env.VERCEL) {
         );
         const predicted = [...aiPredicted, ...evidencePredicted];
         const globalSkip = tradeResult.skipped === true ? tradeResult.reason : null;
+
+        // ── Cash-secured puts: same evidence bar, premium instead of shares.
+        // Only runs when the market is open (same global gate as autoTrader).
+        if (!globalSkip) {
+          try {
+            const { findAndSellCsp } = await import('./services/optionsTrader.js');
+            const csp = await findAndSellCsp(allAnalyzed);
+            if (csp.opened) console.log(`[CSP] Opened ${csp.opened.occSymbol}`);
+          } catch (err) {
+            console.error('[CSP] error:', err.message);
+          }
+        }
         for (const stock of predicted) {
           const bought = Array.isArray(tradeResult.bought)
             ? tradeResult.bought.find(b => b.symbol === stock.symbol) : null;
@@ -973,6 +985,21 @@ if (!process.env.VERCEL) {
       );
     } catch (err) {
       console.error('[Cron] Movers scan error:', err.message);
+    }
+  });
+
+  // ── CSP management: every 15 min during market hours ──
+  // Profit-closes decayed puts, detects expiry/assignment. Never closes red.
+  cron.schedule('*/15 * * * *', async () => {
+    const et = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }));
+    const hour = et.getHours();
+    const day = et.getDay();
+    if (day < 1 || day > 5 || hour < 9 || hour >= 16) return;
+    try {
+      const { manageCsps } = await import('./services/optionsTrader.js');
+      await manageCsps();
+    } catch (err) {
+      console.error('[CSP] manage error:', err.message);
     }
   });
 
