@@ -21,6 +21,7 @@ import { logNewTrade as logSupabaseTrade, logTradeExit as logSupabaseExit } from
 import { recordOutcome } from './claudeTracker.js';
 import { signalPerformance } from './tradeStats.js';
 import { getSignalReport, getComboBonus } from './signalLearner.js';
+import { getAnalog, analogVeto } from './analogStats.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CONFIG_FILE = path.join(__dirname, '..', 'data', 'autoTradeConfig.json');
@@ -181,6 +182,16 @@ function convictionFraction(stock, claude) {
   // Killer combo present (e.g. squeeze + volume_contraction: 71% hit10, n=24)
   if (getComboBonus(signals) >= 10) f += 0.15;
 
+  // 28-year analog evidence (setup_stats.json): base rate for these setups is
+  // ~+0.2%/5d, so >=+0.5%/5d on 1000+ cases is a genuinely strong family.
+  const analog = stock.analog;
+  if (analog && analog.n >= 1000) {
+    if (analog.avgFwd5 >= 0.5) f += 0.12;
+    else if (analog.avgFwd5 >= 0.25) f += 0.06;
+    else if (analog.avgFwd5 < 0) f -= 0.15;
+    if (analog.hitRate >= 0.15) f += 0.06;
+  }
+
   // Claude/Gemini validation confidence
   if (claude) {
     if (claude.confidence >= 9) f += 0.2;
@@ -290,6 +301,17 @@ export async function processSignals(analyzedStocks) {
         });
         continue;
       }
+    }
+
+    // ── Historical-evidence check: 28 years of setup analogs (1998→today).
+    // Attach to the stock (telegram reuses it) and veto when history is
+    // loudly negative for this setup family in this VIX regime.
+    const analog = getAnalog(stock, stock.vixRegime);
+    stock.analog = analog;
+    const evidenceVeto = analogVeto(analog);
+    if (evidenceVeto) {
+      results.skipped.push({ symbol, reason: evidenceVeto, gemScore, price });
+      continue;
     }
 
     if (heldSymbols.has(symbol)) {

@@ -1,0 +1,126 @@
+{
+ "generated_at": "2026-06-11T08:38:45.275916+00:00",
+ "buckets": {
+  "calm|up|deep_dd": {
+   "n_days": 350,
+   "fwd21_med": 0.28,
+   "fwd21_p10": -3.27,
+   "fwd21_p90": 3.9,
+   "fwd63_med": 1.4,
+   "fwd63_p10": -3.2
+  },
+  "calm|up|near_ath": {
+   "n_days": 2177,
+   "fwd21_med": 1.29,
+   "fwd21_p10": -3.21,
+   "fwd21_p90": 3.91,
+   "fwd63_med": 3.44,
+   "fwd63_p10": -4.6
+  },
+  "calm|up|pullback": {
+   "n_days": 407,
+   "fwd21_med": 1.03,
+   "fwd21_p10": -3.2,
+   "fwd21_p90": 3.85,
+   "fwd63_med": 2.78,
+   "fwd63_p10": -3.69
+  },
+  "elevated|down|deep_dd": {
+   "n_days": 328,
+   "fwd21_med": -1.56,
+   "fwd21_p10": -9.18,
+   "fwd21_p90": 5.23,
+   "fwd63_med": -4.95,
+   "fwd63_p10": -24.88
+  },
+  "elevated|down|pullback": {
+   "n_days": 348,
+   "fwd21_med": -1.36,
+   "fwd21_p10": -8.41,
+   "fwd21_p90": 6.84,
+   "fwd63_med": -1.48,
+   "fwd63_p10": -9.46
+  },
+  "elevated|up|deep_dd": {
+   "n_days": 461,
+   "fwd21_med": 2.36,
+   "fwd21_p10": -3.2,
+   "fwd21_p90": 5.56,
+   "fwd63_med": 5.34,
+   "fwd63_p10": -4.06
+  },
+  "elevated|up|near_ath": {
+   "n_days": 899,
+   "fwd21_med": 1.45,
+   "fwd21_p10": -4.8,
+   "fwd21_p90": 5.28,
+   "fwd63_med": 3.9,
+   "fwd63_p10": -7.41
+  },
+  "elevated|up|pullback": {
+   "n_days": 429,
+   "fwd21_med": 1.64,
+   "fwd21_p10": -5.26,
+   "fwd21_p90": 5.37,
+   "fwd63_med": 4.14,
+   "fwd63_p10": -8.71
+  },
+  "panic|down|deep_dd": {
+   "n_days": 738,
+   "fwd21_med": 2.94,
+   "fwd21_p10": -8.88,
+   "fwd21_p90": 10.01,
+   "fwd63_med": 4.99,
+   "fwd63_p10": -10.79
+  },
+  "panic|down|near_ath": {
+   "n_days": 61,
+   "fwd21_med": 1.3,
+   "fwd21_p10": -2.71,
+   "fwd21_p90": 6.16,
+   "fwd63_med": 5.42,
+   "fwd63_p10": -1.47
+  },
+  "panic|down|pullback": {
+   "n_days": 263,
+   "fwd21_med": 2.52,
+   "fwd21_p10": -4.49,
+   "fwd21_p90": 9.04,
+   "fwd63_med": 4.41,
+   "fwd63_p10": -8.56
+  },
+  "panic|up|deep_dd": {
+   "n_days": 94,
+   "fwd21_med": 3.66,
+   "fwd21_p10": -5.71,
+   "fwd21_p90": 9.09,
+   "fwd63_med": 9.6,
+   "fwd63_p10": -1.48
+  },
+  "panic|up|near_ath": {
+   "n_days": 82,
+   "fwd21_med": 3.42,
+   "fwd21_p10": -5.21,
+   "fwd21_p90": 6.87,
+   "fwd63_med": 7.83,
+   "fwd63_p10": -2.83
+  },
+  "panic|up|pullback": {
+   "n_days": 127,
+   "fwd21_med": 3.5,
+   "fwd21_p10": -2.75,
+   "fwd21_p90": 6.95,
+   "fwd63_med": 7.06,
+   "fwd63_p10": -0.01
+  }
+ },
+ "today": {
+  "date": "2026-06-09",
+  "spy": 737.05,
+  "vix": 19.87,
+  "vix_regime": "elevated",
+  "trend": "up",
+  "dd_bucket": "near_ath",
+  "bucket_key": "elevated|up|near_ath"
+ }
+}

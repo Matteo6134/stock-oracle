@@ -19,7 +19,7 @@ import { updateSignalTracker } from './services/signalTracker.js';
 import { filterRevolutStocks } from './services/revolut.js';
 import { setShared } from './services/sharedCache.js';
 import { runCalibration, getCalibration } from './services/strategyCalibrator.js';
-import { analyzeStock, getMarketBriefing, isClaudeConfigured, getMarketContext } from './services/claudeBrain.js';
+import { analyzeStock, getMarketBriefing, isClaudeConfigured, getMarketContext, askClaude } from './services/claudeBrain.js';
 import { logPrediction } from './services/claudeTracker.js';
 import { saveExplosionPrediction, resolveExplosionPredictions, resolveDailyPickFills } from './services/db.js';
 import * as alpacaService from './services/alpaca.js';
@@ -102,6 +102,95 @@ function runNightlyReplay() {
       console.error('[Replay] Report parse/notify failed:', err.message);
     }
   });
+}
+
+// Weekly: recompute 28-year setup→outcome analog tables (setup_stats.json,
+// macro_stats.json). analogStats.js reloads them automatically on mtime change.
+function runSetupStats() {
+  const pyBin = process.env.PYTHON_BIN || 'C:\\Python312\\python.exe';
+  const cwd = path.join(__dirname, '..', 'python', 'backtest');
+  console.log('[SetupStats] Recomputing 1998→today analog tables...');
+  let stderr = '';
+  let proc;
+  try {
+    proc = spawn(pyBin, ['setup_stats.py'], { cwd });
+  } catch (err) { console.error('[SetupStats] spawn failed:', err.message); return; }
+  proc.stderr.on('data', (d) => { stderr += d.toString(); });
+  proc.on('error', (err) => console.error('[SetupStats] python error:', err.message));
+  proc.on('close', (code) => {
+    if (code === 0) console.log('[SetupStats] Analog tables refreshed.');
+    else console.error(`[SetupStats] exited ${code}: ${stderr.slice(-300)}`);
+  });
+}
+
+// Weekly: strategy R&D replay — squeeze-family variants vs SPY vs monkeys on
+// the full archive. Telegram summary of the leaderboard.
+function runWeeklyRnd() {
+  const pyBin = process.env.PYTHON_BIN || 'C:\\Python312\\python.exe';
+  const cwd = path.join(__dirname, '..', 'python', 'backtest');
+  console.log('[RnD] Weekly strategy replay starting...');
+  let stderr = '';
+  let proc;
+  try {
+    proc = spawn(pyBin, ['historical_replay_rnd.py'], { cwd });
+  } catch (err) { console.error('[RnD] spawn failed:', err.message); return; }
+  proc.stderr.on('data', (d) => { stderr += d.toString(); });
+  proc.on('error', (err) => console.error('[RnD] python error:', err.message));
+  proc.on('close', async (code) => {
+    if (code !== 0) { console.error(`[RnD] exited ${code}: ${stderr.slice(-300)}`); return; }
+    try {
+      const { readFileSync } = await import('fs');
+      const report = JSON.parse(readFileSync(path.join(cwd, 'replay_results_rnd', 'replay_report_rnd.json'), 'utf8'));
+      const ranked = Object.values(report.strategies || {})
+        .sort((a, b) => (b.total_return_pct || 0) - (a.total_return_pct || 0));
+      const spy = report.spy_benchmark?.total_return_pct;
+      const lines = [
+        '🧬 *Weekly strategy R&D* (' + (report.window?.start || '?') + ' → ' + (report.window?.end || '?') + ')',
+        '',
+        ...ranked.slice(0, 5).map((s, i) =>
+          `${i + 1}. *${s.strategy}*: ${s.total_return_pct >= 0 ? '+' : ''}${Math.round(s.total_return_pct)}% · maxDD ${Math.round(s.max_drawdown_pct || 0)}% · beats ${Math.round(s.monkey_percentile || 0)}% of monkeys`),
+      ];
+      if (spy != null) lines.push('', `📊 SPY same window: +${Math.round(spy)}%`);
+      console.log('[RnD] Weekly replay complete — summary sent to Telegram');
+      await sendMessage(lines.join('\n'));
+    } catch (err) { console.error('[RnD] report parse failed:', err.message); }
+  });
+}
+
+// Weekly: macro radar — today's market regime vs every similar period since
+// 1998 (dot-com, 2008, 2020, 2022 included) + Claude's read on current risks.
+async function runMacroRadar() {
+  try {
+    const { getMacroRadar, recommendedExitTarget } = await import('./services/analogStats.js');
+    const radar = getMacroRadar();
+    if (!radar?.today) { console.log('[MacroRadar] no macro_stats.json yet'); return; }
+    const t = radar.today;
+    const b = radar.bucket;
+    const regimeLabel = `VIX ${t.vix} (${t.vix_regime}) · trend ${t.trend} · ${t.dd_bucket.replace('_', ' ')}`;
+    const lines = [
+      `🌍 *Macro Radar* — SPY $${t.spy} · ${regimeLabel}`,
+    ];
+    if (b) {
+      lines.push('', [
+        `Since 1998 there were *${b.n_days.toLocaleString('en-US')} days* like today.`,
+        `What followed: 1 month later SPY median ${b.fwd21_med > 0 ? '+' : ''}${b.fwd21_med}% (worst 10%: ${b.fwd21_p10}%, best 10%: +${b.fwd21_p90}%);`,
+        b.fwd63_med != null ? `3 months later median ${b.fwd63_med > 0 ? '+' : ''}${b.fwd63_med}% (worst 10%: ${b.fwd63_p10}%).` : '',
+      ].join(' '));
+    }
+    const exit = recommendedExitTarget();
+    if (exit) lines.push('', `🎯 Exit sweep: best historical take-profit is *+${exit.target_pct}%* (avg ${exit.avg_realized_pct > 0 ? '+' : ''}${exit.avg_realized_pct}%/trade incl. held losers)`);
+    if (isClaudeConfigured()) {
+      try {
+        const q = `Weekly macro check, 3-4 sentences max: SPY $${t.spy}, ${regimeLabel}. Historical analogs since 1998 show 1-month median ${b?.fwd21_med}%. Markets are debating an AI/space bubble and possible S&P drawdown. What are the 2-3 biggest risks to watch this week, and does history justify panic or patience?`;
+        const ans = await askClaude(q, null);
+        if (ans) lines.push('', `🤖 *AI view:* ${typeof ans === 'string' ? ans : ans.answer || ''}`);
+      } catch { /* stats-only radar is fine */ }
+    }
+    await sendMessage(lines.join('\n'));
+    console.log('[MacroRadar] sent');
+  } catch (err) {
+    console.error('[MacroRadar] error:', err.message);
+  }
 }
 
 // Run the Supabase signal-attribution backtest (python), then blend the
@@ -925,12 +1014,27 @@ if (!process.env.VERCEL) {
       try { refreshPriceArchive(); } catch (err) { console.error('[Archive] Daily refresh failed:', err.message); }
     }, { timezone: 'America/New_York' });
 
-    // ── NIGHTLY ROLLING BACKTEST — full 2016→today replay on the fresh archive ──
+    // ── NIGHTLY ROLLING BACKTEST — full 1998→today replay on the fresh archive ──
     // Runs at 5:30 AM ET, after the 4 AM archive refresh has appended yesterday's
     // bars, so every night the backtest window grows by one day. Sends a Telegram
     // summary of how each live strategy performs vs. SPY and the monkey baseline.
     cron.schedule('30 5 * * 2-6', () => {
       try { runNightlyReplay(); } catch (err) { console.error('[Replay] Nightly run failed:', err.message); }
+    }, { timezone: 'America/New_York' });
+
+    // ── Weekly analog-table refresh — Sunday 5 AM ET ──
+    cron.schedule('0 5 * * 0', () => {
+      try { runSetupStats(); } catch (err) { console.error('[SetupStats] weekly run failed:', err.message); }
+    }, { timezone: 'America/New_York' });
+
+    // ── Weekly strategy R&D replay — Saturday 6 AM ET ──
+    cron.schedule('0 6 * * 6', () => {
+      try { runWeeklyRnd(); } catch (err) { console.error('[RnD] weekly run failed:', err.message); }
+    }, { timezone: 'America/New_York' });
+
+    // ── Weekly macro radar — Sunday 12:00 ET (18:00 Italy) ──
+    cron.schedule('0 12 * * 0', () => {
+      runMacroRadar().catch(err => console.error('[MacroRadar] failed:', err.message));
     }, { timezone: 'America/New_York' });
 
     // ── Claude hourly market briefing (weekdays, 8 AM - 4 PM ET) ──

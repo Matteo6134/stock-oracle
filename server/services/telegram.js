@@ -16,6 +16,7 @@ import * as alpaca from './alpaca.js';
 import { getAutoTradeLog } from './autoTrader.js';
 import { getEarlyWarnings, getNewAlerts } from './earlyWarning.js';
 import { getFundamentalsSnapshot } from './yahooFinance.js';
+import { getAnalog } from './analogStats.js';
 import { scanPremarketMovers, getShortSqueezeSetups, getBreakoutSetups, STOCK_UNIVERSE } from './premarketScanner.js';
 import { getDynamicSymbols, getDynamicDiscoveryStats } from './dynamicDiscovery.js';
 import { runDailyPicker } from './dailyPicker.js';
@@ -1257,7 +1258,7 @@ const sigLabels = {
 const predictionAlerted = new Map(); // symbol → ts
 const PREDICTION_COOLDOWN = 12 * 60 * 60 * 1000;
 
-function buildPredictionMessage(stock, orderInfo, fund) {
+function buildPredictionMessage(stock, orderInfo, fund, analog) {
   const claude = stock.claude || {};
   const e = stock.explosion || {};
   const price = stock.price || 0;
@@ -1272,13 +1273,27 @@ function buildPredictionMessage(stock, orderInfo, fund) {
     .map(s => sigLabels[s] || s.replace(/_/g, ' '))
     .join(', ');
 
+  // When 28y of analog history is available, show the REAL probability and
+  // drop the heuristic one (historically wildly optimistic).
+  const probText = analog
+    ? ''
+    : (e.probability ? ` · est. probability ${e.probability}%` : '');
+
   const lines = [
     `🔮 *PREDICTION: ${stock.symbol}*${stock.companyName ? ` — ${stock.companyName}` : ''}`,
     '',
-    `💵 Now *$${price}* → target *$${target}* (*+${gainPct}%*) within *~${days} day${days === 1 ? '' : 's'}*${e.probability ? ` · est. probability ${e.probability}%` : ''}`,
+    `💵 Now *$${price}* → target *$${target}* (*+${gainPct}%*) within *~${days} day${days === 1 ? '' : 's'}*${probText}`,
     '',
     `📈 *Buy signals:* ${why}`,
   ];
+
+  if (analog) {
+    const setupLabel = analog.key.replace(/\+/g, ' + ').replace(/_/g, ' ');
+    lines.push('', [
+      `📊 *History (since 1998):* ${Math.round(analog.hitRate * 100)}% of ${analog.n.toLocaleString('en-US')} similar setups (${setupLabel}) hit +10% within 5 days`,
+      `· avg move ${analog.avgFwd5 > 0 ? '+' : ''}${analog.avgFwd5}%/5d${analog.regime ? ' in this VIX regime' : ''}${analog.stable === false ? ' · ⚠️ edge weaker since 2023' : ''}`,
+    ].join(' '));
+  }
 
   const factors = (e.factors || []).slice(0, 3);
   if (factors.length) lines.push(...factors.map(f => `  • ${f}`));
@@ -1331,7 +1346,8 @@ export async function notifyPrediction(stock, orderInfo = null) {
 
   try {
     const fund = await getFundamentalsSnapshot(stock.symbol).catch(() => null);
-    const sent = await broadcast(buildPredictionMessage(stock, orderInfo, fund));
+    const analog = stock.analog ?? getAnalog(stock, stock.vixRegime);
+    const sent = await broadcast(buildPredictionMessage(stock, orderInfo, fund, analog));
     if (sent > 0) predictionAlerted.set(stock.symbol, now);
   } catch (err) {
     console.error('[Telegram] Prediction alert error:', err.message);
