@@ -109,6 +109,13 @@ export async function researchTicker(symbol) {
     floatShares: Number(quote.floatShares ?? quote.sharesOutstanding ?? 0),
     shortPct: Number(quote.shortPercentOfFloat ?? 0) * 100,
     peRatio: Number(quote.trailingPE ?? 0),
+    // Extended-hours context — premarket/after-hours moves matter as much as
+    // the regular session for "should I care right now?"
+    marketState: quote.marketState || null, // PRE | REGULAR | POST | CLOSED
+    preMarketPrice: Number(quote.preMarketPrice ?? 0) || null,
+    preMarketChangePct: Number(quote.preMarketChangePercent ?? 0) || null,
+    postMarketPrice: Number(quote.postMarketPrice ?? 0) || null,
+    postMarketChangePct: Number(quote.postMarketChangePercent ?? 0) || null,
   } : null;
 
   // ── Fundamentals ──

@@ -270,7 +270,12 @@ export async function submitDayTradeOrders(pick, dollarAmount) {
   }
 
   try {
-    // Market on Open — submitted same-evening, fills at next open's auction price
+    // Market on Open — fills at the opening auction price.
+    // NO pre-submitted Market-on-Close sell anymore: (a) selling shares not
+    // yet owned 403s on this account (treated as a short sale), and (b) a
+    // blind MOC sell exits at a LOSS on red days — violating the absolute
+    // never-sell-in-loss rule. Exits are handled by the auto-trader exit
+    // checker (take-profit / trailing / breakeven-only time stop).
     const buyOrder = await alpaca.submitOrder({
       symbol: pick.symbol,
       qty,
@@ -279,18 +284,9 @@ export async function submitDayTradeOrders(pick, dollarAmount) {
       timeInForce: 'opg',                  // opening cross
     });
 
-    // Market on Close — submitted same-evening, fills at next session's closing auction
-    const sellOrder = await alpaca.submitOrder({
-      symbol: pick.symbol,
-      qty,
-      side: 'sell',
-      type: 'market',
-      timeInForce: 'cls',                  // closing cross
-    });
-
-    return { ok: true, buyOrder, sellOrder };
+    return { ok: true, buyOrder };
   } catch (err) {
-    return { ok: false, error: err?.message || 'submit failed' };
+    return { ok: false, error: err?.response?.data?.message || err?.message || 'submit failed' };
   }
 }
 
@@ -370,11 +366,19 @@ export async function runDailyPicker(opts = {}) {
     return { picks: [], ranked: [], orderResults: [] };
   }
 
-  // Resolve buying power from Alpaca if not provided
+  // Resolve buying power from Alpaca if not provided. Cap at the auto-trade
+  // budget — daytrading buying power (4x) must NOT size these orders: a $4k
+  // account was getting $4.8k/pick allocations from the $16k intraday BP.
+  let tradeCfg = null;
+  try {
+    const { getAutoTradeConfig } = await import('./autoTrader.js');
+    tradeCfg = getAutoTradeConfig();
+  } catch { /* fall back to raw buying power */ }
   if (autoTrade && buyingPower == null) {
     try {
       const acct = await alpaca.getAccount();
-      buyingPower = acct?.buyingPower || acct?.cash || 0;
+      buyingPower = acct?.cash || 0;
+      if (tradeCfg?.maxBudget > 0) buyingPower = Math.min(buyingPower, tradeCfg.maxBudget);
     } catch (err) {
       console.error('[DailyPicker] could not fetch Alpaca account:', err.message);
       buyingPower = 0;
@@ -396,11 +400,14 @@ export async function runDailyPicker(opts = {}) {
     return { picks: [], ranked: [], orderResults: [] };
   }
 
-  // Cap to maxPositions and allocate
+  // Cap to maxPositions and allocate — each pick also clamped to maxPerStock
   const limited = ranked.slice(0, maxPositions);
-  const allocations = autoTrade
+  let allocations = autoTrade
     ? allocateCapital(limited, buyingPower, maxPctPerPick, maxTotalDeployPct)
     : limited.map(p => ({ pick: p, dollarAmount: 0 }));
+  if (autoTrade && tradeCfg?.maxPerStock > 0) {
+    allocations = allocations.map(a => ({ ...a, dollarAmount: Math.min(a.dollarAmount, tradeCfg.maxPerStock) }));
+  }
 
   // Persist all picks to local JSON history + Supabase mirror
   const picks = limited.map(toDailyPick);
@@ -453,7 +460,7 @@ export async function runDailyPicker(opts = {}) {
         ].join('\n');
       }),
       ``,
-      `*Plan:* Buy MOO, Sell MOC`,
+      `*Plan:* Buy at the open \\— exits managed by the bot \\(profit\\-only, never sold red\\)`,
       autoTrade
         ? `Deployed: $${escapeMd(totalDeployed.toLocaleString())} \\(${successCount}/${orderResults.length} orders\\) of $${escapeMd(Math.round(buyingPower).toLocaleString())} buying power`
         : `_Auto\\-trade off — manual execution_`,

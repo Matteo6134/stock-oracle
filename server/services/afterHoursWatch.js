@@ -11,7 +11,7 @@
  */
 
 import axios from 'axios';
-import { STOCK_UNIVERSE } from './premarketScanner.js';
+import { getFullUniverse } from './premarketScanner.js';
 import { getEarningsCalendar } from './yahooFinance.js';
 
 const ALPACA_DATA = 'https://data.alpaca.markets';
@@ -58,9 +58,7 @@ export async function scanAfterHoursMovers() {
   const earningsToday = new Set(
     earnings.filter(e => e.isToday).map(e => String(e.symbol).toUpperCase()),
   );
-  // STOCK_UNIVERSE is { category: [symbols] } — flatten all categories
-  const universe = Object.values(STOCK_UNIVERSE).flat().filter(s => typeof s === 'string');
-  const symbols = [...universe, ...earningsToday];
+  const symbols = [...getFullUniverse(), ...earningsToday];
 
   const snaps = await fetchSnapshots(symbols);
   const now = Date.now();

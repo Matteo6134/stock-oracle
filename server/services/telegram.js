@@ -1094,6 +1094,12 @@ function formatDossier(d) {
     const pr = d.price;
     const arrow = pr.changePct >= 0 ? '↑' : '↓';
     L.push(`💵 *${$(pr.last)}*  ${arrow} ${p(pr.changePct)}  · Vol ${shortNum(pr.volume)} (${(pr.volume/Math.max(pr.avgVolume,1)).toFixed(1)}× avg)`);
+    // Extended-hours line — what's happening RIGHT NOW outside the session
+    if (pr.marketState === 'PRE' && pr.preMarketPrice) {
+      L.push(`🌅 *Premarket NOW:* ${$(pr.preMarketPrice)} (${p(pr.preMarketChangePct || 0)})`);
+    } else if ((pr.marketState === 'POST' || pr.marketState === 'CLOSED') && pr.postMarketPrice && Math.abs(pr.postMarketChangePct || 0) >= 0.3) {
+      L.push(`🌙 *After-hours:* ${$(pr.postMarketPrice)} (${p(pr.postMarketChangePct || 0)})`);
+    }
     if (pr.marketCap) L.push(`   Cap ${shortNum(pr.marketCap)} · Float ${shortNum(pr.floatShares)}${pr.shortPct ? ` · SI ${pr.shortPct.toFixed(1)}%` : ''}`);
     if (pr.week52High) {
       const fromHigh = ((pr.last / pr.week52High - 1) * 100).toFixed(1);

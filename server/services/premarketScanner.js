@@ -1,4 +1,7 @@
 import YahooFinance from 'yahoo-finance2';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { getQuoteBatch, getHistoricalData } from './yahooFinance.js';
 import { getDynamicSymbols, getCachedDynamicSymbols } from './dynamicDiscovery.js';
 
@@ -153,6 +156,27 @@ export function calcFloatRotation(volume, floatShares) {
 // Build the full universe (deduplicated)
 // ────────────────────────────────────────────────────────────────────────────
 
+// Liquidity-filtered archive universe (1,500 symbols, expand_universe.py) —
+// widens the scan base far beyond the ~270 hand-picked names. Lazily loaded.
+let archiveUniverseCache = null;
+function getArchiveUniverse() {
+  if (archiveUniverseCache) return archiveUniverseCache;
+  try {
+    const file = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..', 'python', 'monkey', 'universe_active.json');
+    const data = JSON.parse(fs.readFileSync(file, 'utf8'));
+    archiveUniverseCache = (data.symbols || []).filter(s => /^[A-Z]{1,5}$/.test(s));
+    console.log(`[PremarketScanner] Archive universe loaded: ${archiveUniverseCache.length} symbols`);
+  } catch (err) {
+    console.warn('[PremarketScanner] Archive universe unavailable, using curated lists only:', err.message);
+    archiveUniverseCache = [];
+  }
+  return archiveUniverseCache;
+}
+
+export function getFullUniverse() {
+  return buildUniverse();
+}
+
 function buildUniverse(earningsCalendar = []) {
   const earningsSymbols = earningsCalendar
     .map(e => (e.symbol || e.ticker || '').toUpperCase())
@@ -161,6 +185,7 @@ function buildUniverse(earningsCalendar = []) {
   const all = [
     ...earningsSymbols,
     ...getCachedDynamicSymbols(),
+    ...getArchiveUniverse(),
     ...SMALL_MID_CAPS,
     ...BIOTECH_PHARMA,
     ...MEME_VOLATILE,

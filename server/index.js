@@ -1019,6 +1019,21 @@ if (!process.env.VERCEL) {
   console.log('  - Movers scan: every 3m (4 - 9:30 AM ET pre-market)');
 }
 
+// Manual daily-pick run (local diagnostics/retry) — POST /api/daily-pick/run?autoTrade=true
+app.post('/api/daily-pick/run', async (req, res) => {
+  try {
+    const autoTrade = req.query.autoTrade === 'true';
+    const result = await runDailyPicker({ autoTrade, telegramNotifier: sendMessage });
+    res.json({
+      ok: true,
+      picks: result.picks.map(p => ({ symbol: p.symbol, score: p.compositeScore, entry: p.entryPrice })),
+      orders: result.orderResults.map(o => ({ symbol: o.symbol, dollar: o.dollarAmount, ok: o.ok, error: o.error || null })),
+    });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
