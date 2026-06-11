@@ -34,3 +34,5 @@ dist-ssr
 # Gemini
 .gemini/
 server/data/telegramConfig.json
+python/backtest/archive/minute_bars.parquet
+python/backtest/archive/*.bak2016
