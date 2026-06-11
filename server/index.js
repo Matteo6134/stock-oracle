@@ -1020,7 +1020,12 @@ if (!process.env.VERCEL) {
 }
 
 // Manual daily-pick run (local diagnostics/retry) — POST /api/daily-pick/run?autoTrade=true
-app.post('/api/daily-pick/run', async (req, res) => {
+// Loopback-only: this endpoint can place orders; the server listens on 0.0.0.0.
+app.post('/api/daily-pick/run', (req, res, next) => {
+  const ip = req.ip || req.socket?.remoteAddress || '';
+  if (ip === '127.0.0.1' || ip === '::1' || ip === '::ffff:127.0.0.1') return next();
+  return res.status(403).json({ error: 'local only' });
+}, async (req, res) => {
   try {
     const autoTrade = req.query.autoTrade === 'true';
     const result = await runDailyPicker({ autoTrade, telegramNotifier: sendMessage });
