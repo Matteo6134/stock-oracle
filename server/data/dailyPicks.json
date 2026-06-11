@@ -2636,5 +2636,131 @@
       "dark_pool_squeeze"
     ],
     "createdAt": "2026-06-10T20:05:00.049Z"
+  },
+  {
+    "pickDate": "2026-06-11",
+    "symbol": "QUBT",
+    "compositeScore": 32.58,
+    "gemScore": 100,
+    "claudeConfidence": null,
+    "explosionProb": 43,
+    "entryPrice": 9.51,
+    "expectedReturnPct": 15,
+    "reasoning": "Picked from 3 candidates by composite ranking",
+    "signals": [
+      "short_squeeze_loading",
+      "bb_squeeze",
+      "volume_contraction",
+      "bullish_options",
+      "unusual_options_volume"
+    ],
+    "createdAt": "2026-06-11T11:50:10.944Z"
+  },
+  {
+    "pickDate": "2026-06-11",
+    "symbol": "NU",
+    "compositeScore": 24.58,
+    "gemScore": 100,
+    "claudeConfidence": null,
+    "explosionProb": 43,
+    "entryPrice": 11.61,
+    "expectedReturnPct": 15,
+    "reasoning": "Picked from 3 candidates by composite ranking",
+    "signals": [
+      "smart_money",
+      "bb_squeeze",
+      "stealth_accumulation",
+      "bullish_options",
+      "unusual_options_volume"
+    ],
+    "createdAt": "2026-06-11T11:50:10.944Z"
+  },
+  {
+    "pickDate": "2026-06-11",
+    "symbol": "SPCE",
+    "compositeScore": 16.94,
+    "gemScore": 100,
+    "claudeConfidence": null,
+    "explosionProb": 56,
+    "entryPrice": 4.68,
+    "expectedReturnPct": 31,
+    "reasoning": "Picked from 3 candidates by composite ranking",
+    "signals": [
+      "momentum_acceleration",
+      "short_squeeze_loading",
+      "bb_squeeze",
+      "price_compression",
+      "bullish_options",
+      "unusual_options_volume"
+    ],
+    "createdAt": "2026-06-11T11:50:10.944Z"
+  },
+  {
+    "pickDate": "2026-06-11",
+    "symbol": "QUBT",
+    "compositeScore": 26.58,
+    "gemScore": 100,
+    "claudeConfidence": null,
+    "explosionProb": 43,
+    "entryPrice": 9.51,
+    "expectedReturnPct": 15,
+    "reasoning": "Picked from 3 candidates by composite ranking",
+    "signals": [
+      "short_squeeze_loading",
+      "bb_squeeze",
+      "volume_contraction",
+      "bullish_options",
+      "unusual_options_volume",
+      "put_call_extreme_bullish",
+      "near_expiry_call_rush",
+      "dark_pool_squeeze"
+    ],
+    "createdAt": "2026-06-11T12:05:36.678Z"
+  },
+  {
+    "pickDate": "2026-06-11",
+    "symbol": "NU",
+    "compositeScore": 18.58,
+    "gemScore": 100,
+    "claudeConfidence": null,
+    "explosionProb": 43,
+    "entryPrice": 11.61,
+    "expectedReturnPct": 15,
+    "reasoning": "Picked from 3 candidates by composite ranking",
+    "signals": [
+      "smart_money",
+      "bb_squeeze",
+      "stealth_accumulation",
+      "bullish_options",
+      "unusual_options_volume",
+      "put_call_extreme_bullish",
+      "near_expiry_call_rush",
+      "analyst_strong_buy"
+    ],
+    "createdAt": "2026-06-11T12:05:36.678Z"
+  },
+  {
+    "pickDate": "2026-06-11",
+    "symbol": "SPCE",
+    "compositeScore": 10.94,
+    "gemScore": 100,
+    "claudeConfidence": null,
+    "explosionProb": 56,
+    "entryPrice": 4.68,
+    "expectedReturnPct": 31,
+    "reasoning": "Picked from 3 candidates by composite ranking",
+    "signals": [
+      "momentum_acceleration",
+      "short_squeeze_loading",
+      "bb_squeeze",
+      "price_compression",
+      "bullish_options",
+      "unusual_options_volume",
+      "put_call_extreme_bullish",
+      "deep_itm_calls",
+      "near_expiry_call_rush",
+      "dark_pool_pressure"
+    ],
+    "createdAt": "2026-06-11T12:05:36.678Z"
   }
 ]
