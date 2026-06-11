@@ -2569,5 +2569,72 @@
       "unusual_options_volume"
     ],
     "createdAt": "2026-06-10T11:50:11.772Z"
+  },
+  {
+    "pickDate": "2026-06-11",
+    "symbol": "QUBT",
+    "compositeScore": 26.58,
+    "gemScore": 100,
+    "claudeConfidence": null,
+    "explosionProb": 43,
+    "entryPrice": 9.52,
+    "expectedReturnPct": 15,
+    "reasoning": "Picked from 3 candidates by composite ranking",
+    "signals": [
+      "short_squeeze_loading",
+      "bb_squeeze",
+      "volume_contraction",
+      "bullish_options",
+      "unusual_options_volume",
+      "put_call_extreme_bullish",
+      "near_expiry_call_rush",
+      "dark_pool_squeeze"
+    ],
+    "createdAt": "2026-06-10T20:05:00.049Z"
+  },
+  {
+    "pickDate": "2026-06-11",
+    "symbol": "NU",
+    "compositeScore": 18.58,
+    "gemScore": 100,
+    "claudeConfidence": null,
+    "explosionProb": 43,
+    "entryPrice": 11.63,
+    "expectedReturnPct": 15,
+    "reasoning": "Picked from 3 candidates by composite ranking",
+    "signals": [
+      "smart_money",
+      "bb_squeeze",
+      "stealth_accumulation",
+      "bullish_options",
+      "unusual_options_volume",
+      "put_call_extreme_bullish",
+      "near_expiry_call_rush",
+      "analyst_strong_buy"
+    ],
+    "createdAt": "2026-06-10T20:05:00.049Z"
+  },
+  {
+    "pickDate": "2026-06-11",
+    "symbol": "RGTI",
+    "compositeScore": 17.58,
+    "gemScore": 100,
+    "claudeConfidence": null,
+    "explosionProb": 43,
+    "entryPrice": 19.54,
+    "expectedReturnPct": 15,
+    "reasoning": "Picked from 3 candidates by composite ranking",
+    "signals": [
+      "short_squeeze_loading",
+      "bb_squeeze",
+      "volume_contraction",
+      "bullish_options",
+      "unusual_options_volume",
+      "institutions_accumulating",
+      "put_call_bullish",
+      "near_expiry_call_rush",
+      "dark_pool_squeeze"
+    ],
+    "createdAt": "2026-06-10T20:05:00.049Z"
   }
 ]

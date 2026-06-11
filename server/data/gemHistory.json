@@ -32236,7 +32236,12 @@
             "maxGain": -4.99,
             "maxDrawdown": -37.45
           },
-          "7d": null
+          "7d": {
+            "close": 27.47,
+            "return": -39.85,
+            "maxGain": -4.99,
+            "maxDrawdown": -43.79
+          }
         }
       },
       {
@@ -32342,7 +32347,12 @@
             "maxGain": -11.81,
             "maxDrawdown": -31.76
           },
-          "7d": null
+          "7d": {
+            "close": 15.75,
+            "return": -39,
+            "maxGain": -11.81,
+            "maxDrawdown": -42.84
+          }
         }
       },
       {
@@ -32447,7 +32457,12 @@
             "maxGain": 8.36,
             "maxDrawdown": -2.62
           },
-          "7d": null
+          "7d": {
+            "close": 21.92,
+            "return": 6.2,
+            "maxGain": 8.36,
+            "maxDrawdown": -2.62
+          }
         }
       },
       {
@@ -32552,7 +32567,12 @@
             "maxGain": 6.35,
             "maxDrawdown": -6.7
           },
-          "7d": null
+          "7d": {
+            "close": 84.87,
+            "return": -7.71,
+            "maxGain": 6.35,
+            "maxDrawdown": -10.58
+          }
         }
       },
       {
@@ -32657,7 +32677,12 @@
             "maxGain": 1.09,
             "maxDrawdown": -9.58
           },
-          "7d": null
+          "7d": {
+            "close": 14.11,
+            "return": -9.26,
+            "maxGain": 1.09,
+            "maxDrawdown": -10.23
+          }
         }
       },
       {
@@ -32761,7 +32786,12 @@
             "maxGain": 97.34,
             "maxDrawdown": -9.98
           },
-          "7d": null
+          "7d": {
+            "close": 4.59,
+            "return": 1.77,
+            "maxGain": 97.34,
+            "maxDrawdown": -9.98
+          }
         }
       },
       {
@@ -32865,7 +32895,12 @@
             "maxGain": 10.53,
             "maxDrawdown": -16.8
           },
-          "7d": null
+          "7d": {
+            "close": 3.99,
+            "return": -19.23,
+            "maxGain": 10.53,
+            "maxDrawdown": -22.47
+          }
         }
       },
       {
@@ -32969,7 +33004,12 @@
             "maxGain": 8.32,
             "maxDrawdown": -5.88
           },
-          "7d": null
+          "7d": {
+            "close": 110.42,
+            "return": -4.02,
+            "maxGain": 8.32,
+            "maxDrawdown": -6.83
+          }
         }
       },
       {
@@ -33073,7 +33113,12 @@
             "maxGain": 21.33,
             "maxDrawdown": 6.23
           },
-          "7d": null
+          "7d": {
+            "close": 236.13,
+            "return": 3.5,
+            "maxGain": 21.33,
+            "maxDrawdown": -0.05
+          }
         }
       },
       {
@@ -33177,7 +33222,12 @@
             "maxGain": 10.78,
             "maxDrawdown": -3.35
           },
-          "7d": null
+          "7d": {
+            "close": 15.48,
+            "return": -5.72,
+            "maxGain": 10.78,
+            "maxDrawdown": -8.25
+          }
         }
       }
     ],
@@ -33292,7 +33342,12 @@
             "maxGain": 11.49,
             "maxDrawdown": 0.2
           },
-          "7d": null
+          "7d": {
+            "close": 21.97,
+            "return": 9.52,
+            "maxGain": 11.49,
+            "maxDrawdown": 0.2
+          }
         }
       },
       {
@@ -33397,7 +33452,12 @@
             "maxGain": 3.58,
             "maxDrawdown": -18.29
           },
-          "7d": null
+          "7d": {
+            "close": 4.05,
+            "return": -19.49,
+            "maxGain": 3.58,
+            "maxDrawdown": -23.86
+          }
         }
       },
       {
@@ -33502,7 +33562,12 @@
             "maxGain": 5.92,
             "maxDrawdown": -6.7
           },
-          "7d": null
+          "7d": {
+            "close": 33.89,
+            "return": -8.41,
+            "maxGain": 5.92,
+            "maxDrawdown": -11.73
+          }
         }
       },
       {
@@ -33607,7 +33672,12 @@
             "maxGain": 3.1,
             "maxDrawdown": -7.04
           },
-          "7d": null
+          "7d": {
+            "close": 3.3,
+            "return": -7.01,
+            "maxGain": 3.1,
+            "maxDrawdown": -8.17
+          }
         }
       },
       {
@@ -33711,7 +33781,12 @@
             "maxGain": 11.47,
             "maxDrawdown": -11
           },
-          "7d": null
+          "7d": {
+            "close": 35.56,
+            "return": -22.88,
+            "maxGain": 11.47,
+            "maxDrawdown": -25.18
+          }
         }
       },
       {
@@ -33815,7 +33890,12 @@
             "maxGain": 8.86,
             "maxDrawdown": -34.62
           },
-          "7d": null
+          "7d": {
+            "close": 4.64,
+            "return": -25.36,
+            "maxGain": 8.86,
+            "maxDrawdown": -34.62
+          }
         }
       },
       {
@@ -33919,7 +33999,12 @@
             "maxGain": 13.99,
             "maxDrawdown": -2.91
           },
-          "7d": null
+          "7d": {
+            "close": 29.37,
+            "return": 12.27,
+            "maxGain": 13.99,
+            "maxDrawdown": -2.91
+          }
         }
       },
       {
@@ -34023,7 +34108,12 @@
             "maxGain": 11.13,
             "maxDrawdown": -7.56
           },
-          "7d": null
+          "7d": {
+            "close": 232.63,
+            "return": -5.99,
+            "maxGain": 11.13,
+            "maxDrawdown": -11.46
+          }
         }
       },
       {
@@ -34127,7 +34217,12 @@
             "maxGain": 1.85,
             "maxDrawdown": -13.11
           },
-          "7d": null
+          "7d": {
+            "close": 43,
+            "return": -8.76,
+            "maxGain": 1.85,
+            "maxDrawdown": -13.11
+          }
         }
       },
       {
@@ -34231,7 +34326,12 @@
             "maxGain": 8.22,
             "maxDrawdown": -4.02
           },
-          "7d": null
+          "7d": {
+            "close": 5.49,
+            "return": -3.93,
+            "maxGain": 8.22,
+            "maxDrawdown": -7.87
+          }
         }
       }
     ],
@@ -34339,7 +34439,12 @@
             "maxGain": 4.61,
             "maxDrawdown": -5.99
           },
-          "5d": null,
+          "5d": {
+            "close": 21.92,
+            "return": 2.53,
+            "maxGain": 4.61,
+            "maxDrawdown": -5.99
+          },
           "7d": null
         }
       },
@@ -34440,7 +34545,12 @@
             "maxGain": 9.48,
             "maxDrawdown": -21.58
           },
-          "5d": null,
+          "5d": {
+            "close": 19.69,
+            "return": -23.18,
+            "maxGain": 9.48,
+            "maxDrawdown": -27.94
+          },
           "7d": null
         }
       },
@@ -34540,7 +34650,12 @@
             "maxGain": -6.37,
             "maxDrawdown": -23.03
           },
-          "5d": null,
+          "5d": {
+            "close": 3.99,
+            "return": -25.28,
+            "maxGain": -6.37,
+            "maxDrawdown": -28.28
+          },
           "7d": null
         }
       },
@@ -34641,7 +34756,12 @@
             "maxGain": -4.17,
             "maxDrawdown": -15.65
           },
-          "5d": null,
+          "5d": {
+            "close": 10.79,
+            "return": -8.25,
+            "maxGain": -4.17,
+            "maxDrawdown": -15.65
+          },
           "7d": null
         }
       },
@@ -34741,7 +34861,12 @@
             "maxGain": 2.75,
             "maxDrawdown": -3.97
           },
-          "5d": null,
+          "5d": {
+            "close": 119.7,
+            "return": -4.58,
+            "maxGain": 2.75,
+            "maxDrawdown": -5.64
+          },
           "7d": null
         }
       },
@@ -34840,7 +34965,12 @@
             "maxGain": -31.48,
             "maxDrawdown": -46.3
           },
-          "5d": null,
+          "5d": {
+            "close": 4.59,
+            "return": -39.29,
+            "maxGain": -31.48,
+            "maxDrawdown": -46.3
+          },
           "7d": null
         }
       },
@@ -34939,7 +35069,12 @@
             "maxGain": -0.24,
             "maxDrawdown": -20.76
           },
-          "5d": null,
+          "5d": {
+            "close": 9.51,
+            "return": -23.22,
+            "maxGain": -0.24,
+            "maxDrawdown": -26.78
+          },
           "7d": null
         }
       },
@@ -35038,7 +35173,12 @@
             "maxGain": -4.93,
             "maxDrawdown": -13.78
           },
-          "5d": null,
+          "5d": {
+            "close": 11.88,
+            "return": -8.55,
+            "maxGain": -4.93,
+            "maxDrawdown": -13.78
+          },
           "7d": null
         }
       },
@@ -35137,7 +35277,12 @@
             "maxGain": 4.61,
             "maxDrawdown": -3.23
           },
-          "5d": null,
+          "5d": {
+            "close": 14.11,
+            "return": -2.89,
+            "maxGain": 4.61,
+            "maxDrawdown": -3.92
+          },
           "7d": null
         }
       },
@@ -35236,7 +35381,12 @@
             "maxGain": 7.59,
             "maxDrawdown": -16.19
           },
-          "5d": null,
+          "5d": {
+            "close": 392.16,
+            "return": -14.76,
+            "maxGain": 7.59,
+            "maxDrawdown": -19.51
+          },
           "7d": null
         }
       }
@@ -35344,7 +35494,12 @@
             "maxGain": 2.35,
             "maxDrawdown": -11.96
           },
-          "5d": null,
+          "5d": {
+            "close": 138.37,
+            "return": -8.57,
+            "maxGain": 2.35,
+            "maxDrawdown": -14.31
+          },
           "7d": null
         }
       },
@@ -35442,7 +35597,12 @@
             "maxGain": -4.06,
             "maxDrawdown": -8.76
           },
-          "5d": null,
+          "5d": {
+            "close": 13.85,
+            "return": -10.09,
+            "maxGain": -4.06,
+            "maxDrawdown": -10.51
+          },
           "7d": null
         }
       },
@@ -35540,7 +35700,12 @@
             "maxGain": -6.92,
             "maxDrawdown": -25.22
           },
-          "5d": null,
+          "5d": {
+            "close": 20.34,
+            "return": -24.33,
+            "maxGain": -6.92,
+            "maxDrawdown": -31.29
+          },
           "7d": null
         }
       },
@@ -35638,7 +35803,12 @@
             "maxGain": 7.11,
             "maxDrawdown": -1.42
           },
-          "5d": null,
+          "5d": {
+            "close": 21.97,
+            "return": 5.22,
+            "maxGain": 7.11,
+            "maxDrawdown": -1.42
+          },
           "7d": null
         }
       },
@@ -35736,7 +35906,12 @@
             "maxGain": 10.6,
             "maxDrawdown": -14.34
           },
-          "5d": null,
+          "5d": {
+            "close": 15.63,
+            "return": -24.04,
+            "maxGain": 10.6,
+            "maxDrawdown": -28.25
+          },
           "7d": null
         }
       },
@@ -35834,7 +36009,12 @@
             "maxGain": -3.04,
             "maxDrawdown": -7.92
           },
-          "5d": null,
+          "5d": {
+            "close": 8.74,
+            "return": -5.15,
+            "maxGain": -3.04,
+            "maxDrawdown": -7.92
+          },
           "7d": null
         }
       },
@@ -35932,7 +36112,12 @@
             "maxGain": 2.52,
             "maxDrawdown": 0.09
           },
-          "5d": null,
+          "5d": {
+            "close": 90.95,
+            "return": 3.09,
+            "maxGain": 3.16,
+            "maxDrawdown": -0.35
+          },
           "7d": null
         }
       }
@@ -36034,7 +36219,12 @@
             "maxGain": -6.43,
             "maxDrawdown": -11.4
           },
-          "3d": null,
+          "3d": {
+            "close": 56.69,
+            "return": -16.84,
+            "maxGain": -4.8,
+            "maxDrawdown": -21.86
+          },
           "5d": null,
           "7d": null
         }
@@ -36127,7 +36317,12 @@
             "maxGain": -1.53,
             "maxDrawdown": -5.8
           },
-          "3d": null,
+          "3d": {
+            "close": 15.73,
+            "return": -13.95,
+            "maxGain": -1.53,
+            "maxDrawdown": -16.63
+          },
           "5d": null,
           "7d": null
         }
@@ -36221,7 +36416,12 @@
             "maxGain": -3.74,
             "maxDrawdown": -10.13
           },
-          "3d": null,
+          "3d": {
+            "close": 19.69,
+            "return": -18.26,
+            "maxGain": -3.74,
+            "maxDrawdown": -23.33
+          },
           "5d": null,
           "7d": null
         }
@@ -36314,7 +36514,12 @@
             "maxGain": 1.31,
             "maxDrawdown": -4
           },
-          "3d": null,
+          "3d": {
+            "close": 28.98,
+            "return": 5.27,
+            "maxGain": 5.99,
+            "maxDrawdown": -7.74
+          },
           "5d": null,
           "7d": null
         }
@@ -36407,7 +36612,12 @@
             "maxGain": 0.66,
             "maxDrawdown": -0.33
           },
-          "3d": null,
+          "3d": {
+            "close": 90.15,
+            "return": 1.21,
+            "maxGain": 1.59,
+            "maxDrawdown": -1.3
+          },
           "5d": null,
           "7d": null
         }
@@ -36500,7 +36710,12 @@
             "maxGain": -2.14,
             "maxDrawdown": -3.59
           },
-          "3d": null,
+          "3d": {
+            "close": 91.31,
+            "return": -5.08,
+            "maxGain": -1.98,
+            "maxDrawdown": -7.71
+          },
           "5d": null,
           "7d": null
         }
@@ -36593,7 +36808,12 @@
             "maxGain": -6.01,
             "maxDrawdown": -17.06
           },
-          "3d": null,
+          "3d": {
+            "close": 17.49,
+            "return": -19.81,
+            "maxGain": -6.01,
+            "maxDrawdown": -30.95
+          },
           "5d": null,
           "7d": null
         }
@@ -36696,7 +36916,12 @@
             "maxGain": -5.66,
             "maxDrawdown": -11.7
           },
-          "3d": null,
+          "3d": {
+            "close": 59.37,
+            "return": -9.57,
+            "maxGain": -1.14,
+            "maxDrawdown": -18.87
+          },
           "5d": null,
           "7d": null
         }
@@ -36790,7 +37015,12 @@
             "maxGain": -9.52,
             "maxDrawdown": -14.18
           },
-          "3d": null,
+          "3d": {
+            "close": 20.34,
+            "return": -15.78,
+            "maxGain": -5.63,
+            "maxDrawdown": -23.52
+          },
           "5d": null,
           "7d": null
         }
@@ -36883,7 +37113,12 @@
             "maxGain": -5.52,
             "maxDrawdown": -9.66
           },
-          "3d": null,
+          "3d": {
+            "close": 15.55,
+            "return": -14.2,
+            "maxGain": -2.87,
+            "maxDrawdown": -15.89
+          },
           "5d": null,
           "7d": null
         }
@@ -36977,7 +37212,12 @@
             "maxGain": -8.33,
             "maxDrawdown": -12.59
           },
-          "3d": null,
+          "3d": {
+            "close": 26.93,
+            "return": -19.85,
+            "maxGain": -7.89,
+            "maxDrawdown": -23.6
+          },
           "5d": null,
           "7d": null
         }
@@ -37070,7 +37310,12 @@
             "maxGain": 1.89,
             "maxDrawdown": 0.78
           },
-          "3d": null,
+          "3d": {
+            "close": 90.95,
+            "return": 2.71,
+            "maxGain": 2.78,
+            "maxDrawdown": -0.72
+          },
           "5d": null,
           "7d": null
         }
@@ -37163,7 +37408,12 @@
             "maxGain": -2.27,
             "maxDrawdown": -4.84
           },
-          "3d": null,
+          "3d": {
+            "close": 97.35,
+            "return": 1.68,
+            "maxGain": 4.04,
+            "maxDrawdown": -7.27
+          },
           "5d": null,
           "7d": null
         }
@@ -37256,7 +37506,12 @@
             "maxGain": -7.78,
             "maxDrawdown": -11
           },
-          "3d": null,
+          "3d": {
+            "close": 9.78,
+            "return": -12.48,
+            "maxGain": -4.65,
+            "maxDrawdown": -18.92
+          },
           "5d": null,
           "7d": null
         }
@@ -37349,7 +37604,12 @@
             "maxGain": -6.23,
             "maxDrawdown": -9.33
           },
-          "3d": null,
+          "3d": {
+            "close": 35.56,
+            "return": -24.14,
+            "maxGain": -4.12,
+            "maxDrawdown": -26.41
+          },
           "5d": null,
           "7d": null
         }
@@ -37442,7 +37702,12 @@
             "maxGain": -17.54,
             "maxDrawdown": -29.37
           },
-          "3d": null,
+          "3d": {
+            "close": 17.54,
+            "return": -17.96,
+            "maxGain": -7.95,
+            "maxDrawdown": -29.56
+          },
           "5d": null,
           "7d": null
         }
@@ -37535,7 +37800,12 @@
             "maxGain": -11.06,
             "maxDrawdown": -13.62
           },
-          "3d": null,
+          "3d": {
+            "close": 9.15,
+            "return": -17.76,
+            "maxGain": -11.06,
+            "maxDrawdown": -19.6
+          },
           "5d": null,
           "7d": null
         }
@@ -37919,7 +38189,17 @@
           }
         ],
         "consensus": "Speculative",
-        "outcomes": null
+        "outcomes": {
+          "1d": {
+            "close": 4.97,
+            "return": 6.42,
+            "maxGain": 8.14,
+            "maxDrawdown": -0.86
+          },
+          "3d": null,
+          "5d": null,
+          "7d": null
+        }
       },
       {
         "symbol": "QUBT",
@@ -38003,7 +38283,17 @@
           }
         ],
         "consensus": "Speculative",
-        "outcomes": null
+        "outcomes": {
+          "1d": {
+            "close": 9.78,
+            "return": -6.18,
+            "maxGain": -4.41,
+            "maxDrawdown": -10.64
+          },
+          "3d": null,
+          "5d": null,
+          "7d": null
+        }
       },
       {
         "symbol": "PINS",
@@ -38088,7 +38378,17 @@
           }
         ],
         "consensus": "Buy",
-        "outcomes": null
+        "outcomes": {
+          "1d": {
+            "close": 21.97,
+            "return": -0.05,
+            "maxGain": 0.36,
+            "maxDrawdown": -3.18
+          },
+          "3d": null,
+          "5d": null,
+          "7d": null
+        }
       },
       {
         "symbol": "FUTU",
@@ -38172,7 +38472,17 @@
           }
         ],
         "consensus": "Buy",
-        "outcomes": null
+        "outcomes": {
+          "1d": {
+            "close": 97.35,
+            "return": 6.89,
+            "maxGain": 9.37,
+            "maxDrawdown": 1.05
+          },
+          "3d": null,
+          "5d": null,
+          "7d": null
+        }
       },
       {
         "symbol": "UPST",
@@ -38256,7 +38566,17 @@
           }
         ],
         "consensus": "Strong Buy",
-        "outcomes": null
+        "outcomes": {
+          "1d": {
+            "close": 31.76,
+            "return": 2.42,
+            "maxGain": 2.74,
+            "maxDrawdown": -2.64
+          },
+          "3d": null,
+          "5d": null,
+          "7d": null
+        }
       },
       {
         "symbol": "RDW",
@@ -38341,7 +38661,17 @@
           }
         ],
         "consensus": "Buy",
-        "outcomes": null
+        "outcomes": {
+          "1d": {
+            "close": 15.63,
+            "return": -15.86,
+            "maxGain": -13.79,
+            "maxDrawdown": -18.58
+          },
+          "3d": null,
+          "5d": null,
+          "7d": null
+        }
       },
       {
         "symbol": "ZS",
@@ -38424,7 +38754,17 @@
           }
         ],
         "consensus": "Speculative",
-        "outcomes": null
+        "outcomes": {
+          "1d": {
+            "close": 128,
+            "return": -0.97,
+            "maxGain": -0.4,
+            "maxDrawdown": -5.42
+          },
+          "3d": null,
+          "5d": null,
+          "7d": null
+        }
       },
       {
         "symbol": "SNOW",
@@ -38507,7 +38847,17 @@
           }
         ],
         "consensus": "Speculative",
-        "outcomes": null
+        "outcomes": {
+          "1d": {
+            "close": 245.9,
+            "return": 2.3,
+            "maxGain": 2.72,
+            "maxDrawdown": -3.27
+          },
+          "3d": null,
+          "5d": null,
+          "7d": null
+        }
       }
     ],
     "stats": {
@@ -39272,6 +39622,763 @@
       "totalGems": 9,
       "avgGemScore": 87,
       "generatedAt": "2026-06-10T11:50:06.656Z"
+    }
+  },
+  "2026-06-11": {
+    "gems": [
+      {
+        "symbol": "SHOP",
+        "companyName": "SHOP",
+        "entryPrice": 108.18,
+        "gemScore": 100,
+        "signals": [
+          "bb_squeeze",
+          "volume_contraction",
+          "price_compression",
+          "unusual_options_volume"
+        ],
+        "signalCount": 4,
+        "setupScore": 38,
+        "timing": "watch_for_breakout",
+        "risk": "high_conviction",
+        "volumeRatio": 1,
+        "floatShares": 0,
+        "changePct": -2.05,
+        "verdicts": [
+          {
+            "agent": "Momentum Mike",
+            "style": "momentum",
+            "emoji": "🚀",
+            "action": "SKIP",
+            "conviction": 0,
+            "targetGain": null,
+            "timeframe": null,
+            "reasoning": "No momentum signals detected.",
+            "stopLoss": null,
+            "targetPrice": null
+          },
+          {
+            "agent": "Squeeze Sarah",
+            "style": "squeeze",
+            "emoji": "🔥",
+            "action": "BUY",
+            "conviction": 5,
+            "targetGain": "35%",
+            "timeframe": "1 days",
+            "reasoning": "Bollinger Bands squeezed tight. price compressing into a coil. explosive potential 35% in 1 days.",
+            "stopLoss": 102.77,
+            "targetPrice": 146.04
+          },
+          {
+            "agent": "Volume Victor",
+            "style": "accumulation",
+            "emoji": "📊",
+            "action": "SKIP",
+            "conviction": 0,
+            "targetGain": null,
+            "timeframe": null,
+            "reasoning": "No accumulation or smart money signals.",
+            "stopLoss": null,
+            "targetPrice": null
+          },
+          {
+            "agent": "Catalyst Claire",
+            "style": "catalyst",
+            "emoji": "⚡",
+            "action": "SKIP",
+            "conviction": 0,
+            "targetGain": null,
+            "timeframe": null,
+            "reasoning": "No earnings catalyst tomorrow.",
+            "stopLoss": null,
+            "targetPrice": null
+          },
+          {
+            "agent": "Contrarian Carlos",
+            "style": "contrarian",
+            "emoji": "🔄",
+            "action": "SKIP",
+            "conviction": 0,
+            "targetGain": null,
+            "timeframe": null,
+            "reasoning": "No oversold bounce or sector lag signals.",
+            "stopLoss": null,
+            "targetPrice": null
+          }
+        ],
+        "consensus": "Speculative",
+        "outcomes": null
+      },
+      {
+        "symbol": "SNOW",
+        "companyName": "SNOW",
+        "entryPrice": 239.64,
+        "gemScore": 100,
+        "signals": [
+          "bb_squeeze",
+          "volume_contraction",
+          "price_compression",
+          "bullish_options"
+        ],
+        "signalCount": 4,
+        "setupScore": 38,
+        "timing": "watch_for_breakout",
+        "risk": "high_conviction",
+        "volumeRatio": 1,
+        "floatShares": 0,
+        "changePct": 0.03,
+        "verdicts": [
+          {
+            "agent": "Momentum Mike",
+            "style": "momentum",
+            "emoji": "🚀",
+            "action": "SKIP",
+            "conviction": 0,
+            "targetGain": null,
+            "timeframe": null,
+            "reasoning": "No momentum signals detected.",
+            "stopLoss": null,
+            "targetPrice": null
+          },
+          {
+            "agent": "Squeeze Sarah",
+            "style": "squeeze",
+            "emoji": "🔥",
+            "action": "BUY",
+            "conviction": 5,
+            "targetGain": "35%",
+            "timeframe": "1 days",
+            "reasoning": "Bollinger Bands squeezed tight. price compressing into a coil. explosive potential 35% in 1 days.",
+            "stopLoss": 227.66,
+            "targetPrice": 323.51
+          },
+          {
+            "agent": "Volume Victor",
+            "style": "accumulation",
+            "emoji": "📊",
+            "action": "SKIP",
+            "conviction": 0,
+            "targetGain": null,
+            "timeframe": null,
+            "reasoning": "No accumulation or smart money signals.",
+            "stopLoss": null,
+            "targetPrice": null
+          },
+          {
+            "agent": "Catalyst Claire",
+            "style": "catalyst",
+            "emoji": "⚡",
+            "action": "SKIP",
+            "conviction": 0,
+            "targetGain": null,
+            "timeframe": null,
+            "reasoning": "No earnings catalyst tomorrow.",
+            "stopLoss": null,
+            "targetPrice": null
+          },
+          {
+            "agent": "Contrarian Carlos",
+            "style": "contrarian",
+            "emoji": "🔄",
+            "action": "SKIP",
+            "conviction": 0,
+            "targetGain": null,
+            "timeframe": null,
+            "reasoning": "No oversold bounce or sector lag signals.",
+            "stopLoss": null,
+            "targetPrice": null
+          }
+        ],
+        "consensus": "Speculative",
+        "outcomes": null
+      },
+      {
+        "symbol": "ZS",
+        "companyName": "ZS",
+        "entryPrice": 124.79,
+        "gemScore": 100,
+        "signals": [
+          "bb_squeeze",
+          "volume_contraction",
+          "price_compression",
+          "bullish_options"
+        ],
+        "signalCount": 4,
+        "setupScore": 38,
+        "timing": "watch_for_breakout",
+        "risk": "high_conviction",
+        "volumeRatio": 1,
+        "floatShares": 0,
+        "changePct": -0.81,
+        "verdicts": [
+          {
+            "agent": "Momentum Mike",
+            "style": "momentum",
+            "emoji": "🚀",
+            "action": "SKIP",
+            "conviction": 0,
+            "targetGain": null,
+            "timeframe": null,
+            "reasoning": "No momentum signals detected.",
+            "stopLoss": null,
+            "targetPrice": null
+          },
+          {
+            "agent": "Squeeze Sarah",
+            "style": "squeeze",
+            "emoji": "🔥",
+            "action": "BUY",
+            "conviction": 5,
+            "targetGain": "35%",
+            "timeframe": "1 days",
+            "reasoning": "Bollinger Bands squeezed tight. price compressing into a coil. explosive potential 35% in 1 days.",
+            "stopLoss": 118.55,
+            "targetPrice": 168.47
+          },
+          {
+            "agent": "Volume Victor",
+            "style": "accumulation",
+            "emoji": "📊",
+            "action": "SKIP",
+            "conviction": 0,
+            "targetGain": null,
+            "timeframe": null,
+            "reasoning": "No accumulation or smart money signals.",
+            "stopLoss": null,
+            "targetPrice": null
+          },
+          {
+            "agent": "Catalyst Claire",
+            "style": "catalyst",
+            "emoji": "⚡",
+            "action": "SKIP",
+            "conviction": 0,
+            "targetGain": null,
+            "timeframe": null,
+            "reasoning": "No earnings catalyst tomorrow.",
+            "stopLoss": null,
+            "targetPrice": null
+          },
+          {
+            "agent": "Contrarian Carlos",
+            "style": "contrarian",
+            "emoji": "🔄",
+            "action": "SKIP",
+            "conviction": 0,
+            "targetGain": null,
+            "timeframe": null,
+            "reasoning": "No oversold bounce or sector lag signals.",
+            "stopLoss": null,
+            "targetPrice": null
+          }
+        ],
+        "consensus": "Speculative",
+        "outcomes": null
+      },
+      {
+        "symbol": "TIGR",
+        "companyName": "TIGR",
+        "entryPrice": 4.81,
+        "gemScore": 100,
+        "signals": [
+          "bb_squeeze",
+          "volume_contraction",
+          "price_compression",
+          "bullish_options"
+        ],
+        "signalCount": 4,
+        "setupScore": 44,
+        "timing": "watch_for_breakout",
+        "risk": "high_conviction",
+        "volumeRatio": 1,
+        "floatShares": 0,
+        "changePct": 1.91,
+        "verdicts": [
+          {
+            "agent": "Momentum Mike",
+            "style": "momentum",
+            "emoji": "🚀",
+            "action": "SKIP",
+            "conviction": 0,
+            "targetGain": null,
+            "timeframe": null,
+            "reasoning": "No momentum signals detected.",
+            "stopLoss": null,
+            "targetPrice": null
+          },
+          {
+            "agent": "Squeeze Sarah",
+            "style": "squeeze",
+            "emoji": "🔥",
+            "action": "BUY",
+            "conviction": 5,
+            "targetGain": "35%",
+            "timeframe": "1 days",
+            "reasoning": "Bollinger Bands squeezed tight. price compressing into a coil. explosive potential 35% in 1 days.",
+            "stopLoss": 4.57,
+            "targetPrice": 6.49
+          },
+          {
+            "agent": "Volume Victor",
+            "style": "accumulation",
+            "emoji": "📊",
+            "action": "SKIP",
+            "conviction": 0,
+            "targetGain": null,
+            "timeframe": null,
+            "reasoning": "No accumulation or smart money signals.",
+            "stopLoss": null,
+            "targetPrice": null
+          },
+          {
+            "agent": "Catalyst Claire",
+            "style": "catalyst",
+            "emoji": "⚡",
+            "action": "SKIP",
+            "conviction": 0,
+            "targetGain": null,
+            "timeframe": null,
+            "reasoning": "No earnings catalyst tomorrow.",
+            "stopLoss": null,
+            "targetPrice": null
+          },
+          {
+            "agent": "Contrarian Carlos",
+            "style": "contrarian",
+            "emoji": "🔄",
+            "action": "SKIP",
+            "conviction": 0,
+            "targetGain": null,
+            "timeframe": null,
+            "reasoning": "No oversold bounce or sector lag signals.",
+            "stopLoss": null,
+            "targetPrice": null
+          }
+        ],
+        "consensus": "Speculative",
+        "outcomes": null
+      },
+      {
+        "symbol": "QUBT",
+        "companyName": "QUBT",
+        "entryPrice": 9.51,
+        "gemScore": 100,
+        "signals": [
+          "short_squeeze_loading",
+          "bb_squeeze",
+          "volume_contraction",
+          "bullish_options"
+        ],
+        "signalCount": 4,
+        "setupScore": 51,
+        "timing": "buy_today_or_tomorrow",
+        "risk": "high_conviction",
+        "volumeRatio": 1,
+        "floatShares": 0,
+        "changePct": -0.05,
+        "verdicts": [
+          {
+            "agent": "Momentum Mike",
+            "style": "momentum",
+            "emoji": "🚀",
+            "action": "SKIP",
+            "conviction": 0,
+            "targetGain": null,
+            "timeframe": null,
+            "reasoning": "No momentum signals detected.",
+            "stopLoss": null,
+            "targetPrice": null
+          },
+          {
+            "agent": "Squeeze Sarah",
+            "style": "squeeze",
+            "emoji": "🔥",
+            "action": "BUY",
+            "conviction": 5,
+            "targetGain": "35%",
+            "timeframe": "1 days",
+            "reasoning": "short squeeze loading — 29.7% SI. Bollinger Bands squeezed tight. 2.0 days to cover — shorts are trapped. explosive potential 35% in 1 days.",
+            "stopLoss": 9.03,
+            "targetPrice": 12.84
+          },
+          {
+            "agent": "Volume Victor",
+            "style": "accumulation",
+            "emoji": "📊",
+            "action": "SKIP",
+            "conviction": 0,
+            "targetGain": null,
+            "timeframe": null,
+            "reasoning": "No accumulation or smart money signals.",
+            "stopLoss": null,
+            "targetPrice": null
+          },
+          {
+            "agent": "Catalyst Claire",
+            "style": "catalyst",
+            "emoji": "⚡",
+            "action": "SKIP",
+            "conviction": 0,
+            "targetGain": null,
+            "timeframe": null,
+            "reasoning": "No earnings catalyst tomorrow.",
+            "stopLoss": null,
+            "targetPrice": null
+          },
+          {
+            "agent": "Contrarian Carlos",
+            "style": "contrarian",
+            "emoji": "🔄",
+            "action": "SKIP",
+            "conviction": 0,
+            "targetGain": null,
+            "timeframe": null,
+            "reasoning": "No oversold bounce or sector lag signals.",
+            "stopLoss": null,
+            "targetPrice": null
+          }
+        ],
+        "consensus": "Speculative",
+        "outcomes": null
+      },
+      {
+        "symbol": "LI",
+        "companyName": "LI",
+        "entryPrice": 13.69,
+        "gemScore": 100,
+        "signals": [
+          "bb_squeeze",
+          "volume_contraction",
+          "price_compression",
+          "bullish_options"
+        ],
+        "signalCount": 4,
+        "setupScore": 38,
+        "timing": "watch_for_breakout",
+        "risk": "high_conviction",
+        "volumeRatio": 1,
+        "floatShares": 0,
+        "changePct": -3.01,
+        "verdicts": [
+          {
+            "agent": "Momentum Mike",
+            "style": "momentum",
+            "emoji": "🚀",
+            "action": "SKIP",
+            "conviction": 0,
+            "targetGain": null,
+            "timeframe": null,
+            "reasoning": "No momentum signals detected.",
+            "stopLoss": null,
+            "targetPrice": null
+          },
+          {
+            "agent": "Squeeze Sarah",
+            "style": "squeeze",
+            "emoji": "🔥",
+            "action": "BUY",
+            "conviction": 5,
+            "targetGain": "35%",
+            "timeframe": "1 days",
+            "reasoning": "Bollinger Bands squeezed tight. price compressing into a coil. explosive potential 35% in 1 days.",
+            "stopLoss": 13.01,
+            "targetPrice": 18.48
+          },
+          {
+            "agent": "Volume Victor",
+            "style": "accumulation",
+            "emoji": "📊",
+            "action": "SKIP",
+            "conviction": 0,
+            "targetGain": null,
+            "timeframe": null,
+            "reasoning": "No accumulation or smart money signals.",
+            "stopLoss": null,
+            "targetPrice": null
+          },
+          {
+            "agent": "Catalyst Claire",
+            "style": "catalyst",
+            "emoji": "⚡",
+            "action": "SKIP",
+            "conviction": 0,
+            "targetGain": null,
+            "timeframe": null,
+            "reasoning": "No earnings catalyst tomorrow.",
+            "stopLoss": null,
+            "targetPrice": null
+          },
+          {
+            "agent": "Contrarian Carlos",
+            "style": "contrarian",
+            "emoji": "🔄",
+            "action": "SKIP",
+            "conviction": 0,
+            "targetGain": null,
+            "timeframe": null,
+            "reasoning": "No oversold bounce or sector lag signals.",
+            "stopLoss": null,
+            "targetPrice": null
+          }
+        ],
+        "consensus": "Speculative",
+        "outcomes": null
+      },
+      {
+        "symbol": "SPCE",
+        "companyName": "SPCE",
+        "entryPrice": 4.68,
+        "gemScore": 100,
+        "signals": [
+          "short_squeeze_loading",
+          "bb_squeeze",
+          "price_compression",
+          "bullish_options"
+        ],
+        "signalCount": 4,
+        "setupScore": 53,
+        "timing": "buy_today_or_tomorrow",
+        "risk": "high_conviction",
+        "volumeRatio": 1,
+        "floatShares": 0,
+        "changePct": 2.18,
+        "verdicts": [
+          {
+            "agent": "Momentum Mike",
+            "style": "momentum",
+            "emoji": "🚀",
+            "action": "SKIP",
+            "conviction": 0,
+            "targetGain": null,
+            "timeframe": null,
+            "reasoning": "No momentum signals detected.",
+            "stopLoss": null,
+            "targetPrice": null
+          },
+          {
+            "agent": "Squeeze Sarah",
+            "style": "squeeze",
+            "emoji": "🔥",
+            "action": "BUY",
+            "conviction": 5,
+            "targetGain": "35%",
+            "timeframe": "1 days",
+            "reasoning": "short squeeze loading — 21.5% SI. Bollinger Bands squeezed tight. price compressing into a coil. 1.0 days to cover — shorts are trapped. explosive potential 35% in 1 days.",
+            "stopLoss": 4.45,
+            "targetPrice": 6.32
+          },
+          {
+            "agent": "Volume Victor",
+            "style": "accumulation",
+            "emoji": "📊",
+            "action": "SKIP",
+            "conviction": 0,
+            "targetGain": null,
+            "timeframe": null,
+            "reasoning": "No accumulation or smart money signals.",
+            "stopLoss": null,
+            "targetPrice": null
+          },
+          {
+            "agent": "Catalyst Claire",
+            "style": "catalyst",
+            "emoji": "⚡",
+            "action": "SKIP",
+            "conviction": 0,
+            "targetGain": null,
+            "timeframe": null,
+            "reasoning": "No earnings catalyst tomorrow.",
+            "stopLoss": null,
+            "targetPrice": null
+          },
+          {
+            "agent": "Contrarian Carlos",
+            "style": "contrarian",
+            "emoji": "🔄",
+            "action": "SKIP",
+            "conviction": 0,
+            "targetGain": null,
+            "timeframe": null,
+            "reasoning": "No oversold bounce or sector lag signals.",
+            "stopLoss": null,
+            "targetPrice": null
+          }
+        ],
+        "consensus": "Speculative",
+        "outcomes": null
+      },
+      {
+        "symbol": "PDD",
+        "companyName": "PDD",
+        "entryPrice": 81.81,
+        "gemScore": 100,
+        "signals": [
+          "smart_money",
+          "bb_squeeze",
+          "volume_contraction",
+          "sector_lag",
+          "price_compression",
+          "stealth_accumulation"
+        ],
+        "signalCount": 6,
+        "setupScore": 59,
+        "timing": "buy_today_or_tomorrow",
+        "risk": "high_conviction",
+        "volumeRatio": 1,
+        "floatShares": 0,
+        "changePct": -0.19,
+        "verdicts": [
+          {
+            "agent": "Momentum Mike",
+            "style": "momentum",
+            "emoji": "🚀",
+            "action": "SKIP",
+            "conviction": 0,
+            "targetGain": null,
+            "timeframe": null,
+            "reasoning": "No momentum signals detected.",
+            "stopLoss": null,
+            "targetPrice": null
+          },
+          {
+            "agent": "Squeeze Sarah",
+            "style": "squeeze",
+            "emoji": "🔥",
+            "action": "BUY",
+            "conviction": 5,
+            "targetGain": "35%",
+            "timeframe": "1 days",
+            "reasoning": "Bollinger Bands squeezed tight. price compressing into a coil. explosive potential 35% in 1 days.",
+            "stopLoss": 77.72,
+            "targetPrice": 110.44
+          },
+          {
+            "agent": "Volume Victor",
+            "style": "accumulation",
+            "emoji": "📊",
+            "action": "WATCH",
+            "conviction": 2,
+            "targetGain": "10%",
+            "timeframe": "7 days",
+            "reasoning": "smart money footprint (closing strength 38%). institutions are loading — targeting 10% in 7 days.",
+            "stopLoss": 75.27,
+            "targetPrice": 89.99
+          },
+          {
+            "agent": "Catalyst Claire",
+            "style": "catalyst",
+            "emoji": "⚡",
+            "action": "SKIP",
+            "conviction": 0,
+            "targetGain": null,
+            "timeframe": null,
+            "reasoning": "No earnings catalyst tomorrow.",
+            "stopLoss": null,
+            "targetPrice": null
+          },
+          {
+            "agent": "Contrarian Carlos",
+            "style": "contrarian",
+            "emoji": "🔄",
+            "action": "WATCH",
+            "conviction": 2,
+            "targetGain": "8%",
+            "timeframe": "7 days",
+            "reasoning": "sector laggard — sector up but this stock hasn't moved yet. mean reversion play — targeting 8% in 7 days.",
+            "stopLoss": 73.63,
+            "targetPrice": 88.35
+          }
+        ],
+        "consensus": "Speculative",
+        "outcomes": null
+      },
+      {
+        "symbol": "STNE",
+        "companyName": "STNE",
+        "entryPrice": 10.6,
+        "gemScore": 65,
+        "signals": [
+          "bb_squeeze",
+          "price_compression",
+          "unusual_options_volume"
+        ],
+        "signalCount": 3,
+        "setupScore": 32,
+        "timing": "watch_for_breakout",
+        "risk": "moderate",
+        "volumeRatio": 1,
+        "floatShares": 0,
+        "changePct": -0.56,
+        "verdicts": [
+          {
+            "agent": "Momentum Mike",
+            "style": "momentum",
+            "emoji": "🚀",
+            "action": "SKIP",
+            "conviction": 0,
+            "targetGain": null,
+            "timeframe": null,
+            "reasoning": "No momentum signals detected.",
+            "stopLoss": null,
+            "targetPrice": null
+          },
+          {
+            "agent": "Squeeze Sarah",
+            "style": "squeeze",
+            "emoji": "🔥",
+            "action": "BUY",
+            "conviction": 4,
+            "targetGain": "35%",
+            "timeframe": "1 days",
+            "reasoning": "Bollinger Bands squeezed tight. price compressing into a coil. explosive potential 35% in 1 days.",
+            "stopLoss": 10.07,
+            "targetPrice": 14.31
+          },
+          {
+            "agent": "Volume Victor",
+            "style": "accumulation",
+            "emoji": "📊",
+            "action": "SKIP",
+            "conviction": 0,
+            "targetGain": null,
+            "timeframe": null,
+            "reasoning": "No accumulation or smart money signals.",
+            "stopLoss": null,
+            "targetPrice": null
+          },
+          {
+            "agent": "Catalyst Claire",
+            "style": "catalyst",
+            "emoji": "⚡",
+            "action": "SKIP",
+            "conviction": 0,
+            "targetGain": null,
+            "timeframe": null,
+            "reasoning": "No earnings catalyst tomorrow.",
+            "stopLoss": null,
+            "targetPrice": null
+          },
+          {
+            "agent": "Contrarian Carlos",
+            "style": "contrarian",
+            "emoji": "🔄",
+            "action": "SKIP",
+            "conviction": 0,
+            "targetGain": null,
+            "timeframe": null,
+            "reasoning": "No oversold bounce or sector lag signals.",
+            "stopLoss": null,
+            "targetPrice": null
+          }
+        ],
+        "consensus": "Speculative",
+        "outcomes": null
+      }
+    ],
+    "stats": {
+      "totalGems": 9,
+      "avgGemScore": 96,
+      "generatedAt": "2026-06-11T07:49:45.202Z"
     }
   }
 }
