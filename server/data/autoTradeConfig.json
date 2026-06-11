@@ -1,9 +1,9 @@
 {
   "enabled": true,
-  "maxBudget": 5000,
+  "maxBudget": 3000,
   "strongBuyAmount": 200,
   "buyAmount": 100,
-  "maxPerStock": 500,
+  "maxPerStock": 400,
   "defaultStopPct": 5,
   "takeProfitPct": 10,
   "trailingStopPct": 3,

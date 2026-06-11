@@ -145,17 +145,12 @@ export function initTelegramBot() {
     if (subscribers.size > 0) saveConfig({ subscribers: [...subscribers] });
     console.log(`[Telegram] Bot online (${subscribers.size} subscriber${subscribers.size === 1 ? '' : 's'})${subscribers.size === 0 ? ' — send /start to subscribe' : ''}`);
 
-    // Set menu
+    // Set menu — intentionally minimal: the bot pushes predictions on its own;
+    // the menu only needs the two read commands (legacy commands still work
+    // if typed, they're just not advertised).
     bot.setMyCommands([
-      { command: 'today',     description: '🎯 Today\'s pick(s) — what to buy at open, sell at close' },
-      { command: 'tomorrow',  description: '🔮 Run picker now and preview tomorrow\'s picks' },
-      { command: 'pnl',       description: '💰 P&L: today, this week, all-time' },
-      { command: 'history',   description: '📜 Last 10 daily picks with outcomes' },
-      { command: 'stats',     description: '📊 Win rate, signal attribution, performance' },
-      { command: 'edge',      description: '🔬 Is the edge real? Signals vs monkey' },
-      { command: 'portfolio', description: '💼 Open positions & buying power' },
-      { command: 'status',    description: '⚙️ System status & next pick time' },
-      { command: 'help',      description: '❔ Command reference' },
+      { command: 'recap',     description: '🔮 All current predictions in one message' },
+      { command: 'portfolio', description: '💼 Open positions & P/L' },
       { command: 'stop',      description: '🛑 Unsubscribe' },
     ]).catch(() => {});
 
@@ -187,21 +182,47 @@ function registerCommands() {
     send(cid, [
       '\uD83D\uDD2E *Stock Oracle v3*',
       '',
-      '\u2500\u2500\u2500 *STOCKS* \u2500\u2500\u2500',
-      '\uD83D\uDD25 /scan \u2014 Top explosion picks now',
-      '\u26A0\uFE0F /warn \u2014 Early warnings (Revolut)',
-      '\uD83D\uDCB9 /trades \u2014 Executed auto-trades',
-      '\uD83D\uDCBC /portfolio \u2014 Positions & P/L',
+      'I scan the market every 5 minutes. When I predict a stock is about to jump, I message you automatically with the target price, the timeframe, and the reasons behind it.',
       '',
-      '\u2500\u2500\u2500 *SYSTEM* \u2500\u2500\u2500',
-      '\uD83D\uDCCA /status \u2014 Market & system health',
-      '\uD83E\uDDF9 /clear \u2014 Clear chat',
-      '',
-      '_Scans every 5 min. Alerts you automatically_',
-      '_when Revolut stocks go BUILDING \u2192 LOADING \u2192 IMMINENT._',
+      '\uD83D\uDD2E /recap \u2014 all current predictions in one message',
+      '\uD83D\uDCBC /portfolio \u2014 open positions & P/L',
       '',
       '_Send /stop to unsubscribe._',
     ].join('\n'));
+  });
+
+  // ────────────────────────────────────────────────
+  // /recap — every current prediction in one message
+  // ────────────────────────────────────────────────
+  bot.onText(/\/recap/, async (msg) => {
+    const cid = msg.chat.id;
+    const all = scanCacheRef.allAnalyzed || [];
+    const picks = all
+      .filter(s => s.consensus === 'Buy' || s.consensus === 'Strong Buy')
+      .sort((a, b) =>
+        (b.claude?.confidence || 0) - (a.claude?.confidence || 0) ||
+        (b.gemScore || 0) - (a.gemScore || 0))
+      .slice(0, 6);
+
+    if (picks.length === 0) {
+      send(cid, '🔮 *Recap*\n\nNo active predictions right now — nothing passes the quality gates at the moment. I scan every 5 minutes during market hours and will alert you when something does.');
+      return;
+    }
+
+    const blocks = picks.map(s => {
+      const e = s.explosion || {};
+      const gainPct = Math.round(s.claude?.targetPct || Math.min(e.expectedGainPct || 10, 20));
+      const target = s.price ? Math.round(s.price * (1 + gainPct / 100) * 100) / 100 : '?';
+      const why = (s.signals || []).slice(0, 4).map(x => sigLabels[x] || x.replace(/_/g, ' ')).join(', ');
+      const conf = s.claude ? ` · AI ${s.claude.confidence}/10` : '';
+      const tag = s.consensus === 'Strong Buy' ? '🟢' : '🟡';
+      return `${tag} *${s.symbol}* $${s.price} → $${target} (+${gainPct}%) in ~${e.daysToMove || 5}d${conf}\n_${why}_`;
+    });
+
+    const ts = scanCacheRef.lastScanTime
+      ? new Date(scanCacheRef.lastScanTime).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
+      : 'n/a';
+    send(cid, [`🔮 *Predictions recap* _(scan ${ts})_`, '', blocks.join('\n\n')].join('\n'));
   });
 
   // ────────────────────────────────────────────────
@@ -1226,6 +1247,76 @@ const sigLabels = {
   analyst_upgrade: 'Analyst upgrade', analyst_strong_buy: 'Strong consensus',
   analyst_momentum: 'Analyst momentum',
 };
+
+// ════════════════════════════════════════════════════════
+// RICH PREDICTION ALERT — "this stock should jump from $X to $Y in N days"
+// Sent automatically when a setup passes the Claude gate with confidence ≥7.
+// ════════════════════════════════════════════════════════
+
+const predictionAlerted = new Map(); // symbol → ts
+const PREDICTION_COOLDOWN = 12 * 60 * 60 * 1000;
+
+function buildPredictionMessage(stock) {
+  const claude = stock.claude || {};
+  const e = stock.explosion || {};
+  const price = stock.price || 0;
+  // Prefer Claude's validated target over the raw explosion estimate, which
+  // historically overshoots (predicted +29% avg vs ~0% realized pre-overhaul).
+  const gainPct = Math.round(claude.targetPct || Math.min(e.expectedGainPct || 10, 20));
+  const target = Math.round(price * (1 + gainPct / 100) * 100) / 100;
+  const days = e.daysToMove || 5;
+
+  const why = (stock.signals || [])
+    .slice(0, 6)
+    .map(s => sigLabels[s] || s.replace(/_/g, ' '))
+    .join(', ');
+
+  const lines = [
+    `🔮 *PREDICTION: ${stock.symbol}*${stock.companyName ? ` — ${stock.companyName}` : ''}`,
+    '',
+    `💵 Now *$${price}* → target *$${target}* (*+${gainPct}%*) within *~${days} day${days === 1 ? '' : 's'}*${e.probability ? ` · est. probability ${e.probability}%` : ''}`,
+    '',
+    `📈 *Why:* ${why}`,
+  ];
+
+  const factors = (e.factors || []).slice(0, 3);
+  if (factors.length) lines.push(...factors.map(f => `  • ${f}`));
+
+  const fundamentals = [];
+  if (stock.marketCap > 0) fundamentals.push(`Cap $${(stock.marketCap / 1e6).toFixed(0)}M`);
+  if (stock.floatShares > 0) fundamentals.push(`Float ${(stock.floatShares / 1e6).toFixed(0)}M`);
+  if (stock.volumeRatio > 0) fundamentals.push(`Volume ${stock.volumeRatio}x normal`);
+  if (stock.shortInterest > 0) fundamentals.push(`Short int. ${stock.shortInterest}%`);
+  if (stock.sector) fundamentals.push(stock.sector);
+  if (fundamentals.length) lines.push('', `🏛 *Fundamentals:* ${fundamentals.join(' · ')}`);
+
+  if (claude.thesis) {
+    lines.push('', `🤖 *AI view (${claude.confidence}/10):* ${claude.thesis}`);
+  }
+  if (claude.riskLevel) lines.push(`⚠️ *Risk:* ${claude.riskLevel}`);
+
+  lines.push('', `_${stock.consensus || 'Buy'} · ${stock.buyCount || 0}/5 agents · gem ${stock.gemScore || '?'}_`);
+  return lines.join('\n');
+}
+
+export async function notifyPrediction(stock) {
+  if (!bot || subscribers.size === 0) return;
+  if (!stock?.symbol || !stock.price) return;
+
+  const now = Date.now();
+  const last = predictionAlerted.get(stock.symbol);
+  if (last && now - last < PREDICTION_COOLDOWN) return;
+  for (const [sym, ts] of predictionAlerted) {
+    if (now - ts > PREDICTION_COOLDOWN * 2) predictionAlerted.delete(sym);
+  }
+
+  try {
+    const sent = await broadcast(buildPredictionMessage(stock));
+    if (sent > 0) predictionAlerted.set(stock.symbol, now);
+  } catch (err) {
+    console.error('[Telegram] Prediction alert error:', err.message);
+  }
+}
 
 export async function notifyBuyAlerts(stocks) {
   if (!bot || subscribers.size === 0) return;

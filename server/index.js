@@ -13,7 +13,7 @@ import { saveGemSnapshot } from './services/gemHistory.js';
 import * as yahooFinance from './services/yahooFinance.js';
 import { scanPennyStocks } from './services/pennyScanner.js';
 import { processSignals, checkExitSignals } from './services/autoTrader.js';
-import { initTelegramBot, setScanCache, setOnDemandScan, notifyBuyAlerts, notifyNewTrade, notifyEarlyWarnings, notifyTradeRejected, notifyMoverAlerts, sendMessage } from './services/telegram.js';
+import { initTelegramBot, setScanCache, setOnDemandScan, notifyBuyAlerts, notifyNewTrade, notifyEarlyWarnings, notifyTradeRejected, notifyMoverAlerts, notifyPrediction, sendMessage } from './services/telegram.js';
 import { getShortSqueezeSetups, getBreakoutSetups } from './services/premarketScanner.js';
 import { updateSignalTracker } from './services/signalTracker.js';
 import { filterRevolutStocks } from './services/revolut.js';
@@ -543,6 +543,11 @@ if (!process.env.VERCEL) {
                 if (verdict.action === 'BUY' && verdict.confidence >= 8 && stock.consensus === 'Buy') {
                   stock.consensus = 'Strong Buy';
                   stock.claudeOverride = 'upgraded';
+                }
+                // Rich Telegram prediction: target, timeframe, why, fundamentals,
+                // AI thesis — the project's core deliverable (12h/symbol cooldown)
+                if (verdict.action === 'BUY' && verdict.confidence >= 7) {
+                  notifyPrediction(stock).catch(() => {});
                 }
               }
             } catch (err) {
