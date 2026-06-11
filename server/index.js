@@ -13,7 +13,7 @@ import { saveGemSnapshot } from './services/gemHistory.js';
 import * as yahooFinance from './services/yahooFinance.js';
 import { scanPennyStocks } from './services/pennyScanner.js';
 import { processSignals, checkExitSignals } from './services/autoTrader.js';
-import { initTelegramBot, setScanCache, setOnDemandScan, notifyBuyAlerts, notifyNewTrade, notifyEarlyWarnings, notifyTradeRejected, notifyMoverAlerts, notifyPrediction, sendMessage } from './services/telegram.js';
+import { initTelegramBot, setScanCache, setOnDemandScan, notifyBuyAlerts, notifyNewTrade, notifyEarlyWarnings, notifyTradeRejected, notifyMoverAlerts, notifyAfterHoursMovers, notifyPrediction, sendMessage } from './services/telegram.js';
 import { getShortSqueezeSetups, getBreakoutSetups } from './services/premarketScanner.js';
 import { updateSignalTracker } from './services/signalTracker.js';
 import { filterRevolutStocks } from './services/revolut.js';
@@ -964,6 +964,30 @@ if (!process.env.VERCEL) {
       );
     } catch (err) {
       console.error('[Cron] Movers scan error:', err.message);
+    }
+  });
+
+  // ── AFTER-HOURS watch: 16:05-20:00 ET weekdays, every 10 min ──
+  // Earnings land 16:00-17:30 ET and gaps form after-hours. Alert-only;
+  // the morning scan re-evaluates with full signals before any order.
+  cron.schedule('*/10 * * * *', async () => {
+    const et = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }));
+    const hour = et.getHours();
+    const day = et.getDay();
+    const afterHours = day >= 1 && day <= 5 && hour >= 16 && hour < 20;
+    if (!afterHours) return;
+    if (hour === 16 && et.getMinutes() < 5) return; // let the close settle
+
+    try {
+      const { scanAfterHoursMovers, markAlerted } = await import('./services/afterHoursWatch.js');
+      const movers = await scanAfterHoursMovers();
+      if (movers.length > 0) {
+        console.log(`[AfterHours] ${movers.length} movers: ${movers.slice(0, 5).map(m => `${m.symbol}(${m.ahChangePct}%)`).join(', ')}`);
+        const sent = await notifyAfterHoursMovers(movers);
+        if (sent > 0) markAlerted(movers.slice(0, 5).map(m => m.symbol));
+      }
+    } catch (err) {
+      console.error('[AfterHours] watch error:', err.message);
     }
   });
 

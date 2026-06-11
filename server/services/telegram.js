@@ -1586,6 +1586,27 @@ function shouldAlertMover(symbol) {
   return true;
 }
 
+/**
+ * After-hours movers (16:00-20:00 ET) — earnings reactions and big post-market
+ * moves. Alert-only: the bot trades in the morning window after re-evaluation.
+ */
+export async function notifyAfterHoursMovers(movers) {
+  if (!bot || subscribers.size === 0) return 0;
+  if (!movers?.length) return 0;
+
+  const top = movers.slice(0, 5);
+  const lines = ['🌙 *After-hours movers*', ''];
+  for (const m of top) {
+    const dir = m.ahChangePct >= 0 ? '🟢' : '🔴';
+    lines.push(`${dir} *${m.symbol}* $${m.close} → $${m.last} (*${m.ahChangePct > 0 ? '+' : ''}${m.ahChangePct}%*)${m.hasEarnings ? ' · 📊 reported earnings today' : ''}`);
+  }
+  lines.push('');
+  lines.push('💬 _In plain words: these stocks are moving NOW, after the closing bell — usually because of earnings or news. Big after-hours moves often carry into tomorrow\'s open. The bot will re-check them with full signals in the morning entry window (09:45-13:30 ET) before buying anything._');
+
+  const sent = await broadcast(lines.join('\n'));
+  return sent;
+}
+
 export async function notifyMoverAlerts({ movers = [], squeezes = [], breakouts = [] } = {}) {
   if (!bot || subscribers.size === 0) return;
 
