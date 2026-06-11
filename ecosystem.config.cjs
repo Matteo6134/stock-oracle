@@ -16,20 +16,7 @@ module.exports = {
       merge_logs: true,
       max_memory_restart: '500M',
     },
-    {
-      name: 'alpaca-gold-bot',
-      script: 'alpaca_gold_bot.py',
-      cwd: 'C:/Users/pc2/Desktop/gold',
-      interpreter: 'C:/Python312/python.exe',
-      autorestart: true,
-      max_restarts: 10,
-      restart_delay: 10000,
-      watch: false,
-      log_date_format: 'YYYY-MM-DD HH:mm:ss',
-      error_file: 'C:/Users/pc2/Desktop/gold/logs/error.log',
-      out_file: 'C:/Users/pc2/Desktop/gold/logs/out.log',
-      merge_logs: true,
-      max_memory_restart: '300M',
-    },
+    // alpaca-gold-bot removed 2026-06-11 — retired (folder still at
+    // C:/Users/pc2/Desktop/gold if it ever needs to come back)
   ],
 };

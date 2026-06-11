@@ -1,29 +1,29 @@
 ---
 name: trading-bots-ops
-description: Operate Matteo's two local trading bots (stock-oracle Node bot at C:/Users/pc2/Desktop/binance-bot and alpaca-gold-bot Python bot at C:/Users/pc2/Desktop/gold). Use when the user asks to start/stop/restart the bots, check if Telegram bot @StockOracle2_bot is online, troubleshoot why trades aren't firing, inspect data sources, or when they mention "the bot", "stock oracle", "gold bot", "alpaca", or PM2 in this context.
+description: Operate Matteo's local trading bot (stock-oracle Node bot at C:/Users/pc2/Desktop/binance-bot). Use when the user asks to start/stop/restart the bot, check if Telegram bot @StockOracle2_bot is online, troubleshoot why trades aren't firing, inspect data sources, or when they mention "the bot", "stock oracle", "alpaca", or PM2 in this context.
 ---
 
 # Trading Bots — Local Ops
 
-Two independent trading bots run under PM2 on this Windows PC. They are NOT deployed to Railway anymore (old `stock-oracle-production-064f.up.railway.app` and `web-production-7dbdc.up.railway.app` are dead — do not check them).
+ONE trading bot runs under PM2 on this Windows PC. It is NOT deployed to Railway anymore (old `stock-oracle-production-064f.up.railway.app` and `web-production-7dbdc.up.railway.app` are dead — do not check them).
+
+**The gold bot (`alpaca-gold-bot`) was RETIRED on 2026-06-11** — removed from PM2 and `ecosystem.config.cjs`. Its folder still exists at `C:/Users/pc2/Desktop/gold` (inert) and its paper account `PA3T2A47LGRI` is abandoned. Do not restart it unless Matteo asks.
 
 ## Topology
 
 | Bot | PM2 name | Path | Stack | Port | Telegram |
 |---|---|---|---|---|---|
 | Stock scanner + auto-trader | `stock-oracle` | `C:/Users/pc2/Desktop/binance-bot` | Node, `server/index.js` | 4000 | `@StockOracle2_bot` (long-poll inside same process) |
-| Metals/ETF auto-trader | `alpaca-gold-bot` | `C:/Users/pc2/Desktop/gold` | Python 3.12, `alpaca_gold_bot.py` | — | none |
 
-Both supervised by PM2. Boot persistence via `pm2-windows-startup` is **already installed** (registry entry added) — they survive reboots. Ecosystem file: `C:/Users/pc2/Desktop/binance-bot/ecosystem.config.cjs` (defines BOTH apps; gold uses `interpreter: 'C:/Python312/python.exe'`).
+Supervised by PM2. Boot persistence via `pm2-windows-startup` is **already installed** (registry entry added) — survives reboots. Ecosystem file: `C:/Users/pc2/Desktop/binance-bot/ecosystem.config.cjs`.
 
-## Alpaca accounts (separate — no shared buying power)
+## Alpaca account
 
 | Bot | Account # | Read keys from |
 |---|---|---|
-| stock-oracle | `PA39AL3DKA9R` | `binance-bot/.env` → `ALPACA_API_KEY` / `ALPACA_SECRET_KEY` / `ALPACA_BASE_URL` |
-| alpaca-gold-bot | `PA3T2A47LGRI` | `gold/.env` → `ALPACA_API_KEY` / `ALPACA_SECRET_KEY` (base URL hardcoded to paper) |
+| stock-oracle | `PA3INRBI56WC` — fresh **$4k** paper account since 2026-06-11 (previous: PA39AL3DKA9R, abandoned) | `binance-bot/.env` → `ALPACA_API_KEY` / `ALPACA_SECRET_KEY` / `ALPACA_BASE_URL` |
 
-Both are paper accounts at `https://paper-api.alpaca.markets`. Verify identity with:
+Paper account at `https://paper-api.alpaca.markets`. Under $25k equity the PDT rule applies (3 day-trades per 5 rolling days) — the bot's pdtGuard handles it. Verify identity with:
 ```bash
 curl -s -H "APCA-API-KEY-ID: $K" -H "APCA-API-SECRET-KEY: $S" https://paper-api.alpaca.markets/v2/account
 ```
@@ -31,11 +31,9 @@ curl -s -H "APCA-API-KEY-ID: $K" -H "APCA-API-SECRET-KEY: $S" https://paper-api.
 ## Standard ops
 
 ```bash
-pm2 list                                       # status of both
-pm2 restart all                                # restart both (preserves env)
+pm2 list                                       # status
 pm2 restart stock-oracle --update-env          # reload after .env change
 pm2 logs stock-oracle --lines 50 --nostream    # recent logs
-pm2 logs alpaca-gold-bot --lines 50 --nostream
 pm2 save                                       # persist current process list
 curl -s http://localhost:4000/health           # stock-oracle health
 ```
