@@ -12,7 +12,7 @@
 import YahooFinance from 'yahoo-finance2';
 import axios from 'axios';
 
-const yf = new YahooFinance({ suppressNotices: ['yahooSurvey', 'ripHistorical'] });
+const yf = new YahooFinance({ suppressNotices: ['yahooSurvey', 'ripHistorical'], validation: { logErrors: false, logOptionsErrors: false } });
 
 // Cache per symbol (5 min TTL)
 const flowCache = new Map();

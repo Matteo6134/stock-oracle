@@ -15,7 +15,7 @@
 import axios from 'axios';
 import YahooFinance from 'yahoo-finance2';
 
-const yahoo = new YahooFinance({ suppressNotices: ['yahooSurvey'] });
+const yahoo = new YahooFinance({ suppressNotices: ['yahooSurvey'], validation: { logErrors: false, logOptionsErrors: false } });
 const http = axios.create({ timeout: 15000 });
 
 // ══════════════════════════════════════════════════════════════

@@ -14,7 +14,7 @@
 
 import YahooFinance from 'yahoo-finance2';
 
-const yf = new YahooFinance({ suppressNotices: ['yahooSurvey', 'ripHistorical'] });
+const yf = new YahooFinance({ suppressNotices: ['yahooSurvey', 'ripHistorical'], validation: { logErrors: false, logOptionsErrors: false } });
 
 // Cache: symbol → { data, ts }
 const cache = new Map();

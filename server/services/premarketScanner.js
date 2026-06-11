@@ -2,7 +2,7 @@ import YahooFinance from 'yahoo-finance2';
 import { getQuoteBatch, getHistoricalData } from './yahooFinance.js';
 import { getDynamicSymbols, getCachedDynamicSymbols } from './dynamicDiscovery.js';
 
-const yf = new YahooFinance({ suppressNotices: ['yahooSurvey', 'ripHistorical'] });
+const yf = new YahooFinance({ suppressNotices: ['yahooSurvey', 'ripHistorical'], validation: { logErrors: false, logOptionsErrors: false } });
 
 // ────────────────────────────────────────────────────────────────────────────
 // Stock Universe (~200 symbols organized by category)
