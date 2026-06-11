@@ -354,6 +354,42 @@ export async function getEarningsCalendar() {
   return inflightEarningsPromise;
 }
 
+// ── Company fundamentals snapshot (for Telegram prediction alerts) ──
+const fundamentalsCache = new Map(); // symbol → { data, ts }
+const FUNDAMENTALS_TTL = 6 * 60 * 60 * 1000;
+
+export async function getFundamentalsSnapshot(symbol) {
+  const cached = fundamentalsCache.get(symbol);
+  if (cached && Date.now() - cached.ts < FUNDAMENTALS_TTL) return cached.data;
+  try {
+    const s = await yf.quoteSummary(symbol, {
+      modules: ['financialData', 'defaultKeyStatistics', 'calendarEvents', 'assetProfile'],
+    }, { validateResult: false });
+    const fin = s?.financialData || {};
+    const stats = s?.defaultKeyStatistics || {};
+    const cal = s?.calendarEvents || {};
+    const prof = s?.assetProfile || {};
+    const earningsDate = Array.isArray(cal.earnings?.earningsDate) && cal.earnings.earningsDate[0]
+      ? new Date(cal.earnings.earningsDate[0]) : null;
+    const data = {
+      revenueGrowthPct: fin.revenueGrowth != null ? Math.round(fin.revenueGrowth * 1000) / 10 : null,
+      earningsGrowthPct: fin.earningsGrowth != null ? Math.round(fin.earningsGrowth * 1000) / 10 : null,
+      profitMarginPct: fin.profitMargins != null ? Math.round(fin.profitMargins * 1000) / 10 : null,
+      analystTarget: fin.targetMeanPrice ?? null,
+      analystRecommendation: fin.recommendationKey || null,
+      analystCount: fin.numberOfAnalystOpinions ?? null,
+      shortPctFloat: stats.shortPercentOfFloat != null ? Math.round(stats.shortPercentOfFloat * 1000) / 10 : null,
+      nextEarnings: earningsDate ? earningsDate.toISOString().split('T')[0] : null,
+      industry: prof.industry || null,
+    };
+    fundamentalsCache.set(symbol, { data, ts: Date.now() });
+    return data;
+  } catch (err) {
+    console.error(`[YahooFinance] Fundamentals error ${symbol}:`, err.message);
+    return null;
+  }
+}
+
 /**
  * Get upcoming catalysts for a stock using quoteSummary.
  * Returns earnings date, ex-dividend date, and other events.

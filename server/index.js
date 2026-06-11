@@ -61,6 +61,49 @@ function refreshPriceArchive() {
   });
 }
 
+// Nightly rolling backtest: replay every live strategy against the FULL
+// 2016→today archive (which the 4 AM job extended by one day), then push a
+// Telegram summary. The backtest window grows with the market every night.
+function runNightlyReplay() {
+  const pyBin = process.env.PYTHON_BIN || 'C:\\Python312\\python.exe';
+  const cwd = path.join(__dirname, '..', 'python', 'backtest');
+  console.log('[Replay] Nightly rolling backtest starting (full 2016→today window)...');
+  let stderr = '';
+  let proc;
+  try {
+    proc = spawn(pyBin, ['historical_replay.py'], { cwd });
+  } catch (err) {
+    console.error('[Replay] Could not spawn python:', err.message);
+    return;
+  }
+  proc.stderr.on('data', (d) => { stderr += d.toString(); });
+  proc.on('error', (err) => console.error('[Replay] python error:', err.message));
+  proc.on('close', async (code) => {
+    if (code !== 0) {
+      console.error(`[Replay] python exited ${code}: ${stderr.slice(-300)}`);
+      return;
+    }
+    try {
+      const { readFileSync } = await import('fs');
+      const report = JSON.parse(readFileSync(path.join(cwd, 'replay_results', 'replay_report.json'), 'utf8'));
+      const spy = report.spy_benchmark?.total_return_pct;
+      const monkeyMed = report.monkey_distribution?.median_total_return_pct
+        ?? report.monkey_distribution?.p50 ?? null;
+      const lines = [
+        '🧪 *Nightly backtest* (2016 → ' + (report.window?.end || 'today') + ')',
+        '',
+        ...Object.values(report.strategies || {}).map(s =>
+          `${s.total_return_pct >= 0 ? '🟢' : '🔴'} *${s.strategy}*: ${s.total_return_pct >= 0 ? '+' : ''}${Math.round(s.total_return_pct)}% · win ${Math.round((s.win_rate || 0) * 100)}% · beats ${Math.round(s.monkey_percentile || 0)}% of monkeys · maxDD ${Math.round(s.max_drawdown_pct || 0)}%`),
+      ];
+      if (spy != null) lines.push('', `📊 SPY same period: +${Math.round(spy)}%${monkeyMed != null ? ` · random-monkey median: ${Math.round(monkeyMed)}%` : ''}`);
+      console.log('[Replay] Nightly backtest complete — summary sent to Telegram');
+      await sendMessage(lines.join('\n'));
+    } catch (err) {
+      console.error('[Replay] Report parse/notify failed:', err.message);
+    }
+  });
+}
+
 // Run the Supabase signal-attribution backtest (python), then blend the
 // larger-sample fitted weights into the live signalWeights.json.
 function runBacktestRefresh() {
@@ -544,11 +587,6 @@ if (!process.env.VERCEL) {
                   stock.consensus = 'Strong Buy';
                   stock.claudeOverride = 'upgraded';
                 }
-                // Rich Telegram prediction: target, timeframe, why, fundamentals,
-                // AI thesis — the project's core deliverable (12h/symbol cooldown)
-                if (verdict.action === 'BUY' && verdict.confidence >= 7) {
-                  notifyPrediction(stock).catch(() => {});
-                }
               }
             } catch (err) {
               console.error(`[Claude] ${stock.symbol} error:`, err.message);
@@ -614,6 +652,23 @@ if (!process.env.VERCEL) {
         }
         if (tradeResult.bought?.length > 0) {
           console.log(`[AutoTrader] Bought: ${tradeResult.bought.map(t => t.symbol).join(', ')}`);
+        }
+
+        // ── Rich Telegram predictions — sent AFTER the trade decision so the
+        // message can state whether the Alpaca order was actually placed.
+        // (12h per-symbol cooldown inside notifyPrediction.)
+        const predicted = allAnalyzed.filter(s => s.claude?.action === 'BUY' && s.claude.confidence >= 7);
+        const globalSkip = tradeResult.skipped === true ? tradeResult.reason : null;
+        for (const stock of predicted) {
+          const bought = Array.isArray(tradeResult.bought)
+            ? tradeResult.bought.find(b => b.symbol === stock.symbol) : null;
+          const filtered = Array.isArray(tradeResult.skipped)
+            ? tradeResult.skipped.find(k => k.symbol === stock.symbol) : null;
+          notifyPrediction(stock, {
+            placed: !!bought,
+            amount: bought?.amount,
+            reason: bought ? null : (globalSkip || filtered?.reason || 'Already holding or filtered'),
+          }).catch(() => {});
         }
       }
     } catch (err) {
@@ -868,6 +923,14 @@ if (!process.env.VERCEL) {
     // same level as the market as days pass" job: backtests always reach today.
     cron.schedule('0 4 * * 1-6', () => {
       try { refreshPriceArchive(); } catch (err) { console.error('[Archive] Daily refresh failed:', err.message); }
+    }, { timezone: 'America/New_York' });
+
+    // ── NIGHTLY ROLLING BACKTEST — full 2016→today replay on the fresh archive ──
+    // Runs at 5:30 AM ET, after the 4 AM archive refresh has appended yesterday's
+    // bars, so every night the backtest window grows by one day. Sends a Telegram
+    // summary of how each live strategy performs vs. SPY and the monkey baseline.
+    cron.schedule('30 5 * * 2-6', () => {
+      try { runNightlyReplay(); } catch (err) { console.error('[Replay] Nightly run failed:', err.message); }
     }, { timezone: 'America/New_York' });
 
     // ── Claude hourly market briefing (weekdays, 8 AM - 4 PM ET) ──

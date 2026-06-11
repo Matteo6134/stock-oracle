@@ -15,6 +15,7 @@ import { fileURLToPath } from 'url';
 import * as alpaca from './alpaca.js';
 import { getAutoTradeLog } from './autoTrader.js';
 import { getEarlyWarnings, getNewAlerts } from './earlyWarning.js';
+import { getFundamentalsSnapshot } from './yahooFinance.js';
 import { scanPremarketMovers, getShortSqueezeSetups, getBreakoutSetups, STOCK_UNIVERSE } from './premarketScanner.js';
 import { getDynamicSymbols, getDynamicDiscoveryStats } from './dynamicDiscovery.js';
 import { runDailyPicker } from './dailyPicker.js';
@@ -1256,7 +1257,7 @@ const sigLabels = {
 const predictionAlerted = new Map(); // symbol → ts
 const PREDICTION_COOLDOWN = 12 * 60 * 60 * 1000;
 
-function buildPredictionMessage(stock) {
+function buildPredictionMessage(stock, orderInfo, fund) {
   const claude = stock.claude || {};
   const e = stock.explosion || {};
   const price = stock.price || 0;
@@ -1276,30 +1277,48 @@ function buildPredictionMessage(stock) {
     '',
     `💵 Now *$${price}* → target *$${target}* (*+${gainPct}%*) within *~${days} day${days === 1 ? '' : 's'}*${e.probability ? ` · est. probability ${e.probability}%` : ''}`,
     '',
-    `📈 *Why:* ${why}`,
+    `📈 *Buy signals:* ${why}`,
   ];
 
   const factors = (e.factors || []).slice(0, 3);
   if (factors.length) lines.push(...factors.map(f => `  • ${f}`));
 
-  const fundamentals = [];
-  if (stock.marketCap > 0) fundamentals.push(`Cap $${(stock.marketCap / 1e6).toFixed(0)}M`);
-  if (stock.floatShares > 0) fundamentals.push(`Float ${(stock.floatShares / 1e6).toFixed(0)}M`);
-  if (stock.volumeRatio > 0) fundamentals.push(`Volume ${stock.volumeRatio}x normal`);
-  if (stock.shortInterest > 0) fundamentals.push(`Short int. ${stock.shortInterest}%`);
-  if (stock.sector) fundamentals.push(stock.sector);
-  if (fundamentals.length) lines.push('', `🏛 *Fundamentals:* ${fundamentals.join(' · ')}`);
+  const setup = [];
+  if (stock.marketCap > 0) setup.push(`Cap $${(stock.marketCap / 1e6).toFixed(0)}M`);
+  if (stock.floatShares > 0) setup.push(`Float ${(stock.floatShares / 1e6).toFixed(0)}M`);
+  if (stock.volumeRatio > 0) setup.push(`Volume ${stock.volumeRatio}x normal`);
+  if (stock.shortInterest > 0) setup.push(`Short int. ${stock.shortInterest}%`);
+  if (setup.length) lines.push('', `📊 *Setup:* ${setup.join(' · ')}`);
+
+  // Real company fundamentals (Yahoo financialData) — what the business is doing
+  if (fund) {
+    const fParts = [];
+    if (fund.revenueGrowthPct != null) fParts.push(`Revenue ${fund.revenueGrowthPct > 0 ? '+' : ''}${fund.revenueGrowthPct}% YoY`);
+    if (fund.earningsGrowthPct != null) fParts.push(`Earnings ${fund.earningsGrowthPct > 0 ? '+' : ''}${fund.earningsGrowthPct}%`);
+    if (fund.profitMarginPct != null) fParts.push(`Margin ${fund.profitMarginPct}%`);
+    if (fund.analystTarget) fParts.push(`Analyst target $${fund.analystTarget}${fund.analystRecommendation ? ` (${fund.analystRecommendation}, ${fund.analystCount || '?'} analysts)` : ''}`);
+    if (fund.nextEarnings) fParts.push(`Next earnings ${fund.nextEarnings}`);
+    if (fund.industry) fParts.push(fund.industry);
+    if (fParts.length) lines.push('', `🏛 *Fundamentals:* ${fParts.join(' · ')}`);
+  }
 
   if (claude.thesis) {
     lines.push('', `🤖 *AI view (${claude.confidence}/10):* ${claude.thesis}`);
   }
   if (claude.riskLevel) lines.push(`⚠️ *Risk:* ${claude.riskLevel}`);
 
+  // Order status — a prediction this strong should come with an order
+  if (orderInfo?.placed) {
+    lines.push('', `✅ *Order placed on Alpaca: $${orderInfo.amount}*`);
+  } else if (orderInfo?.reason) {
+    lines.push('', `⏸ *No order:* ${orderInfo.reason}`);
+  }
+
   lines.push('', `_${stock.consensus || 'Buy'} · ${stock.buyCount || 0}/5 agents · gem ${stock.gemScore || '?'}_`);
   return lines.join('\n');
 }
 
-export async function notifyPrediction(stock) {
+export async function notifyPrediction(stock, orderInfo = null) {
   if (!bot || subscribers.size === 0) return;
   if (!stock?.symbol || !stock.price) return;
 
@@ -1311,7 +1330,8 @@ export async function notifyPrediction(stock) {
   }
 
   try {
-    const sent = await broadcast(buildPredictionMessage(stock));
+    const fund = await getFundamentalsSnapshot(stock.symbol).catch(() => null);
+    const sent = await broadcast(buildPredictionMessage(stock, orderInfo, fund));
     if (sent > 0) predictionAlerted.set(stock.symbol, now);
   } catch (err) {
     console.error('[Telegram] Prediction alert error:', err.message);
