@@ -23,7 +23,7 @@ Supervised by PM2. Boot persistence via `pm2-windows-startup` is **already insta
 |---|---|---|
 | stock-oracle | `PA3INRBI56WC` — fresh **$4k** paper account since 2026-06-11 (previous: PA39AL3DKA9R, abandoned) | `binance-bot/.env` → `ALPACA_API_KEY` / `ALPACA_SECRET_KEY` / `ALPACA_BASE_URL` |
 
-Paper account at `https://paper-api.alpaca.markets`. Under $25k equity the PDT rule applies (3 day-trades per 5 rolling days) — the bot's pdtGuard handles it. Verify identity with:
+Paper account at `https://paper-api.alpaca.markets`. NOTE: FINRA eliminated the PDT rule ($25k minimum + day-trade counting) effective 2026-06-04 — the account has 4x intraday / 2x overnight buying power regardless of equity. Verify identity with:
 ```bash
 curl -s -H "APCA-API-KEY-ID: $K" -H "APCA-API-SECRET-KEY: $S" https://paper-api.alpaca.markets/v2/account
 ```

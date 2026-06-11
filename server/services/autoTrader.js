@@ -146,10 +146,11 @@ function getSignalBlacklist() {
 // ── PDT rule check: flagged accounts with equity < 25k can't do >3 day-trades
 // in 5 business days. Alpaca exposes `daytrade_count` and `pattern_day_trader`.
 function pdtGuardBlocks(account) {
-  const equity = parseFloat(account.equity) || 0;
-  if (equity >= 25_000) return null;
-  if (account.patternDayTrader) return 'PDT flagged — cannot open new day trade (equity < $25k)';
-  if ((account.daytradeCount || 0) >= 3) return 'PDT limit reached (3 day-trades in last 5 days)';
+  // FINRA eliminated the PDT designation and the $25k/3-day-trade rule on
+  // 2026-06-04 (SEC-approved amendment to Rule 4210). Day trades are no longer
+  // counted; intraday buying power is real-time margin based. We only defer to
+  // the broker: if Alpaca itself still flags the account, respect it.
+  if (account.patternDayTrader) return 'Broker flags account as PDT-restricted';
   return null;
 }
 
@@ -223,11 +224,14 @@ export async function processSignals(analyzedStocks) {
     return { skipped: true, reason: pdtBlock };
   }
 
-  // Budget = configured cap, never more than actual equity. (Was
-  // max(equity, maxBudget), which let percentage-based sizing scale to the
-  // whole account — $5k orders against a $200 maxPerStock config.)
+  // Budget ceiling = configured cap, bounded by overnight (RegT) margin
+  // capacity of 2x equity. The 4x intraday buying power is deliberately NOT
+  // used: this strategy holds positions overnight, and holding above 2x past
+  // the close triggers a margin call — forced loss-selling that would violate
+  // the never-sell-in-loss rule. (PDT rule itself was eliminated 2026-06-04.)
   const accountEquity = parseFloat(account.equity) || 0;
-  const maxBudget = Math.min(accountEquity || config.maxBudget, config.maxBudget);
+  const overnightCapacity = accountEquity > 0 ? accountEquity * 2 : config.maxBudget;
+  const maxBudget = Math.min(overnightCapacity, config.maxBudget);
 
   const signalBlacklist = getSignalBlacklist();
 
