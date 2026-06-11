@@ -52,7 +52,9 @@ async function callAI(systemPrompt, userPrompt, maxTokens = 400, model = MODEL_A
   const g = getGeminiClient();
   if (g) {
     try {
-      const gemModel = g.getGenerativeModel({ model: 'gemini-2.0-flash' });
+      // gemini-2.0-flash was retired from the free tier (429 even on fresh
+      // keys); 2.5-flash is the current free workhorse.
+      const gemModel = g.getGenerativeModel({ model: 'gemini-2.5-flash' });
       const result = await gemModel.generateContent({
         contents: [{ role: 'user', parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }] }],
         generationConfig: { maxOutputTokens: maxTokens, temperature: 0.3 },
