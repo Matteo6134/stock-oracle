@@ -787,7 +787,16 @@ if (!process.env.VERCEL) {
         // ── Rich Telegram predictions — sent AFTER the trade decision so the
         // message can state whether the Alpaca order was actually placed.
         // (12h per-symbol cooldown inside notifyPrediction.)
-        const predicted = allAnalyzed.filter(s => s.claude?.action === 'BUY' && s.claude.confidence >= 7);
+        const aiPredicted = allAnalyzed.filter(s => s.claude?.action === 'BUY' && s.claude.confidence >= 7);
+        // AI-free path: when no AI verdict is available (no credits / no key),
+        // predictions still fire on strong MEASURED evidence — Strong Buy
+        // consensus + a 1000-sample analog family with >=2.5x the base edge.
+        const evidencePredicted = allAnalyzed.filter(s =>
+          !s.claude &&
+          s.consensus === 'Strong Buy' &&
+          s.analog && s.analog.n >= 1000 && s.analog.avgFwd5 >= 0.5
+        );
+        const predicted = [...aiPredicted, ...evidencePredicted];
         const globalSkip = tradeResult.skipped === true ? tradeResult.reason : null;
         for (const stock of predicted) {
           const bought = Array.isArray(tradeResult.bought)
