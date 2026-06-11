@@ -46,6 +46,11 @@ const DEFAULT_CONFIG = {
   maxStockPrice: 400,        // Safety cap — allows mid/large caps like CAR, MSTR, etc.
   maxHoldDays: 10,           // Time stop: close stale positions older than this, but ONLY at breakeven or better (0 = off)
   hardStopPct: 0,            // DISABLED — user's #1 rule: NEVER sell at a loss. (>0 enables loss-cutting + broker stops)
+  // Entry window (ET). Minute-bar backtest (n=743 setup-days): entries
+  // 10:00-13:00 captured +0.32..+0.45% by the close; entries after 14:30
+  // captured ~0%. First 15 min skipped (lowest morning win rate). Empty = off.
+  entryWindowStart: '09:45',
+  entryWindowEnd: '13:30',
 };
 
 // Reset old restrictive configs on first load
@@ -209,6 +214,19 @@ export async function processSignals(analyzedStocks) {
   if (!config.enabled) return { skipped: true, reason: 'Auto-trading disabled' };
   if (!alpaca.isConfigured()) return { skipped: true, reason: 'Alpaca not configured' };
   if (!isMarketOpen()) return { skipped: true, reason: 'Market closed' };
+
+  // Evidence-based entry window: same-day edge exists only in the morning
+  // (see intraday_stats.json). Exits are NOT affected — they run all day.
+  if (config.entryWindowStart && config.entryWindowEnd) {
+    const etNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/New_York' }));
+    const hhmm = `${String(etNow.getHours()).padStart(2, '0')}:${String(etNow.getMinutes()).padStart(2, '0')}`;
+    if (hhmm < config.entryWindowStart) {
+      return { skipped: true, reason: `Entry window opens ${config.entryWindowStart} ET (first minutes are noise)` };
+    }
+    if (hhmm > config.entryWindowEnd) {
+      return { skipped: true, reason: `Entry window closed at ${config.entryWindowEnd} ET (afternoon entries have no historical edge)` };
+    }
+  }
 
   let positions;
   try {
