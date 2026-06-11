@@ -1071,6 +1071,24 @@ function formatDossier(d) {
   L.push(`${verdictIcon} *${sym}* — ${v.recommendation} (${v.conviction})  ·  Score *${v.score}/100*`);
   L.push('');
 
+  // 🔮 Outlook — the actual answer: where could it go, and what does history say
+  const pseudoSignals = [...(d.internal?.signals || [])];
+  if (d.price?.avgVolume > 0 && d.price.volume / d.price.avgVolume >= 3) pseudoSignals.push('unusual_volume');
+  if (d.price?.week52High && d.price.last >= d.price.week52High * 0.95) pseudoSignals.push('near_52w_high');
+  const dossierAnalog = pseudoSignals.length
+    ? getAnalog({ signals: pseudoSignals }, scanCacheRef.regime?.regime)
+    : null;
+
+  if (d.aiThesis?.action === 'BUY' && d.price?.last) {
+    const gain = Math.min(Math.round(d.aiThesis.targetPct || 10), 25);
+    const target = Math.round(d.price.last * (1 + gain / 100) * 100) / 100;
+    L.push(`🔮 *If it moves:* $${d.price.last} → $${target} (+${gain}%), AI confidence ${d.aiThesis.confidence}/10`);
+  }
+  if (dossierAnalog) {
+    L.push(`📊 *History (since 1998):* ${Math.round(dossierAnalog.hitRate * 100)}% of ${dossierAnalog.n.toLocaleString('en-US')} setups like today's hit +10% in 5d · avg ${dossierAnalog.avgFwd5 > 0 ? '+' : ''}${dossierAnalog.avgFwd5}%/5d`);
+  }
+  if (d.aiThesis?.action === 'BUY' || dossierAnalog) L.push('');
+
   // Price (local var `pr` to avoid shadowing the `p()` percent formatter)
   if (d.price) {
     const pr = d.price;
@@ -1155,11 +1173,26 @@ function formatDossier(d) {
     L.push('');
   }
 
-  // Footer
-  if (d.missingSources?.length) {
-    L.push(`_Sources missing: ${d.missingSources.slice(0, 4).join(', ')}_`);
-  }
-  L.push(`_${d.elapsedMs}ms · ${tickerLink(sym)}_`);
+  // 💬 Bottom line — one blunt sentence: is this worth attention or not
+  const bottomLine = (() => {
+    if (v.recommendation === 'BUY') {
+      const why = v.reasons?.[0] ? ` Main reason: ${v.reasons[0]}.` : '';
+      const hist = dossierAnalog
+        ? (dossierAnalog.avgFwd5 >= 0.3
+          ? ' History backs setups like this one.'
+          : ' But note: history shows only a small edge for setups like this.')
+        : '';
+      return `Worth your attention.${why}${hist}`;
+    }
+    if (v.recommendation === 'WATCH') {
+      return 'NOT actionable today — nothing here points to an imminent move. Save your attention; the bot will alert you if a real setup forms.';
+    }
+    const bear = v.bears?.[0] ? ` ${v.bears[0]}.` : '';
+    return `Skip it.${bear}`;
+  })();
+  L.push(`💬 _Bottom line: ${bottomLine}_`);
+  L.push('');
+  L.push(`_${tickerLink(sym)}_`);
 
   return L.join('\n');
 }
