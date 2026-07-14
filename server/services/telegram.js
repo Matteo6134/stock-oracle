@@ -1,11 +1,12 @@
 /**
  * Stock Oracle — Telegram Bot
- * 5 commands only. Clean. Simple. No noise.
- *
- * /scan            — explosion gems (what to buy)
- * /portfolio       — stock auto-trade stats
- * /clear           — wipe entire chat
- * /status          — system health & market overview
+ * Commands:
+ *   /start      — subscribe + help
+ *   /recap      — open tracked predictions (live progress) + latest scan picks
+ *   /portfolio  — open positions & P/L
+ *   /pnl        — realized auto-trader P&L: today / 7d / all-time
+ *   /stop       — unsubscribe
+ *   <TICKER>    — full research dossier for any symbol
  */
 
 import TelegramBot from 'node-telegram-bot-api';
@@ -15,7 +16,7 @@ import { fileURLToPath } from 'url';
 import * as alpaca from './alpaca.js';
 import { getAutoTradeLog } from './autoTrader.js';
 import { getNewAlerts } from './earlyWarning.js';
-import { getFundamentalsSnapshot } from './yahooFinance.js';
+import { getFundamentalsSnapshot, getQuoteBatch } from './yahooFinance.js';
 import { getAnalog } from './analogStats.js';
 import { researchTicker } from './tickerResearch.js';
 import { getExplosionStats, getPredictionStats } from './db.js';
@@ -195,37 +196,103 @@ function registerCommands() {
   });
 
   // ────────────────────────────────────────────────
-  // /recap — every current prediction in one message
+  // /recap — open TRACKED predictions with live progress (Supabase, survives
+  // restarts) + the latest scan's top candidates. The old version only read
+  // the in-memory scan cache, so it showed "no predictions" after every
+  // restart and never reported how tracked predictions were actually doing.
   // ────────────────────────────────────────────────
   bot.onText(/\/recap/, async (msg) => {
     const cid = msg.chat.id;
-    const all = scanCacheRef.allAnalyzed || [];
-    const picks = all
-      .filter(s => s.consensus === 'Buy' || s.consensus === 'Strong Buy')
-      .sort((a, b) =>
-        (b.claude?.confidence || 0) - (a.claude?.confidence || 0) ||
-        (b.gemScore || 0) - (a.gemScore || 0))
-      .slice(0, 6);
+    try {
+      const lines = ['🔮 *Predictions recap*'];
 
-    if (picks.length === 0) {
-      send(cid, '🔮 *Recap*\n\nNo active predictions right now — nothing passes the quality gates at the moment. I scan every 5 minutes during market hours and will alert you when something does.');
-      return;
+      // ── 1. Open predictions being tracked (settle nightly at 17:00 ET) ──
+      let open = [];
+      if (sb) {
+        const { data } = await sb.from('predictions')
+          .select('symbol,entry_price,target_pct,timeframe_days,created_at,gem_score,confidence')
+          .is('outcome', null)
+          .order('created_at', { ascending: false })
+          .limit(60);
+        const seen = new Set();
+        for (const r of (data || [])) {          // newest prediction per symbol
+          if (seen.has(r.symbol)) continue;
+          seen.add(r.symbol);
+          open.push(r);
+        }
+      }
+
+      if (open.length > 0) {
+        const quotes = {};
+        try {
+          for (const q of await getQuoteBatch(open.map(o => o.symbol)) || []) {
+            if (q?.symbol) quotes[q.symbol] = q;
+          }
+        } catch { /* progress shows ? without quotes */ }
+        const held = new Set();
+        try { (await alpaca.getPositions()).forEach(pos => held.add(pos.symbol)); } catch {}
+
+        const rows = open.map(o => {
+          const cur = quotes[o.symbol]?.regularMarketPrice || null;
+          const prog = cur && o.entry_price ? (cur / o.entry_price - 1) * 100 : null;
+          const ageDays = Math.floor((Date.now() - new Date(o.created_at).getTime()) / 86400000);
+          return { ...o, cur, prog, ageDays };
+        }).sort((a, b) => (b.prog ?? -999) - (a.prog ?? -999));
+
+        lines.push('', `📌 *Tracking ${rows.length} open prediction${rows.length === 1 ? '' : 's'}* (💼 = position held):`);
+        for (const r of rows.slice(0, 15)) {
+          const icon = r.prog == null ? '⚪' : r.prog >= 0 ? '🟢' : '🔴';
+          const progTxt = r.prog == null ? '?' : `${r.prog >= 0 ? '+' : ''}${r.prog.toFixed(1)}%`;
+          const overdue = r.ageDays > (r.timeframe_days || 5) ? ' ⌛' : '';
+          const curTxt = r.cur ? `$${Number(r.cur).toFixed(2)}` : '?';
+          lines.push(
+            `${icon} *${r.symbol}*${held.has(r.symbol) ? ' 💼' : ''} $${r.entry_price} → ${curTxt} (${progTxt})` +
+            ` · target +${r.target_pct}% · day ${r.ageDays}/${r.timeframe_days || 5}${overdue}`
+          );
+        }
+        if (rows.length > 15) lines.push(`_…and ${rows.length - 15} more_`);
+      } else {
+        lines.push('', sb ? '_No open predictions being tracked right now._' : '_Supabase not configured — cannot read tracked predictions._');
+      }
+
+      // ── 2. Latest scan — freshest candidates (in-memory, empty after restart) ──
+      const all = scanCacheRef.allAnalyzed || [];
+      const picks = all
+        .filter(s => s.consensus === 'Buy' || s.consensus === 'Strong Buy')
+        .sort((a, b) =>
+          (b.claude?.confidence || 0) - (a.claude?.confidence || 0) ||
+          (b.gemScore || 0) - (a.gemScore || 0))
+        .slice(0, 5);
+      if (picks.length > 0) {
+        const ts = scanCacheRef.lastScanTime
+          ? new Date(scanCacheRef.lastScanTime).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
+          : 'n/a';
+        lines.push('', `🆕 *Latest scan candidates* _(scan ${ts})_:`);
+        for (const s of picks) {
+          const e = s.explosion || {};
+          const gainPct = Math.round(s.claude?.targetPct || Math.min(e.expectedGainPct || 10, 20));
+          const target = s.price ? Math.round(s.price * (1 + gainPct / 100) * 100) / 100 : '?';
+          const why = (s.signals || []).slice(0, 3).map(x => sigLabels[x] || x.replace(/_/g, ' ')).join(', ');
+          const tag = s.consensus === 'Strong Buy' ? '🟢' : '🟡';
+          lines.push(`${tag} *${s.symbol}* $${s.price} → $${target} (+${gainPct}%) in ~${e.daysToMove || 5}d — _${why}_`);
+        }
+      }
+
+      // Chunked send (Telegram 4096-char cap)
+      const chunks = [];
+      let buf = [], len = 0;
+      for (const l of lines) {
+        if (len + l.length + 1 > 3800 && buf.length) { chunks.push(buf.join('\n')); buf = []; len = 0; }
+        buf.push(l); len += l.length + 1;
+      }
+      if (buf.length) chunks.push(buf.join('\n'));
+      for (let i = 0; i < chunks.length; i++) {
+        send(cid, chunks[i]);
+        if (i < chunks.length - 1) await new Promise(r => setTimeout(r, 250));
+      }
+    } catch (err) {
+      send(cid, `Error: ${err.message}`);
     }
-
-    const blocks = picks.map(s => {
-      const e = s.explosion || {};
-      const gainPct = Math.round(s.claude?.targetPct || Math.min(e.expectedGainPct || 10, 20));
-      const target = s.price ? Math.round(s.price * (1 + gainPct / 100) * 100) / 100 : '?';
-      const why = (s.signals || []).slice(0, 4).map(x => sigLabels[x] || x.replace(/_/g, ' ')).join(', ');
-      const conf = s.claude ? ` · AI ${s.claude.confidence}/10` : '';
-      const tag = s.consensus === 'Strong Buy' ? '🟢' : '🟡';
-      return `${tag} *${s.symbol}* $${s.price} → $${target} (+${gainPct}%) in ~${e.daysToMove || 5}d${conf}\n_${why}_`;
-    });
-
-    const ts = scanCacheRef.lastScanTime
-      ? new Date(scanCacheRef.lastScanTime).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })
-      : 'n/a';
-    send(cid, [`🔮 *Predictions recap* _(scan ${ts})_`, '', blocks.join('\n\n')].join('\n'));
   });
 
   // ────────────────────────────────────────────────
@@ -301,7 +368,7 @@ function registerCommands() {
             lines.push(_ln);
           }
           lines.push('');
-          lines.push('_Bot is LONG-ONLY - never sells at a loss. Red = HOLD (waiting for recovery); broker stop guards against crashes. No SHORT positions._');
+          lines.push('_Bot is LONG-ONLY - never sells at a loss, no stop-losses by design. Red = HOLD (waiting for recovery). New entries are sector-gated (top-3 momentum sectors only). No SHORT positions._');
         } else {
           lines.push('');
           lines.push('_No open stock positions._');
@@ -343,44 +410,71 @@ function registerCommands() {
     }
   });
 
-  // /pnl \u2014 P&L today / 7d / all-time
+  // /pnl \u2014 REAL auto-trader P&L (realized from the trade log + unrealized from
+  // Alpaca). The old version only summed the daily_picks overnight experiment,
+  // which is a different strategy \u2014 it made the account look flat while the
+  // auto-trader bled. That experiment now shows as its own labeled block.
   bot.onText(/\/pnl/, async (msg) => {
     const cid = msg.chat.id;
-    if (!sb) return send(cid, '_Supabase not configured._');
     try {
-      const today = todayDateIso();
-      const sevenAgo = new Date(Date.now() - 7 * 86400 * 1000).toISOString().slice(0, 10);
-      const { data: all } = await sb.from('daily_picks').select('*')
-        .not('realized_pnl', 'is', null)
-        .order('pick_date', { ascending: false });
-      const settled = all || [];
-      function summarize(rows) {
-        if (!rows.length) return null;
-        const pnl = rows.reduce((s, r) => s + (Number(r.realized_pnl) || 0), 0);
-        const wins = rows.filter(r => (r.realized_pct || 0) > 0).length;
-        const avg = rows.reduce((s, r) => s + (Number(r.realized_pct) || 0), 0) / rows.length;
-        return { n: rows.length, pnl, wins, winPct: wins / rows.length * 100, avgPct: avg };
-      }
-      const todayRows = settled.filter(r => r.pick_date === today);
-      const weekRows = settled.filter(r => r.pick_date >= sevenAgo);
-      let acctEquity = null;
-      try { const a = await alpaca.getAccount(); acctEquity = parseFloat(a?.equity || 0); } catch {}
       const lines = ['\uD83D\uDCB0 *P&L Summary*', ''];
-      if (acctEquity) lines.push(`*Account equity:* ${$(acctEquity)}`);
-      lines.push('');
+
+      // \u2500\u2500 Account \u2500\u2500
+      let acct = null;
+      try { acct = await alpaca.getAccount(); } catch {}
+      if (acct) {
+        const equity = parseFloat(acct.equity || 0);
+        const RESET_BASELINE = 4000; // fresh paper account 2026-06-11
+        const sinceReset = equity - RESET_BASELINE;
+        const icon = sinceReset >= 0 ? '\uD83D\uDFE2' : '\uD83D\uDD34';
+        lines.push(`*Account equity:* ${$(equity)}`);
+        lines.push(`*Since reset (Jun 11, $4,000):* ${icon} ${$(sinceReset)} (${p(sinceReset / RESET_BASELINE * 100)})`);
+      }
+
+      // \u2500\u2500 Unrealized (open positions) \u2500\u2500
+      try {
+        const positions = await alpaca.getPositions();
+        if (positions?.length) {
+          const unreal = positions.reduce((s, pos) => s + (pos.unrealizedPL || 0), 0);
+          lines.push(`*Open positions:* ${positions.length} \u00B7 unrealized ${unreal >= 0 ? '\uD83D\uDFE2' : '\uD83D\uDD34'} ${$(unreal)}`);
+        }
+      } catch {}
+
+      // \u2500\u2500 Realized, from the auto-trader's own closed trades \u2500\u2500
+      const closed = getAutoTradeLog().filter(t => t.exitPrice != null && t.pnl != null);
+      const now = Date.now();
+      const summarize = (rows) => {
+        if (!rows.length) return null;
+        const pnl = rows.reduce((s, t) => s + (Number(t.pnl) || 0), 0);
+        const wins = rows.filter(t => (t.pnl || 0) > 0).length;
+        return { n: rows.length, pnl, wins, winPct: wins / rows.length * 100 };
+      };
       const renderBlock = (label, s) => {
-        if (!s) { lines.push(`*${label}:* _no settled picks yet_`); return; }
+        if (!s) { lines.push(`*${label}:* _no closed trades_`); return; }
         const icon = s.pnl >= 0 ? '\uD83D\uDFE2' : '\uD83D\uDD34';
         lines.push(`*${label}:* ${icon} ${$(s.pnl)} \u00B7 ${s.wins}/${s.n} wins (${s.winPct.toFixed(0)}%)`);
-        lines.push(`   avg ${s.avgPct >= 0 ? '+' : ''}${s.avgPct.toFixed(2)}%/trade`);
       };
-      renderBlock('Today', summarize(todayRows));
-      renderBlock('Last 7d', summarize(weekRows));
-      renderBlock('All-time', summarize(settled));
-      if (settled.length === 0) {
-        lines.push('');
-        lines.push('_First pick fires today at 22:05 Italy. P&L starts tomorrow._');
+      const dayMs = 86400 * 1000;
+      lines.push('', '\uD83E\uDD16 *Auto-trader (realized):*');
+      renderBlock('Today', summarize(closed.filter(t => now - new Date(t.timestamp).getTime() < dayMs)));
+      renderBlock('Last 7d', summarize(closed.filter(t => now - new Date(t.timestamp).getTime() < 7 * dayMs)));
+      renderBlock('All-time', summarize(closed));
+      lines.push('_Realized only counts closed trades \u2014 losers are held, never sold (house rule)._');
+
+      // \u2500\u2500 Overnight daily-picks experiment (separate strategy, own money flow) \u2500\u2500
+      if (sb) {
+        try {
+          const { data: all } = await sb.from('daily_picks').select('realized_pnl,realized_pct,pick_date')
+            .not('realized_pnl', 'is', null);
+          const settled = all || [];
+          if (settled.length > 0) {
+            const pnl = settled.reduce((s, r) => s + (Number(r.realized_pnl) || 0), 0);
+            const wins = settled.filter(r => (r.realized_pct || 0) > 0).length;
+            lines.push('', `\uD83C\uDF19 *Overnight picks experiment:* ${pnl >= 0 ? '\uD83D\uDFE2' : '\uD83D\uDD34'} ${$(pnl)} \u00B7 ${wins}/${settled.length} wins`);
+          }
+        } catch {}
       }
+
       send(cid, lines.join('\n'));
     } catch (err) { send(cid, `Error: ${err.message}`); }
   });
@@ -575,7 +669,7 @@ export async function notifyNewTrade(trade) {
     `\uD83D\uDE80 *BOUGHT ${trade.symbol}*`,
     '',
     `\uD83D\uDCB0 ${$(trade.price)}  \u00D7  ${$(trade.amount)}`,
-    `\uD83C\uDFAF +${trade.targetPct || 10}%  \uD83D\uDED1 -${trade.stopPct || 5}%`,
+    `\uD83C\uDFAF target +${trade.targetPct || 10}% \u00B7 no stop (never sells at a loss)`,
   ].join('\n'));
 }
 
@@ -742,7 +836,7 @@ function buildPredictionMessage(stock, orderInfo, fund, analog) {
     lines.push('', `⏸ *No order:* ${orderInfo.reason}`);
   }
 
-  lines.push('', `_${stock.consensus || 'Buy'} · ${stock.buyCount || 0}/5 agents · gem ${stock.gemScore || '?'}_`);
+  lines.push('', `_${stock.consensus || 'Buy'} · ${stock.buyCount || 0}/6 agents · gem ${stock.gemScore || '?'}_`);
   return lines.join('\n');
 }
 
@@ -784,6 +878,10 @@ export async function notifyBuyAlerts(stocks) {
     if (!s.consensus || s.consensus === 'No Trade' || s.consensus === 'Speculative') return false;
     if ((s.gemScore || 0) < 55) return false;
     if ((s.buyCount || 0) < 2) return false;
+    // Defer to the richer 🔮 PREDICTION alert — if one went out for this
+    // symbol recently, don't send the same setup again in the old format.
+    const lastPred = predictionAlerted.get(s.symbol);
+    if (lastPred && now - lastPred < PREDICTION_COOLDOWN) return false;
     const prev = alertedStocks.get(s.symbol);
     if (!prev) return true;
     if ((s.gemScore || 0) >= (prev.gemScore || 0) + ALERT_SCORE_JUMP) return true;
@@ -815,14 +913,6 @@ export async function notifyBuyAlerts(stocks) {
         ? agentTargets.reduce((a, b) => a + b, 0) / agentTargets.length
         : expl?.targetPrice || (s.price * (1 + avgTargetPct / 100));
 
-      // Stop loss: average of agent stops (conservative — tightest wins)
-      const agentStops = buyVerdicts.map(v => v.stopLoss).filter(p => p > 0);
-      const stopPrice = agentStops.length > 0
-        ? Math.max(...agentStops)  // use the tightest (highest) stop = most conservative
-        : s.price * 0.93;          // fallback: 7% stop
-
-      const stopPct = s.price > 0 ? ((stopPrice - s.price) / s.price * 100) : -7;
-
       // Timeframe from verdicts
       const timeframes = buyVerdicts.map(v => parseInt(v.timeframe) || 5).filter(t => t > 0);
       const avgDays = timeframes.length > 0
@@ -833,13 +923,13 @@ export async function notifyBuyAlerts(stocks) {
         header,
         '',
         `${tickerLink(s.symbol)}  ${$(s.price)}  ${change}`,
-        `Score ${s.gemScore}  \u00B7  ${s.buyCount}/5 agents  \u00B7  ${s.consensus}`,
+        `Score ${s.gemScore}  \u00B7  ${s.buyCount}/6 agents  \u00B7  ${s.consensus}`,
         '',
         `\u2500\u2500\u2500 *TRADE PLAN* \u2500\u2500\u2500`,
         `\uD83D\uDFE2 Entry: *${$(s.price)}*`,
         `\uD83C\uDFAF Take profit: *${$(targetPrice)}* (+${avgTargetPct.toFixed(0)}%)`,
-        `\uD83D\uDED1 Stop loss: *${$(stopPrice)}* (${stopPct.toFixed(1)}%)`,
         `\u23F0 Timeframe: *${avgDays} day${avgDays > 1 ? 's' : ''}*`,
+        `_No stop-loss \u2014 house rule: never sell at a loss. Size accordingly if trading manually._`,
       ];
 
       // Add explosion prediction if strong
