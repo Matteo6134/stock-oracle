@@ -21,6 +21,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { getTrackedStocks, getHotStocks } from './signalTracker.js';
 import { isRevolutAvailable, filterRevolutStocks } from './revolut.js';
+import { sectorGateVeto } from './sectorGate.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ALERT_HISTORY_FILE = path.join(__dirname, '..', 'data', 'earlyWarningAlertHistory.json');
@@ -138,7 +139,6 @@ function buildAlertMessage(stock) {
 
   const price = stock.currentPrice || 0;
   const targetPrice = price > 0 ? Math.round(price * (1 + move.expectedGain / 100) * 100) / 100 : 0;
-  const stopPrice = price > 0 ? Math.round(price * 0.93 * 100) / 100 : 0; // 7% stop
 
   const lines = [
     `${icon} *${stock.stage}* — ${stock.symbol}`,
@@ -149,7 +149,7 @@ function buildAlertMessage(stock) {
     lines.push('');
     lines.push(`\uD83D\uDFE2 Entry: *$${price}*`);
     lines.push(`\uD83C\uDFAF Target: *$${targetPrice}* (+${move.expectedGain}% in ${move.daysToMove}d)`);
-    lines.push(`\uD83D\uDED1 Stop: *$${stopPrice}* (-7%)`);
+    lines.push(`_No stop-loss \u2014 house rule: never sell at a loss. Size accordingly._`);
   }
 
   if (stock.consensus && stock.consensus !== 'No Trade') {
@@ -160,8 +160,20 @@ function buildAlertMessage(stock) {
     lines.push(`\uD83D\uDD0D ${signalSummary}`);
   }
 
+  // Honesty gate: never yell ACT NOW at a setup the auto-trader itself would
+  // refuse (cold sector) or that only one agent believes in (Speculative).
+  const gateVeto = sectorGateVeto(stock.symbol);
+  const weakConsensus = !stock.consensus || stock.consensus === 'Speculative' || stock.consensus === 'No Trade';
+  if (gateVeto) {
+    lines.push(`\u26A0\uFE0F *Cold sector — the bot will NOT buy this.* ${gateVeto.replace('Sector gate: ', '')}`);
+  }
+
   if (stock.stage === 'IMMINENT') {
-    lines.push(`\u26A1 *ACT NOW — move expected within ${move.daysToMove} day${move.daysToMove > 1 ? 's' : ''}*`);
+    if (!gateVeto && !weakConsensus) {
+      lines.push(`\u26A1 *ACT NOW — move expected within ${move.daysToMove} day${move.daysToMove > 1 ? 's' : ''}*`);
+    } else {
+      lines.push(`\u26A1 Move expected within ${move.daysToMove} day${move.daysToMove > 1 ? 's' : ''} — ${gateVeto ? 'but sector is out of favor' : 'but agent consensus is weak'}, treat as watch-only`);
+    }
   } else if (stock.stage === 'LOADING') {
     lines.push(`\u23F0 Watch closely — loading for ${days} day${days > 1 ? 's' : ''}`);
   } else {
