@@ -111,7 +111,8 @@
       "Bash(curl -s --max-time 10 \"https://query1.finance.yahoo.com/v8/finance/chart/AAPL?interval=1d&range=1d\" -H \"User-Agent: Mozilla/5.0\" -H \"Origin: https://finance.yahoo.com\" -H \"Referer: https://finance.yahoo.com/\")",
       "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(''''gems:'''', len\\(d.get\\(''''gems'''',[]\\)\\), ''''source:'''', d.get\\(''''source'''',''''?''''\\), ''''keys:'''', list\\(d.keys\\(\\)\\)[:10]\\)\")",
       "Bash(curl -s --max-time 20 https://web-production-7dbdc.up.railway.app/api/tomorrow)",
-      "Bash(node -e \"const d=require\\(''''fs''''\\).readFileSync\\(0,''''utf8''''\\); try{const j=JSON.parse\\(d\\); console.log\\(''''keys:'''', Object.keys\\(j\\)\\); console.log\\(''''gems:'''', \\(j.gems||[]\\).length\\); console.log\\(''''predictions:'''', \\(j.predictions||[]\\).length\\); console.log\\(''''source:'''', j.source||''''none''''\\);} catch\\(e\\){console.log\\(''''RAW:'''', d.slice\\(0,300\\)\\)}\")"
+      "Bash(node -e \"const d=require\\(''''fs''''\\).readFileSync\\(0,''''utf8''''\\); try{const j=JSON.parse\\(d\\); console.log\\(''''keys:'''', Object.keys\\(j\\)\\); console.log\\(''''gems:'''', \\(j.gems||[]\\).length\\); console.log\\(''''predictions:'''', \\(j.predictions||[]\\).length\\); console.log\\(''''source:'''', j.source||''''none''''\\);} catch\\(e\\){console.log\\(''''RAW:'''', d.slice\\(0,300\\)\\)}\")",
+      "Bash(pm2 list *)"
     ]
   }
 }

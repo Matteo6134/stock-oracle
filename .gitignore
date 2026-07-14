@@ -36,3 +36,4 @@ dist-ssr
 server/data/telegramConfig.json
 python/backtest/archive/minute_bars.parquet
 python/backtest/archive/*.bak2016
+python/backtest/archive/ohlcv_daily.parquet
