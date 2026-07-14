@@ -61,6 +61,29 @@ function refreshPriceArchive() {
   });
 }
 
+// Sector gate refresh: rank sectors by 20d momentum over the 1500-symbol
+// universe and emit top-sector + moderate-momentum candidates for the
+// autoTrader entry gate and scanner discovery (backtest: sector_rotation_backtest.py).
+function runSectorGate() {
+  const pyBin = process.env.PYTHON_BIN || 'C:\\Python312\\python.exe';
+  const cwd = path.join(__dirname, '..', 'python', 'backtest');
+  console.log('[SectorGate] Refreshing daily sector gate...');
+  let stderr = '';
+  let proc;
+  try {
+    proc = spawn(pyBin, ['sector_gate.py'], { cwd });
+  } catch (err) {
+    console.error('[SectorGate] Could not spawn python:', err.message);
+    return;
+  }
+  proc.stderr.on('data', (d) => { stderr += d.toString(); });
+  proc.on('error', (err) => console.error('[SectorGate] python error:', err.message));
+  proc.on('close', (code) => {
+    if (code === 0) console.log('[SectorGate] sectorGate.json refreshed.');
+    else console.error(`[SectorGate] sector_gate.py exited ${code}: ${stderr.slice(-300)}`);
+  });
+}
+
 // Nightly rolling backtest: replay every live strategy against the FULL
 // 2016→today archive (which the 4 AM job extended by one day), then push a
 // Telegram summary. The backtest window grows with the market every night.
@@ -744,13 +767,7 @@ if (!process.env.VERCEL) {
         console.error('[Cron] Early warning alert error:', err.message)
       );
 
-      // ── Proactive Telegram buy alerts (independent of auto-trading) ──
-      // Fires for every new strong setup so user can buy manually before it moves
       if (allAnalyzed.length > 0) {
-        notifyBuyAlerts(allAnalyzed).catch(err =>
-          console.error('[Cron] Buy alert error:', err.message)
-        );
-
         // Save explosion predictions to Supabase for tracking accuracy
         const strongGems = allAnalyzed.filter(s =>
           s.explosion?.expectedGainPct >= 15 &&
@@ -821,6 +838,14 @@ if (!process.env.VERCEL) {
             reason: bought ? null : (globalSkip || filtered?.reason || 'Already holding or filtered'),
           }).catch(() => {});
         }
+
+        // Buy alerts ONLY for strong setups that did not earn a rich 🔮
+        // prediction message — previously both alert formats fired for the
+        // same stock in the same scan, doubling every strong setup.
+        const predictedSyms = new Set(predicted.map(s => s.symbol));
+        notifyBuyAlerts(allAnalyzed.filter(s => !predictedSyms.has(s.symbol))).catch(err =>
+          console.error('[Cron] Buy alert error:', err.message)
+        );
       }
     } catch (err) {
       console.error('[Cron] Gem scan error:', err.message);
@@ -1133,6 +1158,11 @@ if (!process.env.VERCEL) {
     // same level as the market as days pass" job: backtests always reach today.
     cron.schedule('0 4 * * 1-6', () => {
       try { refreshPriceArchive(); } catch (err) { console.error('[Archive] Daily refresh failed:', err.message); }
+    }, { timezone: 'America/New_York' });
+
+    // Daily sector gate — 8:30 AM ET weekdays, before the 09:45 entry window opens.
+    cron.schedule('30 8 * * 1-5', () => {
+      try { runSectorGate(); } catch (err) { console.error('[SectorGate] Daily refresh failed:', err.message); }
     }, { timezone: 'America/New_York' });
 
     // ── NIGHTLY ROLLING BACKTEST — full 1998→today replay on the fresh archive ──

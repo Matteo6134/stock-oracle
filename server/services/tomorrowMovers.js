@@ -21,7 +21,8 @@
  */
 
 import { getQuoteBatch, getHistoricalData, getEarningsCalendar, getTrendingStocks, getDailyGainers, getSmallCapGainers, getMostActive } from './yahooFinance.js';
-import { getShortSqueezeSetups, getBreakoutSetups, STOCK_UNIVERSE } from './premarketScanner.js';
+import { getShortSqueezeSetups, getBreakoutSetups } from './premarketScanner.js';
+import { getScanUniverse } from './sectorGate.js';
 import { classifySector, getSectorTrends } from './sectorAnalysis.js';
 import { getOrderFlow } from './orderFlow.js';
 import { getLearnedWeight, getComboBonus } from './signalLearner.js';
@@ -405,16 +406,10 @@ function predictExplosion(signals, details, hist, price, volumeRatio, floatShare
 
 async function _scan() {
   try {
-    // Build full symbol universe (static: ~300 symbols including Revolut popular)
-    const allSymbols = [
-      ...STOCK_UNIVERSE.SMALL_MID_CAPS,
-      ...STOCK_UNIVERSE.BIOTECH_PHARMA,
-      ...STOCK_UNIVERSE.MEME_VOLATILE,
-      ...STOCK_UNIVERSE.RECENT_IPOS,
-      ...STOCK_UNIVERSE.REVOLUT_POPULAR,
-      ...STOCK_UNIVERSE.MICRO_CAP_GEMS,
-    ];
-    const unique = [...new Set(allSymbols)];
+    // Scan universe: 100% data-driven (sectorGate.json, regenerated daily
+    // 08:30 ET) — liquid members of the top-3 momentum sectors + highest-ADV
+    // names market-wide + moderate-momentum candidates. Zero hardcoded tickers.
+    const unique = [...new Set(getScanUniverse())];
 
     // Fetch data in parallel (including 3 Yahoo screeners for dynamic discovery)
     const [quotes, sectorTrends, earningsCal, squeezeData, breakoutData, trending, gainers, smallCapGainers, mostActive] = await Promise.all([

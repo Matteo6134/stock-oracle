@@ -1,5 +1,5 @@
 /**
- * AI Trading Desk — 5 Virtual Trader Agents
+ * AI Trading Desk — 6 Virtual Trader Agents
  *
  * Each agent analyzes gems from their unique trading style.
  * Rule-based (no LLM calls), persona-driven reasoning.
@@ -10,6 +10,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { getCalibration, STYLE_TO_STRATEGY } from './strategyCalibrator.js';
+import { getSectorGate } from './sectorGate.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const AGENT_CONFIG_FILE = path.join(__dirname, '..', 'data', 'agentConfig.json');
@@ -70,6 +71,17 @@ const DEFAULT_AGENTS = [
     targetGainRange: [8, 15],
     timeframeDays: [5, 7],
     stopPct: 10,
+  },
+  {
+    name: 'Sector Sam',
+    style: 'sector',
+    emoji: '🏭',
+    enabled: true,
+    description: 'Fishes where the fish are. Votes from measured sector rotation: 20d sector momentum ranks (sectorGate.json, refreshed daily) — backtested vs monkeys in 2022-26 and June-26.',
+    targetSignals: [],   // data-driven (sector gate), not signal-driven
+    targetGainRange: [10, 20],
+    timeframeDays: [5, 10],
+    stopPct: 8,
   },
 ];
 
@@ -312,17 +324,69 @@ function contrarianCarlos(gem) {
   };
 }
 
+function sectorSam(gem) {
+  const profile = getAgents()[5];
+  const base = { agent: profile.name, style: profile.style, emoji: profile.emoji };
+
+  const gate = getSectorGate();
+  if (!gate) {
+    return { ...base, action: 'SKIP', conviction: 0, targetGain: null, timeframe: null, reasoning: 'Sector gate data missing or stale — no sector opinion.', stopLoss: null, targetPrice: null };
+  }
+  const sector = gate.sector_of?.[gem.symbol];
+  if (!sector) {
+    return { ...base, action: 'SKIP', conviction: 0, targetGain: null, timeframe: null, reasoning: 'No sector mapping for this symbol.', stopLoss: null, targetPrice: null };
+  }
+
+  const ranked = Object.keys(gate.sector_momentum_pct || {});   // already sorted desc by momentum
+  const rank = ranked.indexOf(sector) + 1;
+  const mom = gate.sector_momentum_pct?.[sector];
+  const inTop = gate.top_sectors.includes(sector);
+  const isCandidate = (gate.candidates || []).includes(gem.symbol);
+
+  if (!inTop) {
+    // Bottom-half sector: clear no. Top-half but not top-3: worth watching.
+    const coldReason = `${sector} ranks ${rank}/${ranked.length} by 20d momentum (${mom > 0 ? '+' : ''}${mom}%)`;
+    if (ranked.length && rank <= Math.ceil(ranked.length / 2)) {
+      return { ...base, action: 'WATCH', conviction: 2, targetGain: `${profile.targetGainRange[0]}%`, timeframe: `${profile.timeframeDays[1]} days`, reasoning: `${coldReason} — close to rotation but not in the top-3 yet.`, stopLoss: round(gem.price * (1 - profile.stopPct / 100)), targetPrice: round(gem.price * (1 + profile.targetGainRange[0] / 100)) };
+    }
+    return { ...base, action: 'SKIP', conviction: 0, targetGain: null, timeframe: null, reasoning: `${coldReason} — sector out of favor, money is elsewhere.`, stopLoss: null, targetPrice: null };
+  }
+
+  // Top-3 sector: BUY. Extra conviction for the #1 sector and for names in the
+  // moderate-momentum candidate band (the backtested sweet spot — strong but
+  // not parabolic).
+  let conviction = 3;
+  if (rank === 1) conviction++;
+  if (isCandidate) conviction++;
+  conviction = Math.min(5, conviction);
+
+  const targetPct = conviction >= 4 ? profile.targetGainRange[1] : profile.targetGainRange[0];
+  const days = conviction >= 4 ? profile.timeframeDays[0] : profile.timeframeDays[1];
+
+  const reasons = [];
+  reasons.push(`${sector} is the #${rank} sector by 20d momentum (${mom > 0 ? '+' : ''}${mom}%)`);
+  if (isCandidate) reasons.push('stock sits in the moderate-momentum sweet spot (60-85th pct) — the backtested winner profile');
+  reasons.push(`rotation tailwind — targeting ${targetPct}% in ${days} days`);
+
+  return {
+    ...base, action: 'BUY', conviction, targetGain: `${targetPct}%`, timeframe: `${days} days`,
+    reasoning: reasons.join('. ') + '.',
+    stopLoss: round(gem.price * (1 - profile.stopPct / 100)),
+    targetPrice: round(gem.price * (1 + targetPct / 100)),
+  };
+}
+
 // ── Utilities ──
 function round(n) {
   return Math.round(n * 100) / 100;
 }
 
-const AGENT_FUNCS = [momentumMike, squeezeSarah, volumeVictor, catalystClaire, contrarianCarlos];
+const AGENT_FUNCS = [momentumMike, squeezeSarah, volumeVictor, catalystClaire, contrarianCarlos, sectorSam];
 
 // ── Exports ──
 
 /**
- * Run all 5 agents on a gem, return verdicts + consensus.
+ * Run all 6 agents on a gem, return verdicts + consensus.
  * Respects per-agent enabled flag.
  */
 export function analyzeGem(gem) {

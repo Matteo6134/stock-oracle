@@ -1,0 +1,6002 @@
+{
+ "NVDA": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "TSLA": {
+  "sector": "Industrials",
+  "industry": "Auto Manufacturing"
+ },
+ "MU": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "MSFT": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "AMZN": {
+  "sector": "Consumer Discretionary",
+  "industry": "Catalog/Specialty Distribution"
+ },
+ "AMD": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "AAPL": {
+  "sector": "Technology",
+  "industry": "Computer Manufacturing"
+ },
+ "INTC": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "GOOGL": {
+  "sector": "Technology",
+  "industry": "Computer Software: Programming Data Processing"
+ },
+ "AVGO": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "PLTR": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "GOOG": {
+  "sector": "Technology",
+  "industry": "Computer Software: Programming Data Processing"
+ },
+ "ORCL": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "TSM": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "MRVL": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "NFLX": {
+  "sector": "Consumer Discretionary",
+  "industry": "Consumer Electronics/Video Chains"
+ },
+ "CRWV": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "MSTR": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "WDC": {
+  "sector": "Technology",
+  "industry": "Electronic Components"
+ },
+ "HOOD": {
+  "sector": "Finance",
+  "industry": "Investment Bankers/Brokers/Service"
+ },
+ "QCOM": {
+  "sector": "Technology",
+  "industry": "Radio And Television Broadcasting And Communications Equipment"
+ },
+ "UNH": {
+  "sector": "Health Care",
+  "industry": "Medical Specialities"
+ },
+ "NOW": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "BE": {
+  "sector": "Energy",
+  "industry": "Industrial Machinery/Components"
+ },
+ "NBIS": {
+  "sector": "Technology",
+  "industry": "Computer Software: Programming Data Processing"
+ },
+ "XOM": {
+  "sector": "Energy",
+  "industry": "Integrated oil Companies"
+ },
+ "JPM": {
+  "sector": "Finance",
+  "industry": "Major Banks"
+ },
+ "LRCX": {
+  "sector": "Technology",
+  "industry": "Industrial Machinery/Components"
+ },
+ "CRM": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "BRK-B": {
+  "sector": "Unknown",
+  "industry": "Unknown"
+ },
+ "V": {
+  "sector": "Consumer Discretionary",
+  "industry": "Business Services"
+ },
+ "AMAT": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "TXN": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "WMT": {
+  "sector": "Consumer Discretionary",
+  "industry": "Department/Specialty Retail Stores"
+ },
+ "GE": {
+  "sector": "Technology",
+  "industry": "Consumer Electronics/Appliances"
+ },
+ "CAR": {
+  "sector": "Consumer Discretionary",
+  "industry": "Rental/Leasing Companies"
+ },
+ "COIN": {
+  "sector": "Finance",
+  "industry": "Finance: Consumer Services"
+ },
+ "CVX": {
+  "sector": "Energy",
+  "industry": "Integrated oil Companies"
+ },
+ "COHR": {
+  "sector": "Technology",
+  "industry": "Electronic Components"
+ },
+ "JNJ": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "VRT": {
+  "sector": "Technology",
+  "industry": "Industrial Machinery/Components"
+ },
+ "BAC": {
+  "sector": "Finance",
+  "industry": "Major Banks"
+ },
+ "RKLB": {
+  "sector": "Industrials",
+  "industry": "Military/Government/Technical"
+ },
+ "IREN": {
+  "sector": "Technology",
+  "industry": "EDP Services"
+ },
+ "GLW": {
+  "sector": "Industrials",
+  "industry": "Telecommunications Equipment"
+ },
+ "ARM": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "APP": {
+  "sector": "Technology",
+  "industry": "Computer Software: Programming Data Processing"
+ },
+ "AAOI": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "IBM": {
+  "sector": "Technology",
+  "industry": "Computer Manufacturing"
+ },
+ "IONQ": {
+  "sector": "Technology",
+  "industry": "EDP Services"
+ },
+ "CSCO": {
+  "sector": "Telecommunications",
+  "industry": "Computer Communications Equipment"
+ },
+ "ASTS": {
+  "sector": "Consumer Discretionary",
+  "industry": "Telecommunications Equipment"
+ },
+ "C": {
+  "sector": "Finance",
+  "industry": "Major Banks"
+ },
+ "WFC": {
+  "sector": "Finance",
+  "industry": "Major Banks"
+ },
+ "ABBV": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "ADBE": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "BA": {
+  "sector": "Industrials",
+  "industry": "Aerospace"
+ },
+ "CRWD": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "TER": {
+  "sector": "Industrials",
+  "industry": "Electrical Products"
+ },
+ "CRDO": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "ABT": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "PG": {
+  "sector": "Consumer Discretionary",
+  "industry": "Package Goods/Cosmetics"
+ },
+ "TMUS": {
+  "sector": "Telecommunications",
+  "industry": "Telecommunications Equipment"
+ },
+ "NOK": {
+  "sector": "Technology",
+  "industry": "Radio And Television Broadcasting And Communications Equipment"
+ },
+ "HD": {
+  "sector": "Consumer Discretionary",
+  "industry": "RETAIL: Building Materials"
+ },
+ "DELL": {
+  "sector": "Technology",
+  "industry": "Computer Manufacturing"
+ },
+ "SOFI": {
+  "sector": "Finance",
+  "industry": "Finance: Consumer Services"
+ },
+ "BKNG": {
+  "sector": "Consumer Discretionary",
+  "industry": "Transportation Services"
+ },
+ "ANET": {
+  "sector": "Telecommunications",
+  "industry": "Computer Communications Equipment"
+ },
+ "BABA": {
+  "sector": "Consumer Discretionary",
+  "industry": "Business Services"
+ },
+ "VZ": {
+  "sector": "Telecommunications",
+  "industry": "Telecommunications Equipment"
+ },
+ "PANW": {
+  "sector": "Technology",
+  "industry": "Computer peripheral equipment"
+ },
+ "INTU": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "SNOW": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "ADI": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "ALAB": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "APH": {
+  "sector": "Technology",
+  "industry": "Electrical Products"
+ },
+ "CVNA": {
+  "sector": "Consumer Discretionary",
+  "industry": "Retail-Auto Dealers and Gas Stations"
+ },
+ "MRK": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "BSX": {
+  "sector": "Health Care",
+  "industry": "Medical/Dental Instruments"
+ },
+ "SCHW": {
+  "sector": "Finance",
+  "industry": "Investment Bankers/Brokers/Service"
+ },
+ "OKLO": {
+  "sector": "Utilities",
+  "industry": "Electric Utilities: Central"
+ },
+ "COP": {
+  "sector": "Energy",
+  "industry": "Integrated oil Companies"
+ },
+ "UBER": {
+  "sector": "Consumer Discretionary",
+  "industry": "Business Services"
+ },
+ "KO": {
+  "sector": "Consumer Staples",
+  "industry": "Beverages (Production/Distribution)"
+ },
+ "ON": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "ISRG": {
+  "sector": "Health Care",
+  "industry": "Industrial Specialties"
+ },
+ "ETN": {
+  "sector": "Technology",
+  "industry": "Industrial Machinery/Components"
+ },
+ "TMO": {
+  "sector": "Industrials",
+  "industry": "Industrial Machinery/Components"
+ },
+ "MS": {
+  "sector": "Finance",
+  "industry": "Investment Bankers/Brokers/Service"
+ },
+ "AXP": {
+  "sector": "Finance",
+  "industry": "Finance: Consumer Services"
+ },
+ "FCX": {
+  "sector": "Basic Materials",
+  "industry": "Metal Mining"
+ },
+ "RTX": {
+  "sector": "Industrials",
+  "industry": "Aerospace"
+ },
+ "SHOP": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "AXTI": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "MCD": {
+  "sector": "Consumer Discretionary",
+  "industry": "Restaurants"
+ },
+ "DHR": {
+  "sector": "Industrials",
+  "industry": "Industrial Machinery/Components"
+ },
+ "HIMS": {
+  "sector": "Health Care",
+  "industry": "Medical/Nursing Services"
+ },
+ "T": {
+  "sector": "Telecommunications",
+  "industry": "Telecommunications Equipment"
+ },
+ "ACN": {
+  "sector": "Consumer Discretionary",
+  "industry": "Business Services"
+ },
+ "NKE": {
+  "sector": "Consumer Discretionary",
+  "industry": "Shoe Manufacturing"
+ },
+ "PFE": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "PEP": {
+  "sector": "Consumer Staples",
+  "industry": "Beverages (Production/Distribution)"
+ },
+ "CDNS": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "NXPI": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "AMGN": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Biological Products (No Diagnostic Substances)"
+ },
+ "NEM": {
+  "sector": "Basic Materials",
+  "industry": "Precious Metals"
+ },
+ "CMCSA": {
+  "sector": "Telecommunications",
+  "industry": "Cable & Other Pay Television Services"
+ },
+ "NET": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "NEE": {
+  "sector": "Technology",
+  "industry": "EDP Services"
+ },
+ "HON": {
+  "sector": "Industrials",
+  "industry": "Aerospace"
+ },
+ "SMCI": {
+  "sector": "Technology",
+  "industry": "Computer Manufacturing"
+ },
+ "UNP": {
+  "sector": "Industrials",
+  "industry": "Railroads"
+ },
+ "BX": {
+  "sector": "Finance",
+  "industry": "Investment Managers"
+ },
+ "APLD": {
+  "sector": "Health Care",
+  "industry": "Medical/Dental Instruments"
+ },
+ "MCHP": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "SNPS": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "CEG": {
+  "sector": "Utilities",
+  "industry": "Electric Utilities: Central"
+ },
+ "COF": {
+  "sector": "Finance",
+  "industry": "Major Banks"
+ },
+ "SPGI": {
+  "sector": "Finance",
+  "industry": "Finance: Consumer Services"
+ },
+ "PM": {
+  "sector": "Health Care",
+  "industry": " Medicinal Chemicals and Botanical Products "
+ },
+ "SLB": {
+  "sector": "Energy",
+  "industry": "Oilfield Services/Equipment"
+ },
+ "MDT": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Electromedical & Electrotherapeutic Apparatus"
+ },
+ "CHTR": {
+  "sector": "Telecommunications",
+  "industry": "Cable & Other Pay Television Services"
+ },
+ "DIS": {
+  "sector": "Consumer Discretionary",
+  "industry": "Services-Misc. Amusement & Recreation"
+ },
+ "GILD": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Biological Products (No Diagnostic Substances)"
+ },
+ "RCL": {
+  "sector": "Consumer Discretionary",
+  "industry": "Marine Transportation"
+ },
+ "SYK": {
+  "sector": "Health Care",
+  "industry": "Medical/Dental Instruments"
+ },
+ "SBUX": {
+  "sector": "Consumer Discretionary",
+  "industry": "Restaurants"
+ },
+ "OXY": {
+  "sector": "Energy",
+  "industry": "Oil & Gas Production"
+ },
+ "TEAM": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "UAL": {
+  "sector": "Consumer Discretionary",
+  "industry": "Air Freight/Delivery Services"
+ },
+ "EBAY": {
+  "sector": "Consumer Discretionary",
+  "industry": "Business Services"
+ },
+ "RVMD": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Biological Products (No Diagnostic Substances)"
+ },
+ "VLO": {
+  "sector": "Energy",
+  "industry": "Integrated oil Companies"
+ },
+ "WULF": {
+  "sector": "Technology",
+  "industry": "EDP Services"
+ },
+ "RBLX": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "QBTS": {
+  "sector": "Technology",
+  "industry": "EDP Services"
+ },
+ "DASH": {
+  "sector": "Technology",
+  "industry": "EDP Services"
+ },
+ "PYPL": {
+  "sector": "Industrials",
+  "industry": "Diversified Commercial Services"
+ },
+ "CME": {
+  "sector": "Finance",
+  "industry": "Investment Bankers/Brokers/Service"
+ },
+ "CCL": {
+  "sector": "Consumer Discretionary",
+  "industry": "Marine Transportation"
+ },
+ "DDOG": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "PDD": {
+  "sector": "Technology",
+  "industry": "EDP Services"
+ },
+ "AAL": {
+  "sector": "Consumer Discretionary",
+  "industry": "Air Freight/Delivery Services"
+ },
+ "UPS": {
+  "sector": "Industrials",
+  "industry": "Trucking Freight/Courier Services"
+ },
+ "SATS": {
+  "sector": "Unknown",
+  "industry": "Unknown"
+ },
+ "TEL": {
+  "sector": "Technology",
+  "industry": "Electronic Components"
+ },
+ "FDX": {
+  "sector": "Consumer Discretionary",
+  "industry": "Air Freight/Delivery Services"
+ },
+ "MO": {
+  "sector": "Health Care",
+  "industry": " Medicinal Chemicals and Botanical Products "
+ },
+ "ADP": {
+  "sector": "Industrials",
+  "industry": "Diversified Commercial Services"
+ },
+ "TT": {
+  "sector": "Industrials",
+  "industry": "Auto Parts:O.E.M."
+ },
+ "DAL": {
+  "sector": "Consumer Discretionary",
+  "industry": "Air Freight/Delivery Services"
+ },
+ "LOW": {
+  "sector": "Consumer Discretionary",
+  "industry": "RETAIL: Building Materials"
+ },
+ "TJX": {
+  "sector": "Consumer Discretionary",
+  "industry": "Clothing/Shoe/Accessory Stores"
+ },
+ "WDAY": {
+  "sector": "Technology",
+  "industry": "EDP Services"
+ },
+ "VST": {
+  "sector": "Utilities",
+  "industry": "Electric Utilities: Central"
+ },
+ "ELV": {
+  "sector": "Health Care",
+  "industry": "Medical Specialities"
+ },
+ "BMY": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "TGT": {
+  "sector": "Consumer Discretionary",
+  "industry": "Department/Specialty Retail Stores"
+ },
+ "WELL": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "CMG": {
+  "sector": "Consumer Discretionary",
+  "industry": "Restaurants"
+ },
+ "CVS": {
+  "sector": "Consumer Staples",
+  "industry": "Retail-Drug Stores and Proprietary Stores"
+ },
+ "FANG": {
+  "sector": "Energy",
+  "industry": "Oil & Gas Production"
+ },
+ "MMM": {
+  "sector": "Health Care",
+  "industry": "Medical/Dental Instruments"
+ },
+ "RGTI": {
+  "sector": "Technology",
+  "industry": "EDP Services"
+ },
+ "CB": {
+  "sector": "Finance",
+  "industry": "Property-Casualty Insurers"
+ },
+ "DVN": {
+  "sector": "Energy",
+  "industry": "Oil & Gas Production"
+ },
+ "BKR": {
+  "sector": "Consumer Discretionary",
+  "industry": "Oil and Gas Field Machinery"
+ },
+ "ONDS": {
+  "sector": "Technology",
+  "industry": "Radio And Television Broadcasting And Communications Equipment"
+ },
+ "SHW": {
+  "sector": "Consumer Discretionary",
+  "industry": "RETAIL: Building Materials"
+ },
+ "APO": {
+  "sector": "Finance",
+  "industry": "Investment Managers"
+ },
+ "HLT": {
+  "sector": "Consumer Discretionary",
+  "industry": "Hotels/Resorts"
+ },
+ "NVTS": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "GD": {
+  "sector": "Industrials",
+  "industry": "Marine Transportation"
+ },
+ "TSEM": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "BK": {
+  "sector": "Unknown",
+  "industry": "Unknown"
+ },
+ "HCA": {
+  "sector": "Health Care",
+  "industry": "Hospital/Nursing Management"
+ },
+ "GM": {
+  "sector": "Industrials",
+  "industry": "Auto Manufacturing"
+ },
+ "CRH": {
+  "sector": "Industrials",
+  "industry": "Building Materials"
+ },
+ "PLD": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "MRSH": {
+  "sector": "Finance",
+  "industry": "Specialty Insurers"
+ },
+ "CSX": {
+  "sector": "Industrials",
+  "industry": "Railroads"
+ },
+ "PGR": {
+  "sector": "Finance",
+  "industry": "Property-Casualty Insurers"
+ },
+ "MARA": {
+  "sector": "Technology",
+  "industry": "EDP Services"
+ },
+ "HAL": {
+  "sector": "Energy",
+  "industry": "Oilfield Services/Equipment"
+ },
+ "HWM": {
+  "sector": "Industrials",
+  "industry": "Metal Fabrications"
+ },
+ "EOG": {
+  "sector": "Energy",
+  "industry": "Oil & Gas Production"
+ },
+ "XE": {
+  "sector": "Industrials",
+  "industry": "Metal Fabrications"
+ },
+ "DOW": {
+  "sector": "Industrials",
+  "industry": "Major Chemicals"
+ },
+ "F": {
+  "sector": "Industrials",
+  "industry": "Auto Manufacturing"
+ },
+ "AMT": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "LHX": {
+  "sector": "Industrials",
+  "industry": "Industrial Machinery/Components"
+ },
+ "MCO": {
+  "sector": "Finance",
+  "industry": "Finance: Consumer Services"
+ },
+ "MAR": {
+  "sector": "Consumer Discretionary",
+  "industry": "Hotels/Resorts"
+ },
+ "USB": {
+  "sector": "Finance",
+  "industry": "Major Banks"
+ },
+ "KKR": {
+  "sector": "Finance",
+  "industry": "Investment Managers"
+ },
+ "ICE": {
+  "sector": "Finance",
+  "industry": "Investment Bankers/Brokers/Service"
+ },
+ "LULU": {
+  "sector": "Consumer Discretionary",
+  "industry": "Apparel"
+ },
+ "NU": {
+  "sector": "Finance",
+  "industry": "Finance: Consumer Services"
+ },
+ "FSLR": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "ORLY": {
+  "sector": "Consumer Discretionary",
+  "industry": "Auto & Home Supply Stores"
+ },
+ "EW": {
+  "sector": "Health Care",
+  "industry": "Industrial Specialties"
+ },
+ "MPC": {
+  "sector": "Energy",
+  "industry": "Integrated oil Companies"
+ },
+ "LYB": {
+  "sector": "Industrials",
+  "industry": "Major Chemicals"
+ },
+ "AKAM": {
+  "sector": "Consumer Discretionary",
+  "industry": "Business Services"
+ },
+ "WBD": {
+  "sector": "Consumer Discretionary",
+  "industry": "Services-Misc. Amusement & Recreation"
+ },
+ "MDLZ": {
+  "sector": "Consumer Staples",
+  "industry": "Packaged Foods"
+ },
+ "VRTX": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "SMR": {
+  "sector": "Industrials",
+  "industry": "Metal Fabrications"
+ },
+ "WM": {
+  "sector": "Utilities",
+  "industry": "Environmental Services"
+ },
+ "CARR": {
+  "sector": "Industrials",
+  "industry": "Industrial Machinery/Components"
+ },
+ "FTNT": {
+  "sector": "Technology",
+  "industry": "Computer peripheral equipment"
+ },
+ "CL": {
+  "sector": "Consumer Discretionary",
+  "industry": "Package Goods/Cosmetics"
+ },
+ "EQT": {
+  "sector": "Energy",
+  "industry": "Oil & Gas Production"
+ },
+ "CIFR": {
+  "sector": "Finance",
+  "industry": "Finance: Consumer Services"
+ },
+ "TSCO": {
+  "sector": "Consumer Discretionary",
+  "industry": "RETAIL: Building Materials"
+ },
+ "TRV": {
+  "sector": "Finance",
+  "industry": "Property-Casualty Insurers"
+ },
+ "POET": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "BDX": {
+  "sector": "Health Care",
+  "industry": "Medical/Dental Instruments"
+ },
+ "PNC": {
+  "sector": "Finance",
+  "industry": "Major Banks"
+ },
+ "ABNB": {
+  "sector": "Consumer Discretionary",
+  "industry": "Diversified Commercial Services"
+ },
+ "ENTG": {
+  "sector": "Industrials",
+  "industry": "Plastic Products"
+ },
+ "ZM": {
+  "sector": "Technology",
+  "industry": "Computer Software: Programming Data Processing"
+ },
+ "ADSK": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "RIVN": {
+  "sector": "Industrials",
+  "industry": "Auto Manufacturing"
+ },
+ "AON": {
+  "sector": "Finance",
+  "industry": "Specialty Insurers"
+ },
+ "PSX": {
+  "sector": "Energy",
+  "industry": "Integrated oil Companies"
+ },
+ "CI": {
+  "sector": "Health Care",
+  "industry": "Medical Specialities"
+ },
+ "ODFL": {
+  "sector": "Industrials",
+  "industry": "Trucking Freight/Courier Services"
+ },
+ "COR": {
+  "sector": "Health Care",
+  "industry": "Other Pharmaceuticals"
+ },
+ "DOCN": {
+  "sector": "Technology",
+  "industry": "Computer Software: Programming Data Processing"
+ },
+ "USAR": {
+  "sector": "Basic Materials",
+  "industry": "Metal Mining"
+ },
+ "KMB": {
+  "sector": "Consumer Discretionary",
+  "industry": "Containers/Packaging"
+ },
+ "LYV": {
+  "sector": "Consumer Discretionary",
+  "industry": "Services-Misc. Amusement & Recreation"
+ },
+ "SO": {
+  "sector": "Utilities",
+  "industry": "Electric Utilities: Central"
+ },
+ "ROP": {
+  "sector": "Technology",
+  "industry": "Computer Software: Programming Data Processing"
+ },
+ "ROST": {
+  "sector": "Consumer Discretionary",
+  "industry": "Clothing/Shoe/Accessory Stores"
+ },
+ "WMB": {
+  "sector": "Utilities",
+  "industry": "Natural Gas Distribution"
+ },
+ "JCI": {
+  "sector": "Industrials",
+  "industry": "Industrial Machinery/Components"
+ },
+ "NCLH": {
+  "sector": "Consumer Discretionary",
+  "industry": "Marine Transportation"
+ },
+ "NRG": {
+  "sector": "Utilities",
+  "industry": "Electric Utilities: Central"
+ },
+ "ZTS": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "DLR": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "ALB": {
+  "sector": "Industrials",
+  "industry": "Major Chemicals"
+ },
+ "STRC": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "VTR": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "CHRW": {
+  "sector": "Industrials",
+  "industry": "Integrated Freight & Logistics"
+ },
+ "AXON": {
+  "sector": "Industrials",
+  "industry": "Ordnance And Accessories"
+ },
+ "SYY": {
+  "sector": "Consumer Discretionary",
+  "industry": "Food Distributors"
+ },
+ "KMI": {
+  "sector": "Utilities",
+  "industry": "Natural Gas Distribution"
+ },
+ "EXC": {
+  "sector": "Utilities",
+  "industry": "Power Generation"
+ },
+ "MDB": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "HSY": {
+  "sector": "Consumer Staples",
+  "industry": "Specialty Foods"
+ },
+ "GEHC": {
+  "sector": "Health Care",
+  "industry": "Medical Electronics"
+ },
+ "AIG": {
+  "sector": "Finance",
+  "industry": "Life Insurance"
+ },
+ "PCG": {
+  "sector": "Utilities",
+  "industry": "Power Generation"
+ },
+ "DHI": {
+  "sector": "Consumer Discretionary",
+  "industry": "Homebuilding"
+ },
+ "ARES": {
+  "sector": "Finance",
+  "industry": "Investment Managers"
+ },
+ "CF": {
+  "sector": "Industrials",
+  "industry": "Agricultural Chemicals"
+ },
+ "PL": {
+  "sector": "Technology",
+  "industry": "Radio And Television Broadcasting And Communications Equipment"
+ },
+ "TFC": {
+  "sector": "Finance",
+  "industry": "Major Banks"
+ },
+ "HPE": {
+  "sector": "Technology",
+  "industry": "Retail: Computer Software & Peripheral Equipment"
+ },
+ "HUM": {
+  "sector": "Health Care",
+  "industry": "Medical Specialities"
+ },
+ "CPNG": {
+  "sector": "Consumer Discretionary",
+  "industry": "Catalog/Specialty Distribution"
+ },
+ "CTSH": {
+  "sector": "Technology",
+  "industry": "EDP Services"
+ },
+ "FTAI": {
+  "sector": "Industrials",
+  "industry": "Misc Corporate Leasing Services"
+ },
+ "AJG": {
+  "sector": "Finance",
+  "industry": "Specialty Insurers"
+ },
+ "CCJ": {
+  "sector": "Basic Materials",
+  "industry": "Other Metals and Minerals"
+ },
+ "XEL": {
+  "sector": "Utilities",
+  "industry": "Power Generation"
+ },
+ "DPZ": {
+  "sector": "Consumer Discretionary",
+  "industry": "Food Distributors"
+ },
+ "ECL": {
+  "sector": "Consumer Discretionary",
+  "industry": "Package Goods/Cosmetics"
+ },
+ "PCAR": {
+  "sector": "Consumer Discretionary",
+  "industry": "Motor Vehicles"
+ },
+ "AMKR": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "CAH": {
+  "sector": "Health Care",
+  "industry": "Other Pharmaceuticals"
+ },
+ "KEYS": {
+  "sector": "Industrials",
+  "industry": "Industrial Machinery/Components"
+ },
+ "ZS": {
+  "sector": "Technology",
+  "industry": "EDP Services"
+ },
+ "IBKR": {
+  "sector": "Finance",
+  "industry": "Investment Bankers/Brokers/Service"
+ },
+ "EMR": {
+  "sector": "Technology",
+  "industry": "Consumer Electronics/Appliances"
+ },
+ "DUK": {
+  "sector": "Utilities",
+  "industry": "Power Generation"
+ },
+ "TTD": {
+  "sector": "Technology",
+  "industry": "Computer Software: Programming Data Processing"
+ },
+ "EXPE": {
+  "sector": "Consumer Discretionary",
+  "industry": "Transportation Services"
+ },
+ "VRSK": {
+  "sector": "Industrials",
+  "industry": "Diversified Commercial Services"
+ },
+ "MSI": {
+  "sector": "Technology",
+  "industry": "Radio And Television Broadcasting And Communications Equipment"
+ },
+ "ITW": {
+  "sector": "Industrials",
+  "industry": "Industrial Machinery/Components"
+ },
+ "DLTR": {
+  "sector": "Consumer Discretionary",
+  "industry": "Department/Specialty Retail Stores"
+ },
+ "ALNY": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "RIOT": {
+  "sector": "Finance",
+  "industry": "Finance: Consumer Services"
+ },
+ "OKE": {
+  "sector": "Utilities",
+  "industry": "Oil & Gas Production"
+ },
+ "KDP": {
+  "sector": "Consumer Staples",
+  "industry": "Beverages (Production/Distribution)"
+ },
+ "STT": {
+  "sector": "Finance",
+  "industry": "Major Banks"
+ },
+ "ROKU": {
+  "sector": "Telecommunications",
+  "industry": "Cable & Other Pay Television Services"
+ },
+ "EFX": {
+  "sector": "Finance",
+  "industry": "Finance: Consumer Services"
+ },
+ "RMBS": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "AEP": {
+  "sector": "Utilities",
+  "industry": "Electric Utilities: Central"
+ },
+ "LUNR": {
+  "sector": "Industrials",
+  "industry": "Industrial Machinery/Components"
+ },
+ "NSC": {
+  "sector": "Industrials",
+  "industry": "Railroads"
+ },
+ "JBL": {
+  "sector": "Technology",
+  "industry": "Electrical Products"
+ },
+ "WWD": {
+  "sector": "Energy",
+  "industry": "Industrial Machinery/Components"
+ },
+ "HBAN": {
+  "sector": "Finance",
+  "industry": "Major Banks"
+ },
+ "RSG": {
+  "sector": "Utilities",
+  "industry": "Environmental Services"
+ },
+ "NUE": {
+  "sector": "Industrials",
+  "industry": "Steel/Iron Ore"
+ },
+ "XYZ": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "CLX": {
+  "sector": "Consumer Discretionary",
+  "industry": "Specialty Chemicals"
+ },
+ "MNST": {
+  "sector": "Consumer Staples",
+  "industry": "Beverages (Production/Distribution)"
+ },
+ "FISV": {
+  "sector": "Consumer Discretionary",
+  "industry": "Business Services"
+ },
+ "IR": {
+  "sector": "Industrials",
+  "industry": "Industrial Machinery/Components"
+ },
+ "PPL": {
+  "sector": "Utilities",
+  "industry": "Electric Utilities: Central"
+ },
+ "OWL": {
+  "sector": "Finance",
+  "industry": "Investment Managers"
+ },
+ "OMC": {
+  "sector": "Consumer Discretionary",
+  "industry": "Advertising"
+ },
+ "DG": {
+  "sector": "Consumer Discretionary",
+  "industry": "Department/Specialty Retail Stores"
+ },
+ "TTMI": {
+  "sector": "Technology",
+  "industry": "Electrical Products"
+ },
+ "FAST": {
+  "sector": "Consumer Discretionary",
+  "industry": "RETAIL: Building Materials"
+ },
+ "CDE": {
+  "sector": "Basic Materials",
+  "industry": "Precious Metals"
+ },
+ "CTAS": {
+  "sector": "Industrials",
+  "industry": "Garments and Clothing"
+ },
+ "MXL": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "ETR": {
+  "sector": "Utilities",
+  "industry": "Electric Utilities: Central"
+ },
+ "PSA": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "AEHR": {
+  "sector": "Industrials",
+  "industry": "Electrical Products"
+ },
+ "PINS": {
+  "sector": "Technology",
+  "industry": "Computer Software: Programming Data Processing"
+ },
+ "EXE": {
+  "sector": "Energy",
+  "industry": "Oil & Gas Production"
+ },
+ "AFRM": {
+  "sector": "Finance",
+  "industry": "Finance: Consumer Services"
+ },
+ "HUT": {
+  "sector": "Finance",
+  "industry": "Finance: Consumer Services"
+ },
+ "VIAV": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "O": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "SE": {
+  "sector": "Consumer Discretionary",
+  "industry": "Other Consumer Services"
+ },
+ "SNAP": {
+  "sector": "Technology",
+  "industry": "Computer Software: Programming Data Processing"
+ },
+ "FLEX": {
+  "sector": "Technology",
+  "industry": "Electrical Products"
+ },
+ "MRNA": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Biological Products (No Diagnostic Substances)"
+ },
+ "TTWO": {
+  "sector": "Consumer Discretionary",
+  "industry": "Services-Misc. Amusement & Recreation"
+ },
+ "HPQ": {
+  "sector": "Technology",
+  "industry": "Computer Manufacturing"
+ },
+ "KR": {
+  "sector": "Consumer Staples",
+  "industry": "Food Chains"
+ },
+ "DXCM": {
+  "sector": "Health Care",
+  "industry": "Medical/Dental Instruments"
+ },
+ "MKSI": {
+  "sector": "Industrials",
+  "industry": "Industrial Machinery/Components"
+ },
+ "AMP": {
+  "sector": "Finance",
+  "industry": "Investment Managers"
+ },
+ "WAT": {
+  "sector": "Industrials",
+  "industry": "Biotechnology: Laboratory Analytical Instruments"
+ },
+ "APD": {
+  "sector": "Basic Materials",
+  "industry": "Major Chemicals"
+ },
+ "SRE": {
+  "sector": "Utilities",
+  "industry": "Natural Gas Distribution"
+ },
+ "CNC": {
+  "sector": "Health Care",
+  "industry": "Medical Specialities"
+ },
+ "FSLY": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "XYL": {
+  "sector": "Industrials",
+  "industry": "Fluid Controls"
+ },
+ "LUV": {
+  "sector": "Consumer Discretionary",
+  "industry": "Air Freight/Delivery Services"
+ },
+ "FITB": {
+  "sector": "Finance",
+  "industry": "Major Banks"
+ },
+ "FORM": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "CFG": {
+  "sector": "Finance",
+  "industry": "Major Banks"
+ },
+ "EA": {
+  "sector": "Consumer Discretionary",
+  "industry": "Services-Misc. Amusement & Recreation"
+ },
+ "TEM": {
+  "sector": "Technology",
+  "industry": "Computer Software: Programming Data Processing"
+ },
+ "STZ": {
+  "sector": "Consumer Staples",
+  "industry": "Beverages (Production/Distribution)"
+ },
+ "NDAQ": {
+  "sector": "Finance",
+  "industry": "Investment Bankers/Brokers/Service"
+ },
+ "D": {
+  "sector": "Utilities",
+  "industry": "Electric Utilities: Central"
+ },
+ "EL": {
+  "sector": "Consumer Discretionary",
+  "industry": "Package Goods/Cosmetics"
+ },
+ "KHC": {
+  "sector": "Consumer Staples",
+  "industry": "Packaged Foods"
+ },
+ "FE": {
+  "sector": "Utilities",
+  "industry": "Electric Utilities: Central"
+ },
+ "SYF": {
+  "sector": "Finance",
+  "industry": "Finance: Consumer Services"
+ },
+ "CORZ": {
+  "sector": "Finance",
+  "industry": "Finance: Consumer Services"
+ },
+ "RMD": {
+  "sector": "Health Care",
+  "industry": "Medical/Dental Instruments"
+ },
+ "ALL": {
+  "sector": "Finance",
+  "industry": "Property-Casualty Insurers"
+ },
+ "PAYX": {
+  "sector": "Industrials",
+  "industry": "Diversified Commercial Services"
+ },
+ "CBRE": {
+  "sector": "Finance",
+  "industry": "Real Estate"
+ },
+ "OTIS": {
+  "sector": "Technology",
+  "industry": "Consumer Electronics/Appliances"
+ },
+ "TRGP": {
+  "sector": "Utilities",
+  "industry": "Natural Gas Distribution"
+ },
+ "ROK": {
+  "sector": "Industrials",
+  "industry": "Industrial Machinery/Components"
+ },
+ "WST": {
+  "sector": "Health Care",
+  "industry": "Medical/Dental Instruments"
+ },
+ "AME": {
+  "sector": "Industrials",
+  "industry": "Industrial Machinery/Components"
+ },
+ "WAB": {
+  "sector": "Industrials",
+  "industry": "Railroads"
+ },
+ "OKTA": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "VMC": {
+  "sector": "Industrials",
+  "industry": "Mining & Quarrying of Nonmetallic Minerals (No Fuels)"
+ },
+ "IQV": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Commercial Physical & Biological Resarch"
+ },
+ "NTRA": {
+  "sector": "Health Care",
+  "industry": "Medical Specialities"
+ },
+ "GIS": {
+  "sector": "Consumer Staples",
+  "industry": "Packaged Foods"
+ },
+ "CBOE": {
+  "sector": "Finance",
+  "industry": "Investment Bankers/Brokers/Service"
+ },
+ "KEY": {
+  "sector": "Finance",
+  "industry": "Major Banks"
+ },
+ "KVUE": {
+  "sector": "Consumer Discretionary",
+  "industry": "Specialty Chemicals"
+ },
+ "YUM": {
+  "sector": "Consumer Discretionary",
+  "industry": "Restaurants"
+ },
+ "MTSI": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "STLD": {
+  "sector": "Industrials",
+  "industry": "Steel/Iron Ore"
+ },
+ "IP": {
+  "sector": "Basic Materials",
+  "industry": "Paper"
+ },
+ "SOUN": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "JD": {
+  "sector": "Consumer Discretionary",
+  "industry": "Other Specialty Stores"
+ },
+ "SMTC": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "LVS": {
+  "sector": "Consumer Discretionary",
+  "industry": "Hotels/Resorts"
+ },
+ "AFL": {
+  "sector": "Finance",
+  "industry": "Accident &Health Insurance"
+ },
+ "CPRT": {
+  "sector": "Consumer Discretionary",
+  "industry": "Retail-Auto Dealers and Gas Stations"
+ },
+ "NI": {
+  "sector": "Utilities",
+  "industry": "Power Generation"
+ },
+ "GME": {
+  "sector": "Consumer Discretionary",
+  "industry": "Electronics Distribution"
+ },
+ "RF": {
+  "sector": "Finance",
+  "industry": "Major Banks"
+ },
+ "WING": {
+  "sector": "Consumer Discretionary",
+  "industry": "Restaurants"
+ },
+ "ADM": {
+  "sector": "Consumer Staples",
+  "industry": "Packaged Foods"
+ },
+ "CCI": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "FFIV": {
+  "sector": "Telecommunications",
+  "industry": "Computer Communications Equipment"
+ },
+ "LPLA": {
+  "sector": "Finance",
+  "industry": "Investment Bankers/Brokers/Service"
+ },
+ "SPG": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "FIVE": {
+  "sector": "Consumer Discretionary",
+  "industry": "Department/Specialty Retail Stores"
+ },
+ "APA": {
+  "sector": "Energy",
+  "industry": "Oil & Gas Production"
+ },
+ "STRL": {
+  "sector": "Industrials",
+  "industry": "Military/Government/Technical"
+ },
+ "CHKP": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "TOST": {
+  "sector": "Technology",
+  "industry": "EDP Services"
+ },
+ "MAS": {
+  "sector": "Industrials",
+  "industry": "Industrial Specialties"
+ },
+ "LSCC": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "ENPH": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "ZBH": {
+  "sector": "Health Care",
+  "industry": "Industrial Specialties"
+ },
+ "CRML": {
+  "sector": "Basic Materials",
+  "industry": "Metal Mining"
+ },
+ "MET": {
+  "sector": "Finance",
+  "industry": "Life Insurance"
+ },
+ "PHM": {
+  "sector": "Consumer Discretionary",
+  "industry": "Homebuilding"
+ },
+ "CSGP": {
+  "sector": "Finance",
+  "industry": "Real Estate"
+ },
+ "DKNG": {
+  "sector": "Consumer Discretionary",
+  "industry": "Services-Misc. Amusement & Recreation"
+ },
+ "BIDU": {
+  "sector": "Technology",
+  "industry": "Computer Software: Programming Data Processing"
+ },
+ "AWK": {
+  "sector": "Utilities",
+  "industry": "Water Supply"
+ },
+ "CTVA": {
+  "sector": "Consumer Staples",
+  "industry": "Farming/Seeds/Milling"
+ },
+ "AEIS": {
+  "sector": "Technology",
+  "industry": "Industrial Machinery/Components"
+ },
+ "RDW": {
+  "sector": "Industrials",
+  "industry": "Military/Government/Technical"
+ },
+ "JBHT": {
+  "sector": "Industrials",
+  "industry": "Trucking Freight/Courier Services"
+ },
+ "DOV": {
+  "sector": "Industrials",
+  "industry": "Industrial Machinery/Components"
+ },
+ "KTOS": {
+  "sector": "Industrials",
+  "industry": "Military/Government/Technical"
+ },
+ "CLSK": {
+  "sector": "Finance",
+  "industry": "Finance: Consumer Services"
+ },
+ "GFS": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "MEDP": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Commercial Physical & Biological Resarch"
+ },
+ "JOBY": {
+  "sector": "Industrials",
+  "industry": "Aerospace"
+ },
+ "TPR": {
+  "sector": "Consumer Discretionary",
+  "industry": "Apparel"
+ },
+ "FIS": {
+  "sector": "Consumer Discretionary",
+  "industry": "Business Services"
+ },
+ "SBAC": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "INSM": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "TERN": {
+  "sector": "Unknown",
+  "industry": "Unknown"
+ },
+ "A": {
+  "sector": "Industrials",
+  "industry": "Biotechnology: Laboratory Analytical Instruments"
+ },
+ "PPG": {
+  "sector": "Consumer Discretionary",
+  "industry": "Paints/Coatings"
+ },
+ "CTRA": {
+  "sector": "Unknown",
+  "industry": "Unknown"
+ },
+ "CMS": {
+  "sector": "Utilities",
+  "industry": "Power Generation"
+ },
+ "VRSN": {
+  "sector": "Technology",
+  "industry": "EDP Services"
+ },
+ "CELH": {
+  "sector": "Consumer Staples",
+  "industry": "Beverages (Production/Distribution)"
+ },
+ "WTW": {
+  "sector": "Finance",
+  "industry": "Specialty Insurers"
+ },
+ "RJF": {
+  "sector": "Finance",
+  "industry": "Investment Bankers/Brokers/Service"
+ },
+ "CAVA": {
+  "sector": "Consumer Discretionary",
+  "industry": "Restaurants"
+ },
+ "BROS": {
+  "sector": "Consumer Discretionary",
+  "industry": "Restaurants"
+ },
+ "PRU": {
+  "sector": "Finance",
+  "industry": "Life Insurance"
+ },
+ "LEN": {
+  "sector": "Consumer Discretionary",
+  "industry": "Homebuilding"
+ },
+ "MOD": {
+  "sector": "Consumer Discretionary",
+  "industry": "Auto Parts:O.E.M."
+ },
+ "TLN": {
+  "sector": "Utilities",
+  "industry": "Electric Utilities: Central"
+ },
+ "GRAB": {
+  "sector": "Consumer Discretionary",
+  "industry": "Business Services"
+ },
+ "DRI": {
+  "sector": "Consumer Discretionary",
+  "industry": "Restaurants"
+ },
+ "PLUG": {
+  "sector": "Energy",
+  "industry": "Industrial Machinery/Components"
+ },
+ "BIIB": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Biological Products (No Diagnostic Substances)"
+ },
+ "AVAV": {
+  "sector": "Industrials",
+  "industry": "Aerospace"
+ },
+ "VICI": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "SW": {
+  "sector": "Consumer Discretionary",
+  "industry": "Containers/Packaging"
+ },
+ "MTB": {
+  "sector": "Finance",
+  "industry": "Major Banks"
+ },
+ "TKO": {
+  "sector": "Consumer Discretionary",
+  "industry": "Services-Misc. Amusement & Recreation"
+ },
+ "RIG": {
+  "sector": "Energy",
+  "industry": "Oil & Gas Production"
+ },
+ "DGX": {
+  "sector": "Health Care",
+  "industry": "Medical Specialities"
+ },
+ "BWXT": {
+  "sector": "Industrials",
+  "industry": "Industrial Machinery/Components"
+ },
+ "SAIA": {
+  "sector": "Industrials",
+  "industry": "Trucking Freight/Courier Services"
+ },
+ "ACGL": {
+  "sector": "Finance",
+  "industry": "Property-Casualty Insurers"
+ },
+ "FLY": {
+  "sector": "Industrials",
+  "industry": "Military/Government/Technical"
+ },
+ "MDLN": {
+  "sector": "Health Care",
+  "industry": "Medical/Dental Instruments"
+ },
+ "NIO": {
+  "sector": "Industrials",
+  "industry": "Auto Manufacturing"
+ },
+ "PODD": {
+  "sector": "Health Care",
+  "industry": "Medical/Dental Instruments"
+ },
+ "GTLS": {
+  "sector": "Industrials",
+  "industry": "Metal Fabrications"
+ },
+ "BLDR": {
+  "sector": "Consumer Discretionary",
+  "industry": "RETAIL: Building Materials"
+ },
+ "VICR": {
+  "sector": "Technology",
+  "industry": "Industrial Machinery/Components"
+ },
+ "UUUU": {
+  "sector": "Industrials",
+  "industry": "Mining & Quarrying of Nonmetallic Minerals (No Fuels)"
+ },
+ "CAG": {
+  "sector": "Consumer Staples",
+  "industry": "Packaged Foods"
+ },
+ "Q": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "EAT": {
+  "sector": "Consumer Discretionary",
+  "industry": "Restaurants"
+ },
+ "CNP": {
+  "sector": "Utilities",
+  "industry": "Electric Utilities: Central"
+ },
+ "DUOL": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "IT": {
+  "sector": "Consumer Discretionary",
+  "industry": "Other Consumer Services"
+ },
+ "TROW": {
+  "sector": "Finance",
+  "industry": "Investment Bankers/Brokers/Service"
+ },
+ "HL": {
+  "sector": "Industrials",
+  "industry": "Mining & Quarrying of Nonmetallic Minerals (No Fuels)"
+ },
+ "HIG": {
+  "sector": "Finance",
+  "industry": "Property-Casualty Insurers"
+ },
+ "IRM": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "NTAP": {
+  "sector": "Technology",
+  "industry": "Electronic Components"
+ },
+ "BBY": {
+  "sector": "Consumer Discretionary",
+  "industry": "Consumer Electronics/Video Chains"
+ },
+ "PKG": {
+  "sector": "Consumer Discretionary",
+  "industry": "Containers/Packaging"
+ },
+ "BBIO": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "FTV": {
+  "sector": "Industrials",
+  "industry": "Industrial Machinery/Components"
+ },
+ "NTRS": {
+  "sector": "Finance",
+  "industry": "Major Banks"
+ },
+ "GRMN": {
+  "sector": "Industrials",
+  "industry": "Industrial Machinery/Components"
+ },
+ "ILMN": {
+  "sector": "Health Care",
+  "industry": "Medical Specialities"
+ },
+ "MOS": {
+  "sector": "Industrials",
+  "industry": "Agricultural Chemicals"
+ },
+ "NXT": {
+  "sector": "Industrials",
+  "industry": "Industrial Machinery/Components"
+ },
+ "MKC": {
+  "sector": "Consumer Staples",
+  "industry": "Packaged Foods"
+ },
+ "ALGN": {
+  "sector": "Health Care",
+  "industry": "Industrial Specialties"
+ },
+ "WEC": {
+  "sector": "Utilities",
+  "industry": "Power Generation"
+ },
+ "GPN": {
+  "sector": "Consumer Discretionary",
+  "industry": "Business Services"
+ },
+ "SWKS": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "SWK": {
+  "sector": "Consumer Discretionary",
+  "industry": "Industrial Machinery/Components"
+ },
+ "OPEN": {
+  "sector": "Finance",
+  "industry": "Real Estate"
+ },
+ "GNRC": {
+  "sector": "Consumer Discretionary",
+  "industry": "Metal Fabrications"
+ },
+ "CDW": {
+  "sector": "Technology",
+  "industry": "Retail: Computer Software & Peripheral Equipment"
+ },
+ "GH": {
+  "sector": "Health Care",
+  "industry": "Medical Specialities"
+ },
+ "CHD": {
+  "sector": "Consumer Discretionary",
+  "industry": "Package Goods/Cosmetics"
+ },
+ "WSM": {
+  "sector": "Consumer Discretionary",
+  "industry": "Home Furnishings"
+ },
+ "EIX": {
+  "sector": "Utilities",
+  "industry": "Electric Utilities: Central"
+ },
+ "GPC": {
+  "sector": "Consumer Discretionary",
+  "industry": "Automotive Aftermarket"
+ },
+ "GDDY": {
+  "sector": "Technology",
+  "industry": "EDP Services"
+ },
+ "ED": {
+  "sector": "Utilities",
+  "industry": "Power Generation"
+ },
+ "LH": {
+  "sector": "Health Care",
+  "industry": "Medical Specialities"
+ },
+ "FDS": {
+  "sector": "Technology",
+  "industry": "Computer Software: Programming Data Processing"
+ },
+ "BRO": {
+  "sector": "Finance",
+  "industry": "Specialty Insurers"
+ },
+ "ASND": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "BG": {
+  "sector": "Consumer Staples",
+  "industry": "Packaged Foods"
+ },
+ "BR": {
+  "sector": "Consumer Discretionary",
+  "industry": "Business Services"
+ },
+ "SANM": {
+  "sector": "Technology",
+  "industry": "Electrical Products"
+ },
+ "PEG": {
+  "sector": "Utilities",
+  "industry": "Power Generation"
+ },
+ "ERAS": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "RGLD": {
+  "sector": "Industrials",
+  "industry": "Precious Metals"
+ },
+ "XNDU": {
+  "sector": "Technology",
+  "industry": "Computer Manufacturing"
+ },
+ "JAZZ": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "SSNC": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "PNR": {
+  "sector": "Industrials",
+  "industry": "Industrial Machinery/Components"
+ },
+ "QS": {
+  "sector": "Miscellaneous",
+  "industry": "Industrial Machinery/Components"
+ },
+ "RL": {
+  "sector": "Industrials",
+  "industry": "Garments and Clothing"
+ },
+ "DTE": {
+  "sector": "Utilities",
+  "industry": "Electric Utilities: Central"
+ },
+ "TSN": {
+  "sector": "Consumer Staples",
+  "industry": "Meat/Poultry/Fish"
+ },
+ "GSAT": {
+  "sector": "Consumer Discretionary",
+  "industry": "Telecommunications Equipment"
+ },
+ "SIMO": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "LEU": {
+  "sector": "Industrials",
+  "industry": "Mining & Quarrying of Nonmetallic Minerals (No Fuels)"
+ },
+ "HII": {
+  "sector": "Industrials",
+  "industry": "Marine Transportation"
+ },
+ "LYFT": {
+  "sector": "Consumer Discretionary",
+  "industry": "Business Services"
+ },
+ "EXR": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "ZBRA": {
+  "sector": "Industrials",
+  "industry": "Industrial Machinery/Components"
+ },
+ "SJM": {
+  "sector": "Consumer Staples",
+  "industry": "Packaged Foods"
+ },
+ "AXSM": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "EOSE": {
+  "sector": "Miscellaneous",
+  "industry": "Industrial Machinery/Components"
+ },
+ "TPL": {
+  "sector": "Energy",
+  "industry": "Oil & Gas Production"
+ },
+ "MGM": {
+  "sector": "Consumer Discretionary",
+  "industry": "Hotels/Resorts"
+ },
+ "AEE": {
+  "sector": "Utilities",
+  "industry": "Power Generation"
+ },
+ "SIRI": {
+  "sector": "Consumer Discretionary",
+  "industry": "Broadcasting"
+ },
+ "POOL": {
+  "sector": "Consumer Discretionary",
+  "industry": "Industrial Specialties"
+ },
+ "EQR": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "VLTO": {
+  "sector": "Industrials",
+  "industry": "Electrical Products"
+ },
+ "TW": {
+  "sector": "Finance",
+  "industry": "Investment Bankers/Brokers/Service"
+ },
+ "LCID": {
+  "sector": "Industrials",
+  "industry": "Auto Manufacturing"
+ },
+ "FWONK": {
+  "sector": "Industrials",
+  "industry": "Broadcasting"
+ },
+ "ONON": {
+  "sector": "Consumer Discretionary",
+  "industry": "Shoe Manufacturing"
+ },
+ "ICLR": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Commercial Physical & Biological Resarch"
+ },
+ "TYL": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "TRI": {
+  "sector": "Consumer Discretionary",
+  "industry": "Publishing"
+ },
+ "BEN": {
+  "sector": "Finance",
+  "industry": "Investment Managers"
+ },
+ "EPAM": {
+  "sector": "Technology",
+  "industry": "EDP Services"
+ },
+ "AGNC": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "APTV": {
+  "sector": "Consumer Discretionary",
+  "industry": "Auto Parts:O.E.M."
+ },
+ "TXRH": {
+  "sector": "Consumer Discretionary",
+  "industry": "Restaurants"
+ },
+ "POWL": {
+  "sector": "Energy",
+  "industry": "Electrical Products"
+ },
+ "ORKA": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: In Vitro & In Vivo Diagnostic Substances"
+ },
+ "SNA": {
+  "sector": "Consumer Discretionary",
+  "industry": "Industrial Machinery/Components"
+ },
+ "HAS": {
+  "sector": "Consumer Discretionary",
+  "industry": "Recreational Games/Products/Toys"
+ },
+ "BALL": {
+  "sector": "Industrials",
+  "industry": "Containers/Packaging"
+ },
+ "PTC": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "DY": {
+  "sector": "Industrials",
+  "industry": "Water Sewer Pipeline Comm & Power Line Construction"
+ },
+ "SEI": {
+  "sector": "Consumer Discretionary",
+  "industry": "Oil and Gas Field Machinery"
+ },
+ "CG": {
+  "sector": "Finance",
+  "industry": "Investment Managers"
+ },
+ "SFM": {
+  "sector": "Consumer Staples",
+  "industry": "Food Chains"
+ },
+ "DECK": {
+  "sector": "Consumer Discretionary",
+  "industry": "Shoe Manufacturing"
+ },
+ "LNT": {
+  "sector": "Utilities",
+  "industry": "Power Generation"
+ },
+ "FUTU": {
+  "sector": "Finance",
+  "industry": "Investment Bankers/Brokers/Service"
+ },
+ "AVB": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "EXPD": {
+  "sector": "Industrials",
+  "industry": "Integrated Freight & Logistics"
+ },
+ "AMPX": {
+  "sector": "Miscellaneous",
+  "industry": "Industrial Machinery/Components"
+ },
+ "IVZ": {
+  "sector": "Finance",
+  "industry": "Investment Managers"
+ },
+ "ALLE": {
+  "sector": "Consumer Discretionary",
+  "industry": "Diversified Commercial Services"
+ },
+ "AMCR": {
+  "sector": "Consumer Discretionary",
+  "industry": "Miscellaneous manufacturing industries"
+ },
+ "BIRD": {
+  "sector": "Consumer Discretionary",
+  "industry": "Apparel"
+ },
+ "CPB": {
+  "sector": "Consumer Staples",
+  "industry": "Packaged Foods"
+ },
+ "FOXA": {
+  "sector": "Industrials",
+  "industry": "Broadcasting"
+ },
+ "GLXY": {
+  "sector": "Finance",
+  "industry": "Investment Bankers/Brokers/Service"
+ },
+ "ZETA": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "CYTK": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "APLS": {
+  "sector": "Unknown",
+  "industry": "Unknown"
+ },
+ "ROL": {
+  "sector": "Consumer Discretionary",
+  "industry": "Diversified Commercial Services"
+ },
+ "VISN": {
+  "sector": "Technology",
+  "industry": "Radio And Television Broadcasting And Communications Equipment"
+ },
+ "WRB": {
+  "sector": "Finance",
+  "industry": "Property-Casualty Insurers"
+ },
+ "SEDG": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "IEX": {
+  "sector": "Industrials",
+  "industry": "Fluid Controls"
+ },
+ "DOCU": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "QUBT": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "CPAY": {
+  "sector": "Consumer Discretionary",
+  "industry": "Business Services"
+ },
+ "LWLG": {
+  "sector": "Industrials",
+  "industry": "Containers/Packaging"
+ },
+ "CCEP": {
+  "sector": "Consumer Staples",
+  "industry": "Beverages (Production/Distribution)"
+ },
+ "JBLU": {
+  "sector": "Consumer Discretionary",
+  "industry": "Air Freight/Delivery Services"
+ },
+ "UAMY": {
+  "sector": "Industrials",
+  "industry": "Metal Fabrications"
+ },
+ "HST": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "RPRX": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "VTRS": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "LGN": {
+  "sector": "Consumer Discretionary",
+  "industry": "Engineering & Construction"
+ },
+ "TCOM": {
+  "sector": "Consumer Discretionary",
+  "industry": "Business Services"
+ },
+ "ERIC": {
+  "sector": "Technology",
+  "industry": "Radio And Television Broadcasting And Communications Equipment"
+ },
+ "TAP": {
+  "sector": "Consumer Staples",
+  "industry": "Beverages (Production/Distribution)"
+ },
+ "BAX": {
+  "sector": "Health Care",
+  "industry": "Medical/Dental Instruments"
+ },
+ "NBIX": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Biological Products (No Diagnostic Substances)"
+ },
+ "DAVE": {
+  "sector": "Finance",
+  "industry": "Finance: Consumer Services"
+ },
+ "WIX": {
+  "sector": "Technology",
+  "industry": "Computer Software: Programming Data Processing"
+ },
+ "UHS": {
+  "sector": "Health Care",
+  "industry": "Hospital/Nursing Management"
+ },
+ "STE": {
+  "sector": "Health Care",
+  "industry": "Industrial Specialties"
+ },
+ "ACHR": {
+  "sector": "Industrials",
+  "industry": "Aerospace"
+ },
+ "LDOS": {
+  "sector": "Technology",
+  "industry": "EDP Services"
+ },
+ "CHSN": {
+  "sector": "Consumer Staples",
+  "industry": "Packaged Foods"
+ },
+ "WFRD": {
+  "sector": "Consumer Discretionary",
+  "industry": "Oil and Gas Field Machinery"
+ },
+ "AES": {
+  "sector": "Utilities",
+  "industry": "Electric Utilities: Central"
+ },
+ "DD": {
+  "sector": "Industrials",
+  "industry": "Major Chemicals"
+ },
+ "ROIV": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "INCY": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Commercial Physical & Biological Resarch"
+ },
+ "SOLS": {
+  "sector": "Industrials",
+  "industry": "Aerospace"
+ },
+ "INVH": {
+  "sector": "Finance",
+  "industry": "Real Estate"
+ },
+ "PRIM": {
+  "sector": "Industrials",
+  "industry": "Water Sewer Pipeline Comm & Power Line Construction"
+ },
+ "UPST": {
+  "sector": "Finance",
+  "industry": "Finance: Consumer Services"
+ },
+ "WOLF": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "BF-B": {
+  "sector": "Unknown",
+  "industry": "Unknown"
+ },
+ "IONS": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "BBAI": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "ATO": {
+  "sector": "Utilities",
+  "industry": "Oil/Gas Transmission"
+ },
+ "CART": {
+  "sector": "Consumer Discretionary",
+  "industry": "Business Services"
+ },
+ "KALV": {
+  "sector": "Unknown",
+  "industry": "Unknown"
+ },
+ "SLNO": {
+  "sector": "Unknown",
+  "industry": "Unknown"
+ },
+ "TPG": {
+  "sector": "Finance",
+  "industry": "Investment Managers"
+ },
+ "PBF": {
+  "sector": "Energy",
+  "industry": "Integrated oil Companies"
+ },
+ "EVRG": {
+  "sector": "Utilities",
+  "industry": "Power Generation"
+ },
+ "COO": {
+  "sector": "Health Care",
+  "industry": "Ophthalmic Goods"
+ },
+ "PFG": {
+  "sector": "Finance",
+  "industry": "Accident &Health Insurance"
+ },
+ "PRAX": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "JKHY": {
+  "sector": "Technology",
+  "industry": "EDP Services"
+ },
+ "RGEN": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Biological Products (No Diagnostic Substances)"
+ },
+ "WYNN": {
+  "sector": "Consumer Discretionary",
+  "industry": "Hotels/Resorts"
+ },
+ "CELC": {
+  "sector": "Health Care",
+  "industry": "Medical Specialities"
+ },
+ "ARWR": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "CROX": {
+  "sector": "Consumer Discretionary",
+  "industry": "Shoe Manufacturing"
+ },
+ "GTLB": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "BMI": {
+  "sector": "Industrials",
+  "industry": "Industrial Machinery/Components"
+ },
+ "SNY": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "FIGR": {
+  "sector": "Finance",
+  "industry": "Finance: Consumer Services"
+ },
+ "BTSG": {
+  "sector": "Health Care",
+  "industry": "Medical/Nursing Services"
+ },
+ "UDR": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "ES": {
+  "sector": "Utilities",
+  "industry": "Electric Utilities: Central"
+ },
+ "LBRT": {
+  "sector": "Energy",
+  "industry": "Oilfield Services/Equipment"
+ },
+ "CRL": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Commercial Physical & Biological Resarch"
+ },
+ "CTNT": {
+  "sector": "Consumer Discretionary",
+  "industry": "Motor Vehicles"
+ },
+ "SPXC": {
+  "sector": "Industrials",
+  "industry": "Industrial Machinery/Components"
+ },
+ "TXT": {
+  "sector": "Industrials",
+  "industry": "Aerospace"
+ },
+ "DOC": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "PII": {
+  "sector": "Consumer Discretionary",
+  "industry": "Industrial Specialties"
+ },
+ "CINF": {
+  "sector": "Finance",
+  "industry": "Property-Casualty Insurers"
+ },
+ "UEC": {
+  "sector": "Basic Materials",
+  "industry": "Other Metals and Minerals"
+ },
+ "AUR": {
+  "sector": "Technology",
+  "industry": "EDP Services"
+ },
+ "MAA": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "NTNX": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "TVTX": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "WY": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "OLLI": {
+  "sector": "Consumer Discretionary",
+  "industry": "Department/Specialty Retail Stores"
+ },
+ "SM": {
+  "sector": "Energy",
+  "industry": "Oil & Gas Production"
+ },
+ "EG": {
+  "sector": "Finance",
+  "industry": "Property-Casualty Insurers"
+ },
+ "MANH": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "ESS": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "SMMT": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "AKAN": {
+  "sector": "Health Care",
+  "industry": " Medicinal Chemicals and Botanical Products "
+ },
+ "RCAT": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "REG": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "LBRDK": {
+  "sector": "Telecommunications",
+  "industry": "Cable & Other Pay Television Services"
+ },
+ "MTCH": {
+  "sector": "Technology",
+  "industry": "Computer Software: Programming Data Processing"
+ },
+ "Z": {
+  "sector": "Consumer Discretionary",
+  "industry": "Business Services"
+ },
+ "MASI": {
+  "sector": "Unknown",
+  "industry": "Unknown"
+ },
+ "ARCC": {
+  "sector": "Finance",
+  "industry": "Finance: Consumer Services"
+ },
+ "EWBC": {
+  "sector": "Finance",
+  "industry": "Major Banks"
+ },
+ "EXEL": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Biological Products (No Diagnostic Substances)"
+ },
+ "CVLT": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "GEN": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "CPT": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "AOS": {
+  "sector": "Consumer Discretionary",
+  "industry": "Consumer Electronics/Appliances"
+ },
+ "LMND": {
+  "sector": "Finance",
+  "industry": "Property-Casualty Insurers"
+ },
+ "PTEN": {
+  "sector": "Energy",
+  "industry": "Oil & Gas Production"
+ },
+ "NTLA": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: In Vitro & In Vivo Diagnostic Substances"
+ },
+ "AVT": {
+  "sector": "Technology",
+  "industry": "Electronic Components"
+ },
+ "PNW": {
+  "sector": "Utilities",
+  "industry": "Electric Utilities: Central"
+ },
+ "SYRE": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "NKTR": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "IDCC": {
+  "sector": "Miscellaneous",
+  "industry": "Multi-Sector Companies"
+ },
+ "ARE": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "HTZ": {
+  "sector": "Consumer Discretionary",
+  "industry": "Rental/Leasing Companies"
+ },
+ "RUN": {
+  "sector": "Miscellaneous",
+  "industry": "Industrial Machinery/Components"
+ },
+ "MNDY": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "BULL": {
+  "sector": "Finance",
+  "industry": "Investment Bankers/Brokers/Service"
+ },
+ "BB": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "IRDM": {
+  "sector": "Telecommunications",
+  "industry": "Telecommunications Equipment"
+ },
+ "TECH": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Biological Products (No Diagnostic Substances)"
+ },
+ "ESE": {
+  "sector": "Telecommunications",
+  "industry": "Telecommunications Equipment"
+ },
+ "XPEV": {
+  "sector": "Industrials",
+  "industry": "Auto Manufacturing"
+ },
+ "LUMN": {
+  "sector": "Telecommunications",
+  "industry": "Telecommunications Equipment"
+ },
+ "FRMI": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "AVY": {
+  "sector": "Consumer Discretionary",
+  "industry": "Containers/Packaging"
+ },
+ "ALM": {
+  "sector": "Basic Materials",
+  "industry": "Other Metals and Minerals"
+ },
+ "SHAK": {
+  "sector": "Consumer Discretionary",
+  "industry": "Restaurants"
+ },
+ "ARXS": {
+  "sector": "Industrials",
+  "industry": "Military/Government/Technical"
+ },
+ "CHDN": {
+  "sector": "Consumer Discretionary",
+  "industry": "Services-Misc. Amusement & Recreation"
+ },
+ "KIM": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "BXP": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "CRUS": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "HTHT": {
+  "sector": "Consumer Discretionary",
+  "industry": "Hotels/Resorts"
+ },
+ "PEGA": {
+  "sector": "Technology",
+  "industry": "EDP Services"
+ },
+ "ABVX": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "J": {
+  "sector": "Industrials",
+  "industry": "Military/Government/Technical"
+ },
+ "FROG": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "SIDU": {
+  "sector": "Telecommunications",
+  "industry": "Telecommunications Equipment"
+ },
+ "AHR": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "TRMB": {
+  "sector": "Industrials",
+  "industry": "Industrial Machinery/Components"
+ },
+ "SEIC": {
+  "sector": "Finance",
+  "industry": "Investment Bankers/Brokers/Service"
+ },
+ "RVTY": {
+  "sector": "Industrials",
+  "industry": "Biotechnology: Laboratory Analytical Instruments"
+ },
+ "HRL": {
+  "sector": "Consumer Staples",
+  "industry": "Meat/Poultry/Fish"
+ },
+ "CHRD": {
+  "sector": "Energy",
+  "industry": "Oil & Gas Production"
+ },
+ "MYRG": {
+  "sector": "Industrials",
+  "industry": "Water Sewer Pipeline Comm & Power Line Construction"
+ },
+ "S": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "PSKY": {
+  "sector": "Industrials",
+  "industry": "Broadcasting"
+ },
+ "OLED": {
+  "sector": "Technology",
+  "industry": "Electrical Products"
+ },
+ "TIGO": {
+  "sector": "Telecommunications",
+  "industry": "Telecommunications Equipment"
+ },
+ "CZR": {
+  "sector": "Consumer Discretionary",
+  "industry": "Hotels/Resorts"
+ },
+ "IFF": {
+  "sector": "Industrials",
+  "industry": "Major Chemicals"
+ },
+ "VSEC": {
+  "sector": "Consumer Discretionary",
+  "industry": "Military/Government/Technical"
+ },
+ "ANF": {
+  "sector": "Consumer Discretionary",
+  "industry": "Clothing/Shoe/Accessory Stores"
+ },
+ "HLNE": {
+  "sector": "Finance",
+  "industry": "Investment Managers"
+ },
+ "KVYO": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "LECO": {
+  "sector": "Industrials",
+  "industry": "Industrial Machinery/Components"
+ },
+ "CRSP": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Biological Products (No Diagnostic Substances)"
+ },
+ "BNTX": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Biological Products (No Diagnostic Substances)"
+ },
+ "FRT": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "TMDX": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Electromedical & Electrotherapeutic Apparatus"
+ },
+ "GKOS": {
+  "sector": "Health Care",
+  "industry": "Medical/Dental Instruments"
+ },
+ "FLR": {
+  "sector": "Industrials",
+  "industry": "Military/Government/Technical"
+ },
+ "TTEK": {
+  "sector": "Consumer Discretionary",
+  "industry": "Military/Government/Technical"
+ },
+ "MORN": {
+  "sector": "Finance",
+  "industry": "Investment Managers"
+ },
+ "VAL": {
+  "sector": "Energy",
+  "industry": "Oil & Gas Production"
+ },
+ "IBRX": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Biological Products (No Diagnostic Substances)"
+ },
+ "UMBF": {
+  "sector": "Finance",
+  "industry": "Major Banks"
+ },
+ "ZION": {
+  "sector": "Finance",
+  "industry": "Major Banks"
+ },
+ "OSCR": {
+  "sector": "Health Care",
+  "industry": "Medical Specialities"
+ },
+ "ITRI": {
+  "sector": "Industrials",
+  "industry": "Electrical Products"
+ },
+ "FER": {
+  "sector": "Industrials",
+  "industry": "Military/Government/Technical"
+ },
+ "GLPI": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "AIZ": {
+  "sector": "Finance",
+  "industry": "Property-Casualty Insurers"
+ },
+ "ACLS": {
+  "sector": "Technology",
+  "industry": "Industrial Machinery/Components"
+ },
+ "DVA": {
+  "sector": "Health Care",
+  "industry": "Misc Health and Biotechnology Services"
+ },
+ "FRSH": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "LOGI": {
+  "sector": "Technology",
+  "industry": "Computer peripheral equipment"
+ },
+ "LFUS": {
+  "sector": "Energy",
+  "industry": "Electrical Products"
+ },
+ "CNTA": {
+  "sector": "Unknown",
+  "industry": "Unknown"
+ },
+ "CGNX": {
+  "sector": "Industrials",
+  "industry": "Industrial Machinery/Components"
+ },
+ "ACHC": {
+  "sector": "Health Care",
+  "industry": "Medical Specialities"
+ },
+ "TE": {
+  "sector": "Miscellaneous",
+  "industry": "Industrial Machinery/Components"
+ },
+ "YSS": {
+  "sector": "Industrials",
+  "industry": "Military/Government/Technical"
+ },
+ "SRAD": {
+  "sector": "Technology",
+  "industry": "Computer Software: Programming Data Processing"
+ },
+ "ORA": {
+  "sector": "Utilities",
+  "industry": "Electric Utilities: Central"
+ },
+ "HSIC": {
+  "sector": "Health Care",
+  "industry": "Medical Specialities"
+ },
+ "TWST": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Biological Products (No Diagnostic Substances)"
+ },
+ "NDSN": {
+  "sector": "Industrials",
+  "industry": "Industrial Machinery/Components"
+ },
+ "VSAT": {
+  "sector": "Technology",
+  "industry": "Radio And Television Broadcasting And Communications Equipment"
+ },
+ "RYAAY": {
+  "sector": "Consumer Discretionary",
+  "industry": "Air Freight/Delivery Services"
+ },
+ "VSH": {
+  "sector": "Technology",
+  "industry": "Electrical Products"
+ },
+ "NWSA": {
+  "sector": "Consumer Discretionary",
+  "industry": "Newspapers/Magazines"
+ },
+ "COCO": {
+  "sector": "Consumer Staples",
+  "industry": "Beverages (Production/Distribution)"
+ },
+ "SLAB": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "TPH": {
+  "sector": "Unknown",
+  "industry": "Unknown"
+ },
+ "WTS": {
+  "sector": "Industrials",
+  "industry": "Metal Fabrications"
+ },
+ "IBP": {
+  "sector": "Consumer Discretionary",
+  "industry": "Homebuilding"
+ },
+ "HALO": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Biological Products (No Diagnostic Substances)"
+ },
+ "BOOT": {
+  "sector": "Consumer Discretionary",
+  "industry": "Clothing/Shoe/Accessory Stores"
+ },
+ "KEEL": {
+  "sector": "Finance",
+  "industry": "Finance: Consumer Services"
+ },
+ "OPCH": {
+  "sector": "Health Care",
+  "industry": "Medical/Nursing Services"
+ },
+ "AEO": {
+  "sector": "Consumer Discretionary",
+  "industry": "Clothing/Shoe/Accessory Stores"
+ },
+ "BMRN": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "PARR": {
+  "sector": "Energy",
+  "industry": "Oil & Gas Production"
+ },
+ "TMHC": {
+  "sector": "Consumer Discretionary",
+  "industry": "Homebuilding"
+ },
+ "SSRM": {
+  "sector": "Industrials",
+  "industry": "Precious Metals"
+ },
+ "MEOH": {
+  "sector": "Industrials",
+  "industry": "Major Chemicals"
+ },
+ "SLM": {
+  "sector": "Finance",
+  "industry": "Finance: Consumer Services"
+ },
+ "PLXS": {
+  "sector": "Technology",
+  "industry": "Electrical Products"
+ },
+ "ALGM": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "VLY": {
+  "sector": "Finance",
+  "industry": "Major Banks"
+ },
+ "VSCO": {
+  "sector": "Unknown",
+  "industry": "Unknown"
+ },
+ "NTES": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "LRN": {
+  "sector": "Real Estate",
+  "industry": "Other Consumer Services"
+ },
+ "AESI": {
+  "sector": "Industrials",
+  "industry": "Mining & Quarrying of Nonmetallic Minerals (No Fuels)"
+ },
+ "NE": {
+  "sector": "Energy",
+  "industry": "Oil & Gas Production"
+ },
+ "LSTR": {
+  "sector": "Industrials",
+  "industry": "Trucking Freight/Courier Services"
+ },
+ "DNN": {
+  "sector": "Basic Materials",
+  "industry": "Other Metals and Minerals"
+ },
+ "PTCT": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "SPHR": {
+  "sector": "Consumer Discretionary",
+  "industry": "Services-Misc. Amusement & Recreation"
+ },
+ "ALHC": {
+  "sector": "Health Care",
+  "industry": "Medical Specialities"
+ },
+ "COMP": {
+  "sector": "Technology",
+  "industry": "EDP Services"
+ },
+ "STNE": {
+  "sector": "Technology",
+  "industry": "EDP Services"
+ },
+ "HCC": {
+  "sector": "Energy",
+  "industry": "Coal Mining"
+ },
+ "SYM": {
+  "sector": "Industrials",
+  "industry": "Industrial Machinery/Components"
+ },
+ "VKTX": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "MIDD": {
+  "sector": "Industrials",
+  "industry": "Industrial Machinery/Components"
+ },
+ "CAKE": {
+  "sector": "Consumer Discretionary",
+  "industry": "Restaurants"
+ },
+ "XP": {
+  "sector": "Finance",
+  "industry": "Investment Bankers/Brokers/Service"
+ },
+ "VSNT": {
+  "sector": "Industrials",
+  "industry": "Broadcasting"
+ },
+ "BIRK": {
+  "sector": "Consumer Discretionary",
+  "industry": "Shoe Manufacturing"
+ },
+ "VC": {
+  "sector": "Consumer Discretionary",
+  "industry": "Auto Parts:O.E.M."
+ },
+ "AAON": {
+  "sector": "Industrials",
+  "industry": "Industrial Machinery/Components"
+ },
+ "QRVO": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "BTU": {
+  "sector": "Energy",
+  "industry": "Coal Mining"
+ },
+ "FCEL": {
+  "sector": "Energy",
+  "industry": "Industrial Machinery/Components"
+ },
+ "URBN": {
+  "sector": "Consumer Discretionary",
+  "industry": "Clothing/Shoe/Accessory Stores"
+ },
+ "QLYS": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "LKQ": {
+  "sector": "Consumer Discretionary",
+  "industry": "Motor Vehicles"
+ },
+ "ONB": {
+  "sector": "Finance",
+  "industry": "Major Banks"
+ },
+ "DBX": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "HQY": {
+  "sector": "Consumer Discretionary",
+  "industry": "Business Services"
+ },
+ "BPOP": {
+  "sector": "Finance",
+  "industry": "Major Banks"
+ },
+ "CRGY": {
+  "sector": "Energy",
+  "industry": "Oil & Gas Production"
+ },
+ "CWAN": {
+  "sector": "Unknown",
+  "industry": "Unknown"
+ },
+ "CHYM": {
+  "sector": "Finance",
+  "industry": "Finance: Consumer Services"
+ },
+ "DX": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "MC": {
+  "sector": "Finance",
+  "industry": "Investment Managers"
+ },
+ "SOLV": {
+  "sector": "Health Care",
+  "industry": "Medical/Dental Instruments"
+ },
+ "STNG": {
+  "sector": "Consumer Discretionary",
+  "industry": "Marine Transportation"
+ },
+ "PENN": {
+  "sector": "Consumer Discretionary",
+  "industry": "Hotels/Resorts"
+ },
+ "POWI": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "GL": {
+  "sector": "Finance",
+  "industry": "Life Insurance"
+ },
+ "HYMC": {
+  "sector": "Basic Materials",
+  "industry": "Precious Metals"
+ },
+ "UCTT": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "CENX": {
+  "sector": "Industrials",
+  "industry": "Aluminum"
+ },
+ "EXLS": {
+  "sector": "Consumer Discretionary",
+  "industry": "Business Services"
+ },
+ "NPO": {
+  "sector": "Industrials",
+  "industry": "Metal Fabrications"
+ },
+ "HRI": {
+  "sector": "Industrials",
+  "industry": "Misc Corporate Leasing Services"
+ },
+ "ENSG": {
+  "sector": "Health Care",
+  "industry": "Hospital/Nursing Management"
+ },
+ "BTDR": {
+  "sector": "Finance",
+  "industry": "Finance: Consumer Services"
+ },
+ "L": {
+  "sector": "Finance",
+  "industry": "Property-Casualty Insurers"
+ },
+ "TEX": {
+  "sector": "Industrials",
+  "industry": "Construction/Ag Equipment/Trucks"
+ },
+ "COKE": {
+  "sector": "Consumer Staples",
+  "industry": "Beverages (Production/Distribution)"
+ },
+ "VRNS": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "VOD": {
+  "sector": "Telecommunications",
+  "industry": "Telecommunications Equipment"
+ },
+ "TNGX": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "ATMU": {
+  "sector": "Consumer Discretionary",
+  "industry": "Auto Parts:O.E.M."
+ },
+ "ZWS": {
+  "sector": "Industrials",
+  "industry": "Industrial Machinery/Components"
+ },
+ "MIR": {
+  "sector": "Industrials",
+  "industry": "Industrial Machinery/Components"
+ },
+ "VNOM": {
+  "sector": "Energy",
+  "industry": "Oil & Gas Production"
+ },
+ "TME": {
+  "sector": "Consumer Discretionary",
+  "industry": "Broadcasting"
+ },
+ "AAP": {
+  "sector": "Consumer Discretionary",
+  "industry": "Auto & Home Supply Stores"
+ },
+ "FCFS": {
+  "sector": "Consumer Discretionary",
+  "industry": "Other Specialty Stores"
+ },
+ "CWST": {
+  "sector": "Utilities",
+  "industry": "Environmental Services"
+ },
+ "OSIS": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "EPRT": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "KGS": {
+  "sector": "Utilities",
+  "industry": "Natural Gas Distribution"
+ },
+ "DOCS": {
+  "sector": "Technology",
+  "industry": "EDP Services"
+ },
+ "GVA": {
+  "sector": "Industrials",
+  "industry": "Military/Government/Technical"
+ },
+ "CNX": {
+  "sector": "Energy",
+  "industry": "Oil & Gas Production"
+ },
+ "BRKR": {
+  "sector": "Industrials",
+  "industry": "Biotechnology: Laboratory Analytical Instruments"
+ },
+ "SGML": {
+  "sector": "Basic Materials",
+  "industry": "Metal Mining"
+ },
+ "CTRE": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "LASR": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "PCTY": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "AUGO": {
+  "sector": "Unknown",
+  "industry": "Unknown"
+ },
+ "RELY": {
+  "sector": "Consumer Discretionary",
+  "industry": "Business Services"
+ },
+ "YOU": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "KRYS": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Biological Products (No Diagnostic Substances)"
+ },
+ "CSTM": {
+  "sector": "Industrials",
+  "industry": "Metal Fabrications"
+ },
+ "CNR": {
+  "sector": "Energy",
+  "industry": "Coal Mining"
+ },
+ "PATK": {
+  "sector": "Consumer Discretionary",
+  "industry": "Auto Parts:O.E.M."
+ },
+ "TENB": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "CCC": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "WAY": {
+  "sector": "Technology",
+  "industry": "EDP Services"
+ },
+ "PUMP": {
+  "sector": "Energy",
+  "industry": "Oilfield Services/Equipment"
+ },
+ "TDW": {
+  "sector": "Consumer Discretionary",
+  "industry": "Marine Transportation"
+ },
+ "INDV": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "PI": {
+  "sector": "Technology",
+  "industry": "Industrial Machinery/Components"
+ },
+ "SYNA": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "MKTX": {
+  "sector": "Finance",
+  "industry": "Investment Bankers/Brokers/Service"
+ },
+ "CMPX": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Biological Products (No Diagnostic Substances)"
+ },
+ "MAT": {
+  "sector": "Consumer Discretionary",
+  "industry": "Recreational Games/Products/Toys"
+ },
+ "USD": {
+  "sector": "Unknown",
+  "industry": "Unknown"
+ },
+ "BKH": {
+  "sector": "Utilities",
+  "industry": "Electric Utilities: Central"
+ },
+ "AMSC": {
+  "sector": "Consumer Discretionary",
+  "industry": "Metal Fabrications"
+ },
+ "COLB": {
+  "sector": "Finance",
+  "industry": "Major Banks"
+ },
+ "SIG": {
+  "sector": "Consumer Discretionary",
+  "industry": "Consumer Specialties"
+ },
+ "FRPT": {
+  "sector": "Consumer Staples",
+  "industry": "Packaged Foods"
+ },
+ "WGS": {
+  "sector": "Technology",
+  "industry": "Retail: Computer Software & Peripheral Equipment"
+ },
+ "AVNS": {
+  "sector": "Health Care",
+  "industry": "Industrial Specialties"
+ },
+ "FLG": {
+  "sector": "Finance",
+  "industry": "Banks"
+ },
+ "COHU": {
+  "sector": "Industrials",
+  "industry": "Electrical Products"
+ },
+ "ABG": {
+  "sector": "Consumer Discretionary",
+  "industry": "Retail-Auto Dealers and Gas Stations"
+ },
+ "PAA": {
+  "sector": "Energy",
+  "industry": "Natural Gas Distribution"
+ },
+ "CGON": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Biological Products (No Diagnostic Substances)"
+ },
+ "TTAN": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "SRRK": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Biological Products (No Diagnostic Substances)"
+ },
+ "LAMR": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "NN": {
+  "sector": "Industrials",
+  "industry": "Industrial Machinery/Components"
+ },
+ "PTGX": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "TXNM": {
+  "sector": "Utilities",
+  "industry": "Electric Utilities: Central"
+ },
+ "CAMT": {
+  "sector": "Technology",
+  "industry": "Electronic Components"
+ },
+ "MIRM": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "BEAM": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Biological Products (No Diagnostic Substances)"
+ },
+ "CNK": {
+  "sector": "Consumer Discretionary",
+  "industry": "Movies/Entertainment"
+ },
+ "SNEX": {
+  "sector": "Finance",
+  "industry": "Investment Bankers/Brokers/Service"
+ },
+ "PJT": {
+  "sector": "Finance",
+  "industry": "Investment Managers"
+ },
+ "LEGN": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "CBSH": {
+  "sector": "Finance",
+  "industry": "Major Banks"
+ },
+ "MUR": {
+  "sector": "Energy",
+  "industry": "Oil & Gas Production"
+ },
+ "NXE": {
+  "sector": "Basic Materials",
+  "industry": "Other Metals and Minerals"
+ },
+ "KSS": {
+  "sector": "Consumer Discretionary",
+  "industry": "Department/Specialty Retail Stores"
+ },
+ "WTFC": {
+  "sector": "Finance",
+  "industry": "Major Banks"
+ },
+ "POR": {
+  "sector": "Utilities",
+  "industry": "Electric Utilities: Central"
+ },
+ "IPGP": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "RMSG": {
+  "sector": "Technology",
+  "industry": "Computer Software: Programming Data Processing"
+ },
+ "NICE": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "NXST": {
+  "sector": "Industrials",
+  "industry": "Broadcasting"
+ },
+ "WK": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "RHP": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "ADMA": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Biological Products (No Diagnostic Substances)"
+ },
+ "PCVX": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "BRZE": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "MTH": {
+  "sector": "Consumer Discretionary",
+  "industry": "Homebuilding"
+ },
+ "NOG": {
+  "sector": "Energy",
+  "industry": "Oil & Gas Production"
+ },
+ "EXTR": {
+  "sector": "Telecommunications",
+  "industry": "Computer Communications Equipment"
+ },
+ "BSY": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "VECO": {
+  "sector": "Technology",
+  "industry": "Industrial Machinery/Components"
+ },
+ "OUST": {
+  "sector": "Industrials",
+  "industry": "Industrial Machinery/Components"
+ },
+ "TGTX": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "FLNC": {
+  "sector": "Miscellaneous",
+  "industry": "Industrial Machinery/Components"
+ },
+ "SXI": {
+  "sector": "Industrials",
+  "industry": "Industrial Machinery/Components"
+ },
+ "PTON": {
+  "sector": "Consumer Discretionary",
+  "industry": "Recreational Games/Products/Toys"
+ },
+ "ICHR": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "LNTH": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: In Vitro & In Vivo Diagnostic Substances"
+ },
+ "DIOD": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "FIVN": {
+  "sector": "Technology",
+  "industry": "EDP Services"
+ },
+ "COGT": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "OZK": {
+  "sector": "Finance",
+  "industry": "Major Banks"
+ },
+ "LCII": {
+  "sector": "Consumer Discretionary",
+  "industry": "Auto Parts:O.E.M."
+ },
+ "MGY": {
+  "sector": "Energy",
+  "industry": "Oil & Gas Production"
+ },
+ "GLNG": {
+  "sector": "Consumer Discretionary",
+  "industry": "Marine Transportation"
+ },
+ "BKSY": {
+  "sector": "Technology",
+  "industry": "Radio And Television Broadcasting And Communications Equipment"
+ },
+ "INBX": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Biological Products (No Diagnostic Substances)"
+ },
+ "ASO": {
+  "sector": "Consumer Discretionary",
+  "industry": "Other Specialty Stores"
+ },
+ "SATL": {
+  "sector": "Technology",
+  "industry": "Radio And Television Broadcasting And Communications Equipment"
+ },
+ "BFH": {
+  "sector": "Consumer Discretionary",
+  "industry": "Business Services"
+ },
+ "AVLN": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "FSS": {
+  "sector": "Industrials",
+  "industry": "Auto Manufacturing"
+ },
+ "JBTM": {
+  "sector": "Industrials",
+  "industry": "Industrial Machinery/Components"
+ },
+ "IRTC": {
+  "sector": "Health Care",
+  "industry": "Medical/Dental Instruments"
+ },
+ "GDS": {
+  "sector": "Technology",
+  "industry": "Computer Software: Programming Data Processing"
+ },
+ "TXG": {
+  "sector": "Industrials",
+  "industry": "Biotechnology: Laboratory Analytical Instruments"
+ },
+ "ALKS": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "GPOR": {
+  "sector": "Energy",
+  "industry": "Oil & Gas Production"
+ },
+ "ASB": {
+  "sector": "Finance",
+  "industry": "Major Banks"
+ },
+ "ONC": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "ERIE": {
+  "sector": "Finance",
+  "industry": "Specialty Insurers"
+ },
+ "SBET": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "NUVL": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "PBM": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "MMYT": {
+  "sector": "Consumer Discretionary",
+  "industry": "Transportation Services"
+ },
+ "CC": {
+  "sector": "Industrials",
+  "industry": "Major Chemicals"
+ },
+ "SEZL": {
+  "sector": "Finance",
+  "industry": "Finance: Consumer Services"
+ },
+ "APPF": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "CMC": {
+  "sector": "Industrials",
+  "industry": "Steel/Iron Ore"
+ },
+ "MBLY": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "ASST": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "WT": {
+  "sector": "Finance",
+  "industry": "Investment Bankers/Brokers/Service"
+ },
+ "BDC": {
+  "sector": "Industrials",
+  "industry": "Telecommunications Equipment"
+ },
+ "RRR": {
+  "sector": "Consumer Discretionary",
+  "industry": "Hotels/Resorts"
+ },
+ "EFOR": {
+  "sector": "Consumer Discretionary",
+  "industry": "Professional Services"
+ },
+ "BILL": {
+  "sector": "Technology",
+  "industry": "EDP Services"
+ },
+ "DK": {
+  "sector": "Energy",
+  "industry": "Integrated oil Companies"
+ },
+ "JXN": {
+  "sector": "Finance",
+  "industry": "Life Insurance"
+ },
+ "LTH": {
+  "sector": "Consumer Discretionary",
+  "industry": "Hotels/Resorts"
+ },
+ "SXT": {
+  "sector": "Industrials",
+  "industry": "Major Chemicals"
+ },
+ "CPRX": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "DOX": {
+  "sector": "Technology",
+  "industry": "EDP Services"
+ },
+ "IOVA": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Biological Products (No Diagnostic Substances)"
+ },
+ "GT": {
+  "sector": "Consumer Discretionary",
+  "industry": "Automotive Aftermarket"
+ },
+ "DHT": {
+  "sector": "Consumer Discretionary",
+  "industry": "Marine Transportation"
+ },
+ "SLG": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "MAC": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "APLE": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "WEN": {
+  "sector": "Consumer Discretionary",
+  "industry": "Restaurants"
+ },
+ "DOO": {
+  "sector": "Consumer Discretionary",
+  "industry": "Industrial Specialties"
+ },
+ "TLRY": {
+  "sector": "Health Care",
+  "industry": " Medicinal Chemicals and Botanical Products "
+ },
+ "IDYA": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "PIPR": {
+  "sector": "Finance",
+  "industry": "Investment Bankers/Brokers/Service"
+ },
+ "ENS": {
+  "sector": "Technology",
+  "industry": "Industrial Machinery/Components"
+ },
+ "CALX": {
+  "sector": "Consumer Discretionary",
+  "industry": "Telecommunications Equipment"
+ },
+ "WSC": {
+  "sector": "Industrials",
+  "industry": "Misc Corporate Leasing Services"
+ },
+ "EEFT": {
+  "sector": "Finance",
+  "industry": "Investment Bankers/Brokers/Service"
+ },
+ "KBH": {
+  "sector": "Consumer Discretionary",
+  "industry": "Homebuilding"
+ },
+ "GNTX": {
+  "sector": "Consumer Discretionary",
+  "industry": "Auto Parts:O.E.M."
+ },
+ "GTM": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "RYTM": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "AMC": {
+  "sector": "Consumer Discretionary",
+  "industry": "Movies/Entertainment"
+ },
+ "MRX": {
+  "sector": "Finance",
+  "industry": "Investment Bankers/Brokers/Service"
+ },
+ "ARR": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "XENE": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "CVBF": {
+  "sector": "Finance",
+  "industry": "Major Banks"
+ },
+ "ACMR": {
+  "sector": "Technology",
+  "industry": "Industrial Machinery/Components"
+ },
+ "PBI": {
+  "sector": "Miscellaneous",
+  "industry": "Office Equipment/Supplies/Services"
+ },
+ "DBRG": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "MMSI": {
+  "sector": "Health Care",
+  "industry": "Medical/Dental Instruments"
+ },
+ "APGE": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Biological Products (No Diagnostic Substances)"
+ },
+ "KAI": {
+  "sector": "Industrials",
+  "industry": "Industrial Machinery/Components"
+ },
+ "PLPC": {
+  "sector": "Industrials",
+  "industry": "Water Sewer Pipeline Comm & Power Line Construction"
+ },
+ "KRG": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "SRPT": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "CMPS": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "CALM": {
+  "sector": "Consumer Staples",
+  "industry": "Farming/Seeds/Milling"
+ },
+ "BANC": {
+  "sector": "Finance",
+  "industry": "Major Banks"
+ },
+ "BOX": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "LC": {
+  "sector": "Unknown",
+  "industry": "Unknown"
+ },
+ "IAC": {
+  "sector": "Unknown",
+  "industry": "Unknown"
+ },
+ "FHB": {
+  "sector": "Finance",
+  "industry": "Major Banks"
+ },
+ "NCNO": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "GPGI": {
+  "sector": "Finance",
+  "industry": "Finance: Consumer Services"
+ },
+ "KSPI": {
+  "sector": "Unknown",
+  "industry": "Unknown"
+ },
+ "ROAD": {
+  "sector": "Industrials",
+  "industry": "Military/Government/Technical"
+ },
+ "LEG": {
+  "sector": "Consumer Discretionary",
+  "industry": "Home Furnishings"
+ },
+ "HWC": {
+  "sector": "Finance",
+  "industry": "Major Banks"
+ },
+ "QTWO": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "SKYQ": {
+  "sector": "Industrials",
+  "industry": "Environmental Services"
+ },
+ "REZI": {
+  "sector": "Industrials",
+  "industry": "Wholesale Distributors"
+ },
+ "NNE": {
+  "sector": "Utilities",
+  "industry": "Electric Utilities: Central"
+ },
+ "KALU": {
+  "sector": "Industrials",
+  "industry": "Metal Fabrications"
+ },
+ "LION": {
+  "sector": "Consumer Discretionary",
+  "industry": "Movies/Entertainment"
+ },
+ "ALMU": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "KLIC": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "FOX": {
+  "sector": "Industrials",
+  "industry": "Broadcasting"
+ },
+ "MZTI": {
+  "sector": "Consumer Staples",
+  "industry": "Packaged Foods"
+ },
+ "CORT": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "EBC": {
+  "sector": "Finance",
+  "industry": "Savings Institutions"
+ },
+ "ITGR": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Electromedical & Electrotherapeutic Apparatus"
+ },
+ "CPRI": {
+  "sector": "Consumer Discretionary",
+  "industry": "Apparel"
+ },
+ "ADTN": {
+  "sector": "Utilities",
+  "industry": "Telecommunications Equipment"
+ },
+ "PENG": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "KNTK": {
+  "sector": "Utilities",
+  "industry": "Natural Gas Distribution"
+ },
+ "LGND": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "BIPC": {
+  "sector": "Utilities",
+  "industry": "Oil & Gas Production"
+ },
+ "GTX": {
+  "sector": "Consumer Discretionary",
+  "industry": "Auto Parts:O.E.M."
+ },
+ "AROC": {
+  "sector": "Utilities",
+  "industry": "Natural Gas Distribution"
+ },
+ "WMG": {
+  "sector": "Consumer Discretionary",
+  "industry": "Services-Misc. Amusement & Recreation"
+ },
+ "SIGI": {
+  "sector": "Finance",
+  "industry": "Property-Casualty Insurers"
+ },
+ "LI": {
+  "sector": "Industrials",
+  "industry": "Auto Manufacturing"
+ },
+ "HIVE": {
+  "sector": "Finance",
+  "industry": "Finance: Consumer Services"
+ },
+ "UNF": {
+  "sector": "Consumer Discretionary",
+  "industry": "Other Consumer Services"
+ },
+ "AXGN": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Electromedical & Electrotherapeutic Apparatus"
+ },
+ "GPI": {
+  "sector": "Consumer Discretionary",
+  "industry": "Retail-Auto Dealers and Gas Stations"
+ },
+ "BNL": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "STEP": {
+  "sector": "Finance",
+  "industry": "Investment Managers"
+ },
+ "BZ": {
+  "sector": "Technology",
+  "industry": "Computer Software: Programming Data Processing"
+ },
+ "GGAL": {
+  "sector": "Finance",
+  "industry": "Commercial Banks"
+ },
+ "ORC": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "ABCB": {
+  "sector": "Finance",
+  "industry": "Major Banks"
+ },
+ "IMAX": {
+  "sector": "Consumer Discretionary",
+  "industry": "Industrial Machinery/Components"
+ },
+ "ETOR": {
+  "sector": "Finance",
+  "industry": "Investment Bankers/Brokers/Service"
+ },
+ "BILI": {
+  "sector": "Technology",
+  "industry": "EDP Services"
+ },
+ "KOS": {
+  "sector": "Energy",
+  "industry": "Oil & Gas Production"
+ },
+ "HOMB": {
+  "sector": "Finance",
+  "industry": "Major Banks"
+ },
+ "CECO": {
+  "sector": "Industrials",
+  "industry": "Pollution Control Equipment"
+ },
+ "BORR": {
+  "sector": "Energy",
+  "industry": "Oil & Gas Production"
+ },
+ "WRBY": {
+  "sector": "Health Care",
+  "industry": "Ophthalmic Goods"
+ },
+ "ASAN": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "DNTH": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "BELFB": {
+  "sector": "Unknown",
+  "industry": "Unknown"
+ },
+ "RLAY": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Biological Products (No Diagnostic Substances)"
+ },
+ "ENVB": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "LIVN": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Electromedical & Electrotherapeutic Apparatus"
+ },
+ "TCBI": {
+  "sector": "Finance",
+  "industry": "Major Banks"
+ },
+ "AMBA": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "SFD": {
+  "sector": "Consumer Staples",
+  "industry": "Meat/Poultry/Fish"
+ },
+ "COAG": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Biological Products (No Diagnostic Substances)"
+ },
+ "OII": {
+  "sector": "Energy",
+  "industry": "Oilfield Services/Equipment"
+ },
+ "VERA": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "LAUR": {
+  "sector": "Real Estate",
+  "industry": "Other Consumer Services"
+ },
+ "KNSA": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "SHLS": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "LPTH": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "WDFC": {
+  "sector": "Industrials",
+  "industry": "Major Chemicals"
+ },
+ "ATAT": {
+  "sector": "Consumer Discretionary",
+  "industry": "Hotels/Resorts"
+ },
+ "SMPL": {
+  "sector": "Consumer Staples",
+  "industry": "Packaged Foods"
+ },
+ "AOSL": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "ANAB": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "ALLO": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Biological Products (No Diagnostic Substances)"
+ },
+ "DFTX": {
+  "sector": "Health Care",
+  "industry": " Medicinal Chemicals and Botanical Products "
+ },
+ "DSGX": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "CNXC": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "FIGS": {
+  "sector": "Consumer Discretionary",
+  "industry": "Apparel"
+ },
+ "SBRA": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "MIAX": {
+  "sector": "Finance",
+  "industry": "Investment Bankers/Brokers/Service"
+ },
+ "BOKF": {
+  "sector": "Finance",
+  "industry": "Major Banks"
+ },
+ "PGY": {
+  "sector": "Finance",
+  "industry": "Finance: Consumer Services"
+ },
+ "IMVT": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Biological Products (No Diagnostic Substances)"
+ },
+ "NOVT": {
+  "sector": "Miscellaneous",
+  "industry": "Industrial Machinery/Components"
+ },
+ "SGHC": {
+  "sector": "Consumer Discretionary",
+  "industry": "Services-Misc. Amusement & Recreation"
+ },
+ "ENVA": {
+  "sector": "Finance",
+  "industry": "Finance: Consumer Services"
+ },
+ "SAIC": {
+  "sector": "Technology",
+  "industry": "EDP Services"
+ },
+ "ADEA": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "GPCR": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "ESPR": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "CRI": {
+  "sector": "Consumer Discretionary",
+  "industry": "Apparel"
+ },
+ "KYMR": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Biological Products (No Diagnostic Substances)"
+ },
+ "CRC": {
+  "sector": "Energy",
+  "industry": "Oil & Gas Production"
+ },
+ "RDNT": {
+  "sector": "Health Care",
+  "industry": "Medical Specialities"
+ },
+ "FULT": {
+  "sector": "Finance",
+  "industry": "Major Banks"
+ },
+ "AMR": {
+  "sector": "Energy",
+  "industry": "Coal Mining"
+ },
+ "SPIR": {
+  "sector": "Consumer Discretionary",
+  "industry": "Telecommunications Equipment"
+ },
+ "ARRY": {
+  "sector": "Consumer Discretionary",
+  "industry": "Miscellaneous manufacturing industries"
+ },
+ "MTRN": {
+  "sector": "Industrials",
+  "industry": "Industrial Specialties"
+ },
+ "LOPE": {
+  "sector": "Real Estate",
+  "industry": "Other Consumer Services"
+ },
+ "BCO": {
+  "sector": "Industrials",
+  "industry": "Integrated Freight & Logistics"
+ },
+ "MMS": {
+  "sector": "Consumer Discretionary",
+  "industry": "Business Services"
+ },
+ "VNET": {
+  "sector": "Technology",
+  "industry": "Computer Software: Programming Data Processing"
+ },
+ "SOC": {
+  "sector": "Energy",
+  "industry": "Oil & Gas Production"
+ },
+ "GMAB": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "MYSE": {
+  "sector": "Telecommunications",
+  "industry": "Telecommunications Equipment"
+ },
+ "VOYG": {
+  "sector": "Industrials",
+  "industry": "Military/Government/Technical"
+ },
+ "FIBK": {
+  "sector": "Finance",
+  "industry": "Major Banks"
+ },
+ "ATKR": {
+  "sector": "Miscellaneous",
+  "industry": "Industrial Machinery/Components"
+ },
+ "GBCI": {
+  "sector": "Finance",
+  "industry": "Major Banks"
+ },
+ "UFPT": {
+  "sector": "Health Care",
+  "industry": "Medical/Dental Instruments"
+ },
+ "BKU": {
+  "sector": "Finance",
+  "industry": "Savings Institutions"
+ },
+ "PAGP": {
+  "sector": "Energy",
+  "industry": "Natural Gas Distribution"
+ },
+ "PPC": {
+  "sector": "Consumer Staples",
+  "industry": "Meat/Poultry/Fish"
+ },
+ "SHC": {
+  "sector": "Health Care",
+  "industry": "Misc Health and Biotechnology Services"
+ },
+ "AI": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "RSI": {
+  "sector": "Consumer Discretionary",
+  "industry": "Services-Misc. Amusement & Recreation"
+ },
+ "LAES": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "INOD": {
+  "sector": "Technology",
+  "industry": "EDP Services"
+ },
+ "CUE": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "DRS": {
+  "sector": "Industrials",
+  "industry": "Industrial Machinery/Components"
+ },
+ "PFSI": {
+  "sector": "Finance",
+  "industry": "Finance: Consumer Services"
+ },
+ "SWX": {
+  "sector": "Utilities",
+  "industry": "Oil & Gas Production"
+ },
+ "AUB": {
+  "sector": "Finance",
+  "industry": "Major Banks"
+ },
+ "KTB": {
+  "sector": "Industrials",
+  "industry": "Garments and Clothing"
+ },
+ "XRAY": {
+  "sector": "Health Care",
+  "industry": "Medical/Dental Instruments"
+ },
+ "NESR": {
+  "sector": "Energy",
+  "industry": "Oilfield Services/Equipment"
+ },
+ "FOLD": {
+  "sector": "Unknown",
+  "industry": "Unknown"
+ },
+ "CRNX": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "BCPC": {
+  "sector": "Industrials",
+  "industry": "Major Chemicals"
+ },
+ "ALGT": {
+  "sector": "Consumer Discretionary",
+  "industry": "Air Freight/Delivery Services"
+ },
+ "AGIO": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "HGV": {
+  "sector": "Consumer Discretionary",
+  "industry": "Hotels/Resorts"
+ },
+ "FTDR": {
+  "sector": "Consumer Discretionary",
+  "industry": "Diversified Commercial Services"
+ },
+ "NAVN": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "AIR": {
+  "sector": "Industrials",
+  "industry": "Aerospace"
+ },
+ "NTSK": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "CSIQ": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "KLRA": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "MATX": {
+  "sector": "Consumer Discretionary",
+  "industry": "Marine Transportation"
+ },
+ "WHD": {
+  "sector": "Consumer Discretionary",
+  "industry": "Oil and Gas Field Machinery"
+ },
+ "SILA": {
+  "sector": "Unknown",
+  "industry": "Unknown"
+ },
+ "RARE": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "AX": {
+  "sector": "Finance",
+  "industry": "Savings Institutions"
+ },
+ "PLAB": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "TPC": {
+  "sector": "Consumer Discretionary",
+  "industry": "General Bldg Contractors - Nonresidential Bldgs"
+ },
+ "RXRX": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Biological Products (No Diagnostic Substances)"
+ },
+ "SKYT": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "ELPW": {
+  "sector": "Miscellaneous",
+  "industry": "Industrial Machinery/Components"
+ },
+ "ARCB": {
+  "sector": "Industrials",
+  "industry": "Trucking Freight/Courier Services"
+ },
+ "MWA": {
+  "sector": "Industrials",
+  "industry": "Metal Fabrications"
+ },
+ "HP": {
+  "sector": "Energy",
+  "industry": "Oil & Gas Production"
+ },
+ "PSIX": {
+  "sector": "Industrials",
+  "industry": "Industrial Machinery/Components"
+ },
+ "PEB": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "TYRA": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "ACAD": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "QDEL": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: In Vitro & In Vivo Diagnostic Substances"
+ },
+ "KMT": {
+  "sector": "Industrials",
+  "industry": "Industrial Machinery/Components"
+ },
+ "INSW": {
+  "sector": "Consumer Discretionary",
+  "industry": "Marine Transportation"
+ },
+ "EFOI": {
+  "sector": "Consumer Discretionary",
+  "industry": "Building Products"
+ },
+ "BLLN": {
+  "sector": "Health Care",
+  "industry": "Medical Specialities"
+ },
+ "UFPI": {
+  "sector": "Basic Materials",
+  "industry": "Forest Products"
+ },
+ "CSW": {
+  "sector": "Industrials",
+  "industry": "Home Furnishings"
+ },
+ "HSAI": {
+  "sector": "Industrials",
+  "industry": "Industrial Machinery/Components"
+ },
+ "LQDA": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "HAE": {
+  "sector": "Health Care",
+  "industry": "Medical/Dental Instruments"
+ },
+ "EQPT": {
+  "sector": "Consumer Discretionary",
+  "industry": "Diversified Commercial Services"
+ },
+ "GBTG": {
+  "sector": "Consumer Discretionary",
+  "industry": "Transportation Services"
+ },
+ "ESNT": {
+  "sector": "Finance",
+  "industry": "Property-Casualty Insurers"
+ },
+ "HTO": {
+  "sector": "Utilities",
+  "industry": "Water Supply"
+ },
+ "KNF": {
+  "sector": "Industrials",
+  "industry": "Mining & Quarrying of Nonmetallic Minerals (No Fuels)"
+ },
+ "BKD": {
+  "sector": "Health Care",
+  "industry": "Hospital/Nursing Management"
+ },
+ "MRCY": {
+  "sector": "Technology",
+  "industry": "Electrical Products"
+ },
+ "SNDX": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "TNK": {
+  "sector": "Consumer Discretionary",
+  "industry": "Marine Transportation"
+ },
+ "SHOO": {
+  "sector": "Consumer Discretionary",
+  "industry": "Shoe Manufacturing"
+ },
+ "YSWY": {
+  "sector": "Consumer Staples",
+  "industry": "Food Chains"
+ },
+ "SDOT": {
+  "sector": "Consumer Discretionary",
+  "industry": "Restaurants"
+ },
+ "OTEX": {
+  "sector": "Technology",
+  "industry": "EDP Services"
+ },
+ "FELE": {
+  "sector": "Consumer Discretionary",
+  "industry": "Metal Fabrications"
+ },
+ "WERN": {
+  "sector": "Industrials",
+  "industry": "Trucking Freight/Courier Services"
+ },
+ "CTRI": {
+  "sector": "Utilities",
+  "industry": "Oil & Gas Production"
+ },
+ "UPWK": {
+  "sector": "Technology",
+  "industry": "EDP Services"
+ },
+ "ZG": {
+  "sector": "Consumer Discretionary",
+  "industry": "Business Services"
+ },
+ "COUR": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "EWTX": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "SPTX": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "GATX": {
+  "sector": "Consumer Discretionary",
+  "industry": "Transportation Services"
+ },
+ "HASI": {
+  "sector": "Finance",
+  "industry": "Finance/Investors Services"
+ },
+ "LIF": {
+  "sector": "Technology",
+  "industry": "EDP Services"
+ },
+ "PPTA": {
+  "sector": "Basic Materials",
+  "industry": "Precious Metals"
+ },
+ "RZLV": {
+  "sector": "Technology",
+  "industry": "Computer Software: Programming Data Processing"
+ },
+ "TARS": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Biological Products (No Diagnostic Substances)"
+ },
+ "SKYW": {
+  "sector": "Consumer Discretionary",
+  "industry": "Air Freight/Delivery Services"
+ },
+ "IRT": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "VELO": {
+  "sector": "Technology",
+  "industry": "Industrial Machinery/Components"
+ },
+ "DJT": {
+  "sector": "Technology",
+  "industry": "Computer Software: Programming Data Processing"
+ },
+ "GLBE": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "DAN": {
+  "sector": "Consumer Discretionary",
+  "industry": "Auto Parts:O.E.M."
+ },
+ "PSMT": {
+  "sector": "Consumer Discretionary",
+  "industry": "Department/Specialty Retail Stores"
+ },
+ "CHEF": {
+  "sector": "Consumer Discretionary",
+  "industry": "Food Distributors"
+ },
+ "TPB": {
+  "sector": "Consumer Discretionary",
+  "industry": "Tobacco"
+ },
+ "COLM": {
+  "sector": "Consumer Discretionary",
+  "industry": "Apparel"
+ },
+ "RDN": {
+  "sector": "Finance",
+  "industry": "Property-Casualty Insurers"
+ },
+ "DXPE": {
+  "sector": "Industrials",
+  "industry": "Industrial Machinery/Components"
+ },
+ "PAGS": {
+  "sector": "Technology",
+  "industry": "EDP Services"
+ },
+ "BOH": {
+  "sector": "Finance",
+  "industry": "Major Banks"
+ },
+ "DNOW": {
+  "sector": "Consumer Discretionary",
+  "industry": "Oil and Gas Field Machinery"
+ },
+ "PONY": {
+  "sector": "Technology",
+  "industry": "EDP Services"
+ },
+ "PURR": {
+  "sector": "Finance",
+  "industry": "Finance: Consumer Services"
+ },
+ "CALY": {
+  "sector": "Consumer Discretionary",
+  "industry": "Recreational Games/Products/Toys"
+ },
+ "ATAI": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "FBP": {
+  "sector": "Finance",
+  "industry": "Major Banks"
+ },
+ "CRK": {
+  "sector": "Energy",
+  "industry": "Oil & Gas Production"
+ },
+ "DBD": {
+  "sector": "Miscellaneous",
+  "industry": "Office Equipment/Supplies/Services"
+ },
+ "PECO": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "MGRC": {
+  "sector": "Consumer Discretionary",
+  "industry": "Diversified Commercial Services"
+ },
+ "GRPN": {
+  "sector": "Consumer Discretionary",
+  "industry": "Advertising"
+ },
+ "NATL": {
+  "sector": "Miscellaneous",
+  "industry": "Office Equipment/Supplies/Services"
+ },
+ "ELVN": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "TRNO": {
+  "sector": "Finance",
+  "industry": "Real Estate"
+ },
+ "GFF": {
+  "sector": "Industrials",
+  "industry": "Building Products"
+ },
+ "ACA": {
+  "sector": "Industrials",
+  "industry": "Metal Fabrications"
+ },
+ "SKY": {
+  "sector": "Consumer Discretionary",
+  "industry": "Homebuilding"
+ },
+ "OGS": {
+  "sector": "Utilities",
+  "industry": "Oil/Gas Transmission"
+ },
+ "ENVX": {
+  "sector": "Miscellaneous",
+  "industry": "Industrial Machinery/Components"
+ },
+ "VITL": {
+  "sector": "Consumer Staples",
+  "industry": "Packaged Foods"
+ },
+ "CAI": {
+  "sector": "Health Care",
+  "industry": "Medical Specialities"
+ },
+ "SLDE": {
+  "sector": "Finance",
+  "industry": "Property-Casualty Insurers"
+ },
+ "RCUS": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "WTTR": {
+  "sector": "Energy",
+  "industry": "Oilfield Services/Equipment"
+ },
+ "REAL": {
+  "sector": "Consumer Discretionary",
+  "industry": "Other Specialty Stores"
+ },
+ "PRKS": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Electromedical & Electrotherapeutic Apparatus"
+ },
+ "BHE": {
+  "sector": "Technology",
+  "industry": "Electrical Products"
+ },
+ "UBSI": {
+  "sector": "Finance",
+  "industry": "Major Banks"
+ },
+ "DYN": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "PRCT": {
+  "sector": "Health Care",
+  "industry": "Medical/Dental Instruments"
+ },
+ "HTFL": {
+  "sector": "Health Care",
+  "industry": "Medical/Dental Instruments"
+ },
+ "ROG": {
+  "sector": "Industrials",
+  "industry": "Major Chemicals"
+ },
+ "CARG": {
+  "sector": "Technology",
+  "industry": "EDP Services"
+ },
+ "EYE": {
+  "sector": "Health Care",
+  "industry": "Ophthalmic Goods"
+ },
+ "AWR": {
+  "sector": "Utilities",
+  "industry": "Water Supply"
+ },
+ "CAPR": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "MHO": {
+  "sector": "Consumer Discretionary",
+  "industry": "Homebuilding"
+ },
+ "VAC": {
+  "sector": "Finance",
+  "industry": "Real Estate"
+ },
+ "RXO": {
+  "sector": "Consumer Discretionary",
+  "industry": "Transportation Services"
+ },
+ "NBR": {
+  "sector": "Energy",
+  "industry": "Oil & Gas Production"
+ },
+ "BWIN": {
+  "sector": "Finance",
+  "industry": "Specialty Insurers"
+ },
+ "VRDN": {
+  "sector": "Health Care",
+  "industry": "Medical Specialities"
+ },
+ "ICFI": {
+  "sector": "Consumer Discretionary",
+  "industry": "Professional Services"
+ },
+ "ACIW": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "CBZ": {
+  "sector": "Consumer Discretionary",
+  "industry": "Business Services"
+ },
+ "HIMX": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "OUT": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "ICUI": {
+  "sector": "Health Care",
+  "industry": "Medical/Dental Instruments"
+ },
+ "BL": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "BCRX": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Biological Products (No Diagnostic Substances)"
+ },
+ "TNDM": {
+  "sector": "Health Care",
+  "industry": "Medical/Dental Instruments"
+ },
+ "EXPO": {
+  "sector": "Consumer Discretionary",
+  "industry": "Professional Services"
+ },
+ "HCI": {
+  "sector": "Finance",
+  "industry": "Property-Casualty Insurers"
+ },
+ "TDOC": {
+  "sector": "Health Care",
+  "industry": "Medical/Nursing Services"
+ },
+ "BGC": {
+  "sector": "Finance",
+  "industry": "Investment Bankers/Brokers/Service"
+ },
+ "LFST": {
+  "sector": "Health Care",
+  "industry": "Medical/Nursing Services"
+ },
+ "SCHL": {
+  "sector": "Consumer Discretionary",
+  "industry": "Books"
+ },
+ "KOPN": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "SAIL": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "GCT": {
+  "sector": "Consumer Discretionary",
+  "industry": "Catalog/Specialty Distribution"
+ },
+ "CWT": {
+  "sector": "Utilities",
+  "industry": "Water Supply"
+ },
+ "CLMT": {
+  "sector": "Energy",
+  "industry": "Integrated oil Companies"
+ },
+ "LINE": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "CVI": {
+  "sector": "Energy",
+  "industry": "Integrated oil Companies"
+ },
+ "UNIT": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "BFLY": {
+  "sector": "Health Care",
+  "industry": "Medical Electronics"
+ },
+ "CCOI": {
+  "sector": "Consumer Discretionary",
+  "industry": "Telecommunications Equipment"
+ },
+ "CVSA": {
+  "sector": "Real Estate",
+  "industry": "Other Consumer Services"
+ },
+ "ATEN": {
+  "sector": "Telecommunications",
+  "industry": "Computer Communications Equipment"
+ },
+ "SPSC": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "MLYS": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "ELMT": {
+  "sector": "Industrials",
+  "industry": "Metal Fabrications"
+ },
+ "REPL": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Biological Products (No Diagnostic Substances)"
+ },
+ "AZZ": {
+  "sector": "Industrials",
+  "industry": "Industrial Specialties"
+ },
+ "MWH": {
+  "sector": "Industrials",
+  "industry": "Military/Government/Technical"
+ },
+ "NAMS": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "PRM": {
+  "sector": "Industrials",
+  "industry": "Major Chemicals"
+ },
+ "FSV": {
+  "sector": "Finance",
+  "industry": "Real Estate"
+ },
+ "RUSHA": {
+  "sector": "Consumer Discretionary",
+  "industry": "Retail-Auto Dealers and Gas Stations"
+ },
+ "QURE": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "INDB": {
+  "sector": "Finance",
+  "industry": "Major Banks"
+ },
+ "BAND": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "KOD": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Biological Products (No Diagnostic Substances)"
+ },
+ "NB": {
+  "sector": "Basic Materials",
+  "industry": "Metal Mining"
+ },
+ "WVE": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "NSIT": {
+  "sector": "Consumer Discretionary",
+  "industry": "Catalog/Specialty Distribution"
+ },
+ "DNLI": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Biological Products (No Diagnostic Substances)"
+ },
+ "HWKN": {
+  "sector": "Consumer Discretionary",
+  "industry": "Specialty Chemicals"
+ },
+ "CDP": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "FCHL": {
+  "sector": "Consumer Discretionary",
+  "industry": "Services-Misc. Amusement & Recreation"
+ },
+ "GRAL": {
+  "sector": "Health Care",
+  "industry": "Medical Specialities"
+ },
+ "SLNH": {
+  "sector": "Technology",
+  "industry": "EDP Services"
+ },
+ "SERV": {
+  "sector": "Consumer Discretionary",
+  "industry": "Industrial Specialties"
+ },
+ "BXMT": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "BZAI": {
+  "sector": "Finance",
+  "industry": "Blank Checks"
+ },
+ "VCTR": {
+  "sector": "Finance",
+  "industry": "Investment Managers"
+ },
+ "NHI": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "UCB": {
+  "sector": "Finance",
+  "industry": "Major Banks"
+ },
+ "ESTA": {
+  "sector": "Health Care",
+  "industry": "Industrial Specialties"
+ },
+ "WTI": {
+  "sector": "Energy",
+  "industry": "Oil & Gas Production"
+ },
+ "TRIP": {
+  "sector": "Technology",
+  "industry": "Computer Software: Programming Data Processing"
+ },
+ "BBBY": {
+  "sector": "Consumer Discretionary",
+  "industry": "Catalog/Specialty Distribution"
+ },
+ "ALMS": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "NWE": {
+  "sector": "Utilities",
+  "industry": "Power Generation"
+ },
+ "CBRL": {
+  "sector": "Consumer Discretionary",
+  "industry": "Restaurants"
+ },
+ "ATEC": {
+  "sector": "Health Care",
+  "industry": "Medical/Dental Instruments"
+ },
+ "THR": {
+  "sector": "Unknown",
+  "industry": "Unknown"
+ },
+ "VVX": {
+  "sector": "Consumer Discretionary",
+  "industry": "Diversified Commercial Services"
+ },
+ "FFBC": {
+  "sector": "Finance",
+  "industry": "Major Banks"
+ },
+ "NSP": {
+  "sector": "Consumer Discretionary",
+  "industry": "Professional Services"
+ },
+ "SUPN": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "CXM": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "ALG": {
+  "sector": "Industrials",
+  "industry": "Industrial Machinery/Components"
+ },
+ "TDS": {
+  "sector": "Telecommunications",
+  "industry": "Telecommunications Equipment"
+ },
+ "SR": {
+  "sector": "Utilities",
+  "industry": "Oil/Gas Transmission"
+ },
+ "NTST": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "CWH": {
+  "sector": "Consumer Discretionary",
+  "industry": "Retail-Auto Dealers and Gas Stations"
+ },
+ "BTBT": {
+  "sector": "Finance",
+  "industry": "Finance: Consumer Services"
+ },
+ "NHP": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "FUN": {
+  "sector": "Consumer Discretionary",
+  "industry": "Services-Misc. Amusement & Recreation"
+ },
+ "CRAI": {
+  "sector": "Consumer Discretionary",
+  "industry": "Other Consumer Services"
+ },
+ "KFY": {
+  "sector": "Consumer Discretionary",
+  "industry": "Diversified Commercial Services"
+ },
+ "ATRO": {
+  "sector": "Industrials",
+  "industry": "Military/Government/Technical"
+ },
+ "SDRL": {
+  "sector": "Energy",
+  "industry": "Oil & Gas Production"
+ },
+ "SLDP": {
+  "sector": "Miscellaneous",
+  "industry": "Industrial Machinery/Components"
+ },
+ "XMTR": {
+  "sector": "Consumer Discretionary",
+  "industry": "Business Services"
+ },
+ "ULCC": {
+  "sector": "Consumer Discretionary",
+  "industry": "Air Freight/Delivery Services"
+ },
+ "SWMR": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "AGPU": {
+  "sector": "Health Care",
+  "industry": "Industrial Specialties"
+ },
+ "OI": {
+  "sector": "Consumer Discretionary",
+  "industry": "Containers/Packaging"
+ },
+ "APAM": {
+  "sector": "Finance",
+  "industry": "Investment Managers"
+ },
+ "ABCL": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "HUBG": {
+  "sector": "Industrials",
+  "industry": "Integrated Freight & Logistics"
+ },
+ "NWS": {
+  "sector": "Consumer Discretionary",
+  "industry": "Newspapers/Magazines"
+ },
+ "FUL": {
+  "sector": "Industrials",
+  "industry": "Home Furnishings"
+ },
+ "WLDN": {
+  "sector": "Consumer Discretionary",
+  "industry": "Military/Government/Technical"
+ },
+ "PLMR": {
+  "sector": "Finance",
+  "industry": "Property-Casualty Insurers"
+ },
+ "DCO": {
+  "sector": "Industrials",
+  "industry": "Military/Government/Technical"
+ },
+ "LBTYA": {
+  "sector": "Telecommunications",
+  "industry": "Cable & Other Pay Television Services"
+ },
+ "HRMY": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "NJR": {
+  "sector": "Utilities",
+  "industry": "Oil/Gas Transmission"
+ },
+ "ALH": {
+  "sector": "Industrials",
+  "industry": "Industrial Machinery/Components"
+ },
+ "BHF": {
+  "sector": "Finance",
+  "industry": "Life Insurance"
+ },
+ "HCAI": {
+  "sector": "Consumer Discretionary",
+  "industry": "Miscellaneous manufacturing industries"
+ },
+ "SEM": {
+  "sector": "Unknown",
+  "industry": "Unknown"
+ },
+ "UNFI": {
+  "sector": "Consumer Discretionary",
+  "industry": "Food Distributors"
+ },
+ "LABT": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "WINA": {
+  "sector": "Consumer Discretionary",
+  "industry": "Other Specialty Stores"
+ },
+ "MGNI": {
+  "sector": "Technology",
+  "industry": "Computer Software: Programming Data Processing"
+ },
+ "IE": {
+  "sector": "Basic Materials",
+  "industry": "Metal Mining"
+ },
+ "TRVI": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "BCC": {
+  "sector": "Consumer Discretionary",
+  "industry": "RETAIL: Building Materials"
+ },
+ "GEO": {
+  "sector": "Consumer Discretionary",
+  "industry": "Homebuilding"
+ },
+ "BNAI": {
+  "sector": "Technology",
+  "industry": "EDP Services"
+ },
+ "ALKT": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "MRAM": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "PZZA": {
+  "sector": "Consumer Discretionary",
+  "industry": "Restaurants"
+ },
+ "HURN": {
+  "sector": "Consumer Discretionary",
+  "industry": "Professional Services"
+ },
+ "GOLF": {
+  "sector": "Consumer Discretionary",
+  "industry": "Recreational Games/Products/Toys"
+ },
+ "PRGS": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "OCUL": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "WSHP": {
+  "sector": "Consumer Discretionary",
+  "industry": "Other Specialty Stores"
+ },
+ "ECPG": {
+  "sector": "Finance",
+  "industry": "Finance Companies"
+ },
+ "SG": {
+  "sector": "Consumer Discretionary",
+  "industry": "Restaurants"
+ },
+ "KWR": {
+  "sector": "Industrials",
+  "industry": "Major Chemicals"
+ },
+ "SFNC": {
+  "sector": "Finance",
+  "industry": "Major Banks"
+ },
+ "CNO": {
+  "sector": "Finance",
+  "industry": "Accident &Health Insurance"
+ },
+ "LXP": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "STRA": {
+  "sector": "Real Estate",
+  "industry": "Other Consumer Services"
+ },
+ "NEXT": {
+  "sector": "Utilities",
+  "industry": "Oil & Gas Production"
+ },
+ "ECVT": {
+  "sector": "Industrials",
+  "industry": "Major Chemicals"
+ },
+ "ATOM": {
+  "sector": "Technology",
+  "industry": "Semiconductors"
+ },
+ "NG": {
+  "sector": "Basic Materials",
+  "industry": "Precious Metals"
+ },
+ "OMCL": {
+  "sector": "Technology",
+  "industry": "Computer Manufacturing"
+ },
+ "KN": {
+  "sector": "Consumer Staples",
+  "industry": "Consumer Electronics/Appliances"
+ },
+ "NIC": {
+  "sector": "Finance",
+  "industry": "Major Banks"
+ },
+ "OTTR": {
+  "sector": "Utilities",
+  "industry": "Electric Utilities: Central"
+ },
+ "SBCF": {
+  "sector": "Finance",
+  "industry": "Major Banks"
+ },
+ "PBH": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "LLYVK": {
+  "sector": "Consumer Discretionary",
+  "industry": "Services-Misc. Amusement & Recreation"
+ },
+ "SKT": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "ARDX": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "GBDC": {
+  "sector": "Finance",
+  "industry": "Finance: Consumer Services"
+ },
+ "NWL": {
+  "sector": "Industrials",
+  "industry": "Plastic Products"
+ },
+ "CLDX": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: In Vitro & In Vivo Diagnostic Substances"
+ },
+ "WRLD": {
+  "sector": "Finance",
+  "industry": "Finance: Consumer Services"
+ },
+ "WSFS": {
+  "sector": "Finance",
+  "industry": "Major Banks"
+ },
+ "CLBT": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "PACS": {
+  "sector": "Health Care",
+  "industry": "Hospital/Nursing Management"
+ },
+ "YELP": {
+  "sector": "Consumer Discretionary",
+  "industry": "Other Consumer Services"
+ },
+ "PHIN": {
+  "sector": "Consumer Discretionary",
+  "industry": "Auto Parts:O.E.M."
+ },
+ "AKR": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "SGMT": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "CUBI": {
+  "sector": "Finance",
+  "industry": "Major Banks"
+ },
+ "TROX": {
+  "sector": "Industrials",
+  "industry": "Major Chemicals"
+ },
+ "WSBC": {
+  "sector": "Finance",
+  "industry": "Major Banks"
+ },
+ "NEO": {
+  "sector": "Health Care",
+  "industry": "Precision Instruments"
+ },
+ "REYN": {
+  "sector": "Consumer Discretionary",
+  "industry": "Containers/Packaging"
+ },
+ "FLYW": {
+  "sector": "Consumer Discretionary",
+  "industry": "Business Services"
+ },
+ "TNC": {
+  "sector": "Industrials",
+  "industry": "Industrial Machinery/Components"
+ },
+ "RNST": {
+  "sector": "Finance",
+  "industry": "Major Banks"
+ },
+ "TALO": {
+  "sector": "Energy",
+  "industry": "Oil & Gas Production"
+ },
+ "DORM": {
+  "sector": "Consumer Discretionary",
+  "industry": "Auto Parts:O.E.M."
+ },
+ "ZD": {
+  "sector": "Telecommunications",
+  "industry": "Telecommunications Equipment"
+ },
+ "NVAX": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Biological Products (No Diagnostic Substances)"
+ },
+ "NUAI": {
+  "sector": "Energy",
+  "industry": "Oil & Gas Production"
+ },
+ "PGNY": {
+  "sector": "Health Care",
+  "industry": "Misc Health and Biotechnology Services"
+ },
+ "NAT": {
+  "sector": "Consumer Discretionary",
+  "industry": "Marine Transportation"
+ },
+ "MAZE": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Biological Products (No Diagnostic Substances)"
+ },
+ "CSGS": {
+  "sector": "Unknown",
+  "industry": "Unknown"
+ },
+ "DGXX": {
+  "sector": "Finance",
+  "industry": "Finance: Consumer Services"
+ },
+ "TMC": {
+  "sector": "Basic Materials",
+  "industry": "Metal Mining"
+ },
+ "ARQT": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "STAA": {
+  "sector": "Health Care",
+  "industry": "Ophthalmic Goods"
+ },
+ "TWO": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "BKV": {
+  "sector": "Energy",
+  "industry": "Oil & Gas Production"
+ },
+ "GOLD": {
+  "sector": "Industrials",
+  "industry": "Other Specialty Stores"
+ },
+ "BBT": {
+  "sector": "Finance",
+  "industry": "Banks"
+ },
+ "DRVN": {
+  "sector": "Consumer Discretionary",
+  "industry": "Automotive Aftermarket"
+ },
+ "VCYT": {
+  "sector": "Health Care",
+  "industry": "Medical Specialities"
+ },
+ "TSSI": {
+  "sector": "Consumer Discretionary",
+  "industry": "Professional Services"
+ },
+ "NUTX": {
+  "sector": "Consumer Discretionary",
+  "industry": "Business Services"
+ },
+ "NMRK": {
+  "sector": "Finance",
+  "industry": "Real Estate"
+ },
+ "IRON": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "PVLA": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "HE": {
+  "sector": "Utilities",
+  "industry": "Electric Utilities: Central"
+ },
+ "ATRC": {
+  "sector": "Health Care",
+  "industry": "Medical/Dental Instruments"
+ },
+ "CNS": {
+  "sector": "Finance",
+  "industry": "Investment Managers"
+ },
+ "TBBK": {
+  "sector": "Finance",
+  "industry": "Major Banks"
+ },
+ "PCT": {
+  "sector": "Industrials",
+  "industry": "Major Chemicals"
+ },
+ "CBT": {
+  "sector": "Industrials",
+  "industry": "Major Chemicals"
+ },
+ "NEOG": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: In Vitro & In Vivo Diagnostic Substances"
+ },
+ "ADUS": {
+  "sector": "Health Care",
+  "industry": "Medical/Nursing Services"
+ },
+ "GERN": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "WAFD": {
+  "sector": "Finance",
+  "industry": "Major Banks"
+ },
+ "DEI": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "SPCE": {
+  "sector": "Consumer Discretionary",
+  "industry": "Transportation Services"
+ },
+ "NVCR": {
+  "sector": "Health Care",
+  "industry": "Medical/Dental Instruments"
+ },
+ "TIC": {
+  "sector": "Consumer Discretionary",
+  "industry": "Business Services"
+ },
+ "ANIP": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "WKC": {
+  "sector": "Energy",
+  "industry": "Oil Refining/Marketing"
+ },
+ "RVLV": {
+  "sector": "Consumer Discretionary",
+  "industry": "Catalog/Specialty Distribution"
+ },
+ "AAMI": {
+  "sector": "Finance",
+  "industry": "Investment Managers"
+ },
+ "RUM": {
+  "sector": "Technology",
+  "industry": "Computer Software: Programming Data Processing"
+ },
+ "BIYA": {
+  "sector": "Consumer Discretionary",
+  "industry": "Diversified Commercial Services"
+ },
+ "PRA": {
+  "sector": "Unknown",
+  "industry": "Unknown"
+ },
+ "PWP": {
+  "sector": "Finance",
+  "industry": "Finance: Consumer Services"
+ },
+ "GNW": {
+  "sector": "Finance",
+  "industry": "Life Insurance"
+ },
+ "MNTS": {
+  "sector": "Industrials",
+  "industry": "Military/Government/Technical"
+ },
+ "ABTC": {
+  "sector": "Technology",
+  "industry": "EDP Services"
+ },
+ "INTR": {
+  "sector": "Finance",
+  "industry": "Commercial Banks"
+ },
+ "PFS": {
+  "sector": "Finance",
+  "industry": "Savings Institutions"
+ },
+ "GPRE": {
+  "sector": "Industrials",
+  "industry": "Major Chemicals"
+ },
+ "OSW": {
+  "sector": "Consumer Discretionary",
+  "industry": "Hotels/Resorts"
+ },
+ "BLKB": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "BETR": {
+  "sector": "Finance",
+  "industry": "Finance: Consumer Services"
+ },
+ "SBLK": {
+  "sector": "Consumer Discretionary",
+  "industry": "Marine Transportation"
+ },
+ "RHLD": {
+  "sector": "Finance",
+  "industry": "Finance: Consumer Services"
+ },
+ "APPN": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "HLX": {
+  "sector": "Energy",
+  "industry": "Oilfield Services/Equipment"
+ },
+ "ASPI": {
+  "sector": "Industrials",
+  "industry": "Major Chemicals"
+ },
+ "PDFS": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "CRVS": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "PLAY": {
+  "sector": "Consumer Discretionary",
+  "industry": "Restaurants"
+ },
+ "FFIN": {
+  "sector": "Finance",
+  "industry": "Major Banks"
+ },
+ "GBX": {
+  "sector": "Industrials",
+  "industry": "Railroads"
+ },
+ "TH": {
+  "sector": "Consumer Discretionary",
+  "industry": "Hotels/Resorts"
+ },
+ "SPB": {
+  "sector": "Miscellaneous",
+  "industry": "Industrial Machinery/Components"
+ },
+ "CDNL": {
+  "sector": "Industrials",
+  "industry": "Military/Government/Technical"
+ },
+ "SLS": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "DLO": {
+  "sector": "Consumer Discretionary",
+  "industry": "Business Services"
+ },
+ "ADPT": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Biological Products (No Diagnostic Substances)"
+ },
+ "TRMD": {
+  "sector": "Consumer Discretionary",
+  "industry": "Marine Transportation"
+ },
+ "ENOV": {
+  "sector": "Health Care",
+  "industry": "Industrial Specialties"
+ },
+ "NMAX": {
+  "sector": "Industrials",
+  "industry": "Broadcasting"
+ },
+ "GO": {
+  "sector": "Consumer Staples",
+  "industry": "Food Chains"
+ },
+ "SNDA": {
+  "sector": "Health Care",
+  "industry": "Hospital/Nursing Management"
+ },
+ "ABSI": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Commercial Physical & Biological Resarch"
+ },
+ "IPAR": {
+  "sector": "Consumer Discretionary",
+  "industry": "Package Goods/Cosmetics"
+ },
+ "RLJ": {
+  "sector": "Real Estate",
+  "industry": "Real Estate Investment Trusts"
+ },
+ "TRN": {
+  "sector": "Industrials",
+  "industry": "Railroads"
+ },
+ "AMRX": {
+  "sector": "Health Care",
+  "industry": "Biotechnology: Pharmaceutical Preparations"
+ },
+ "ALRM": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "CAIIU": {
+  "sector": "Finance",
+  "industry": "Blank Checks"
+ },
+ "BLBD": {
+  "sector": "Consumer Discretionary",
+  "industry": "Construction/Ag Equipment/Trucks"
+ },
+ "DCH": {
+  "sector": "Consumer Discretionary",
+  "industry": "Auto Parts:O.E.M."
+ },
+ "CATY": {
+  "sector": "Finance",
+  "industry": "Major Banks"
+ },
+ "SATA": {
+  "sector": "Technology",
+  "industry": "Computer Software: Prepackaged Software"
+ },
+ "AZTA": {
+  "sector": "Technology",
+  "industry": "Industrial Machinery/Components"
+ },
+ "ANDE": {
+  "sector": "Industrials",
+  "industry": "Farming/Seeds/Milling"
+ },
+ "ODD": {
+  "sector": "Consumer Discretionary",
+  "industry": "Package Goods/Cosmetics"
+ },
+ "CURB": {
+  "sector": "Finance",
+  "industry": "Real Estate"
+ },
+ "BH": {
+  "sector": "Consumer Discretionary",
+  "industry": "Restaurants"
+ },
+ "RR": {
+  "sector": "Industrials",
+  "industry": "Industrial Machinery/Components"
+ }
+}

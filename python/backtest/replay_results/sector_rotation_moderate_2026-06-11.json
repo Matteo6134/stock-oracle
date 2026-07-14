@@ -1,0 +1,127 @@
+{
+  "window": {
+    "start": "2026-06-11",
+    "end": "2026-07-10",
+    "n_days": 20
+  },
+  "params": {
+    "pick": "moderate",
+    "n_sectors": 3,
+    "n_names_per_sector": 4,
+    "rebalance_days": 5,
+    "min_dollar_volume": 20000000,
+    "slippage_pct_per_rebalance": 0.1
+  },
+  "sector_rotation": {
+    "total_return_pct": 10.29,
+    "sharpe": 5.08,
+    "max_drawdown_pct": -3.48,
+    "win_rate_daily": 0.55,
+    "monkey_percentile": 88.0
+  },
+  "spy_benchmark": {
+    "note": "SPY missing"
+  },
+  "equal_weight_universe": {
+    "total_return_pct": 7.81,
+    "sharpe": 6.85,
+    "max_drawdown_pct": -1.76,
+    "win_rate_daily": 0.6
+  },
+  "monkey": {
+    "n": 100,
+    "median_total_return_pct": 4.84,
+    "p25_pct": 2.29,
+    "p75_pct": 7.41
+  },
+  "recent_picks": [
+    {
+      "date": "2026-06-11",
+      "sectors": [
+        "Consumer Discretionary",
+        "Telecommunications",
+        "Real Estate"
+      ],
+      "names": [
+        "AAP",
+        "TKO",
+        "ARE",
+        "CPRI",
+        "ONON",
+        "ZD",
+        "NCLH",
+        "AEO",
+        "PSMT",
+        "TJX",
+        "GOLF",
+        "HQY"
+      ]
+    },
+    {
+      "date": "2026-06-18",
+      "sectors": [
+        "Miscellaneous",
+        "Health Care",
+        "Consumer Discretionary"
+      ],
+      "names": [
+        "RCL",
+        "SW",
+        "DAL",
+        "ENVX",
+        "TECH",
+        "NSIT",
+        "BLLN",
+        "OCUL",
+        "DYN",
+        "ALKS",
+        "RARE",
+        "CHEF"
+      ]
+    },
+    {
+      "date": "2026-06-26",
+      "sectors": [
+        "Health Care",
+        "Finance",
+        "Real Estate"
+      ],
+      "names": [
+        "GPGI",
+        "CAH",
+        "KRYS",
+        "VAC",
+        "ALMS",
+        "PVLA",
+        "PRKS",
+        "VKTX",
+        "RVMD",
+        "COO",
+        "RLJ",
+        "C"
+      ]
+    },
+    {
+      "date": "2026-07-06",
+      "sectors": [
+        "Health Care",
+        "Finance",
+        "Consumer Discretionary"
+      ],
+      "names": [
+        "MDLN",
+        "WRLD",
+        "ERIE",
+        "UFPT",
+        "AJG",
+        "RSI",
+        "IMVT",
+        "PCVX",
+        "KRYS",
+        "CORT",
+        "ACHC",
+        "PRKS"
+      ]
+    }
+  ]
+}

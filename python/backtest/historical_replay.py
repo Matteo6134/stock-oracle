@@ -37,7 +37,16 @@ import numpy as np
 import pandas as pd
 
 ARCHIVE_FILE = Path(__file__).parent / "archive" / "ohlcv_daily.parquet"
+SECTORS_FILE = Path(__file__).parent / "archive" / "sectors.json"
 RESULTS_DIR = Path(__file__).parent / "replay_results"
+
+
+def load_sector_map() -> dict[str, str]:
+    """symbol -> sector, from the NASDAQ-screener snapshot. Empty dict if missing."""
+    if not SECTORS_FILE.exists():
+        return {}
+    raw = json.loads(SECTORS_FILE.read_text(encoding="utf-8"))
+    return {sym: v["sector"] for sym, v in raw.items() if v.get("sector") and v["sector"] != "Unknown"}
 
 
 def load_archive() -> pd.DataFrame:
@@ -138,12 +147,50 @@ def strategy_random(slice_df: pd.DataFrame, rng: np.random.Generator, **_) -> pd
     return slice_df.iloc[idx]
 
 
+def _top_sectors(sub: pd.DataFrame, n: int = 3) -> pd.Index:
+    """Rank sectors by mean lagged 20d return across the day's liquid slice."""
+    return sub.groupby("sector")["return_20d_pct"].mean().nlargest(n).index
+
+
+def strategy_sector_rotation(slice_df: pd.DataFrame, **_) -> pd.Series | None:
+    """Only fish in the top-3 sectors by 20d momentum; buy the relative-strength leader.
+    All features are lagged 1 day upstream, so sector ranks use yesterday's info only."""
+    if "sector" not in slice_df.columns:
+        return None
+    sub = slice_df.dropna(subset=["return_20d_pct"])
+    sub = sub[sub["sector"].notna()]
+    if sub.empty:
+        return None
+    top = sub[sub["sector"].isin(_top_sectors(sub))]
+    if top.empty:
+        return None
+    return top.nlargest(1, "return_20d_pct").iloc[0]
+
+
+def strategy_sector_compression(slice_df: pd.DataFrame, **_) -> pd.Series | None:
+    """Top-3 sectors by 20d momentum -> uptrend names only -> tightest 5d range.
+    Price-only proxy of the bot's best-measured signals (volume_contraction/bb_squeeze)
+    applied inside the strongest sectors instead of the whole market."""
+    if "sector" not in slice_df.columns:
+        return None
+    sub = slice_df.dropna(subset=["return_20d_pct", "range_5d_pct", "dist_sma20_pct"])
+    sub = sub[sub["sector"].notna()]
+    if sub.empty:
+        return None
+    top = sub[sub["sector"].isin(_top_sectors(sub)) & (sub["dist_sma20_pct"] > 0)]
+    if top.empty:
+        return None
+    return top.nsmallest(1, "range_5d_pct").iloc[0]
+
+
 STRATEGIES = {
     "momentum": strategy_momentum,
     "mean_reversion": strategy_mean_reversion,
     "volume_spike": strategy_volume_spike,
     "composite": strategy_composite,
     "random": strategy_random,
+    "sector_rotation": strategy_sector_rotation,
+    "sector_compression": strategy_sector_compression,
 }
 
 
@@ -311,6 +358,14 @@ def main():
     df = add_features(df_raw)
     del df_raw
     gc.collect()
+
+    sector_map = load_sector_map()
+    if sector_map:
+        df["sector"] = df["symbol"].map(sector_map)
+        n_mapped = df.loc[df["sector"].notna(), "symbol"].nunique()
+        print(f"[replay] sector map: {n_mapped}/{df['symbol'].nunique()} symbols mapped")
+    else:
+        print("[replay] no sectors.json — sector strategies unavailable")
     print(f"[replay] backtest window: {args.start.date()} .. {args.end.date()}")
 
     spy = benchmark_spy(df, args.start, args.end)

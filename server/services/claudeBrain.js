@@ -153,7 +153,7 @@ PRICE: $${stock.price} | Change: ${(stock.changePct || 0).toFixed(1)}%
 VOLUME RATIO: ${(stock.volumeRatio || 0).toFixed(1)}x (vs 20-day avg)
 GEM SCORE: ${stock.gemScore || 0}/100
 SOURCE: ${stock.source || 'unknown'}
-CONSENSUS: ${stock.consensus} (${stock.buyCount || 0}/5 agents say BUY, avg conviction ${stock.avgConviction || 0})
+CONSENSUS: ${stock.consensus} (${stock.buyCount || 0}/6 agents say BUY, avg conviction ${stock.avgConviction || 0})
 
 SIGNALS: ${signalList || 'none'}
 

@@ -22,6 +22,7 @@ import { recordOutcome } from './claudeTracker.js';
 import { signalPerformance } from './tradeStats.js';
 import { getSignalReport, getComboBonus } from './signalLearner.js';
 import { getAnalog, analogVeto } from './analogStats.js';
+import { sectorGateVeto } from './sectorGate.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const CONFIG_FILE = path.join(__dirname, '..', 'data', 'autoTradeConfig.json');
@@ -51,6 +52,11 @@ const DEFAULT_CONFIG = {
   // captured ~0%. First 15 min skipped (lowest morning win rate). Empty = off.
   entryWindowStart: '09:45',
   entryWindowEnd: '13:30',
+  // Sector gate: block NEW entries in sectors outside the top-3 by 20d momentum
+  // (server/data/sectorGate.json, refreshed daily 08:30 ET). Backtest
+  // sector_rotation_backtest.py: beat monkey in 2022-26 AND the June-26 stress
+  // window. Fails open when the gate file is stale/missing. Exits untouched.
+  sectorGateEnabled: true,
 };
 
 // Reset old restrictive configs on first load
@@ -295,6 +301,15 @@ export async function processSignals(analyzedStocks) {
       continue;
     }
 
+    // Sector gate — only enter sectors currently in the measured top-3 by momentum
+    if (config.sectorGateEnabled !== false) {
+      const gateVeto = sectorGateVeto(symbol);
+      if (gateVeto) {
+        results.skipped.push({ symbol, reason: gateVeto, gemScore, price });
+        continue;
+      }
+    }
+
     // Require order flow confirmation (insider buying, options, or institutions)
     if (config.requireOrderFlow) {
       const hasOrderFlow = (signals || []).some(s =>
@@ -413,7 +428,7 @@ export async function processSignals(analyzedStocks) {
     );
 
     try {
-      console.log(`[AutoTrader] BUY ${symbol} — ${consensus} (${buyCount}/5 agents, conviction ${avgConviction}, score ${gemScore}) — $${amount} (edge sizing ${(conviction * 100).toFixed(0)}%)`);
+      console.log(`[AutoTrader] BUY ${symbol} — ${consensus} (${buyCount}/6 agents, conviction ${avgConviction}, score ${gemScore}) — $${amount} (edge sizing ${(conviction * 100).toFixed(0)}%)`);
 
       // Use marketable limit order (+0.5% above current) instead of pure market.
       // Market orders on thinly-traded small/penny stocks can eat 1-3% in slippage.

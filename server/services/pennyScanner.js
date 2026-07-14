@@ -9,32 +9,9 @@
  */
 
 import { getQuoteBatch, getHistoricalData } from './yahooFinance.js';
-import { getShortSqueezeSetups, STOCK_UNIVERSE } from './premarketScanner.js';
+import { getShortSqueezeSetups } from './premarketScanner.js';
 import { getOrderFlow } from './orderFlow.js';
-
-// ── Penny-specific universe (known sub-$5 runners) ──
-const PENNY_UNIVERSE = [
-  // Biotech pennies
-  'SNDL', 'TLRY', 'OCGN', 'VXRT', 'BNGO', 'SER', 'INBS', 'AQST', 'NKTR', 'MNKD',
-  'CABA', 'MDXH', 'APRE', 'QURE', 'DNA', 'NVAX',
-  // EV / Clean Energy pennies
-  'NKLA', 'GOEV', 'WKHS', 'FCEL', 'PLUG', 'CHPT', 'BLDP', 'GEVO',
-  // Meme / volatile pennies
-  'AMC', 'FFIE', 'MULN', 'NILE', 'WISA', 'WISH', 'CLOV',
-  // Space / Tech micro-caps
-  'SPCE', 'ASTR', 'RDW', 'JOBY', 'LILM',
-  // Lidar / Sensors
-  'LAZR', 'MVIS',
-  // Cannabis
-  'CGC', 'ACB', 'HEXO', 'OGI', 'GRWG',
-  // Additional volatile micro-caps
-  'OPEN', 'STEM', 'QS', 'LCID', 'NIO', 'XPEV',
-  'IONQ', 'RGTI', 'QUBT',
-  // Mining / Resources
-  'VALE', 'BTG', 'CDE', 'HL', 'AG',
-  // Misc penny runners
-  'BBAI', 'ASTS', 'LUNR', 'RKLB', 'ENVX',
-];
+import { getPennyUniverse, getScanUniverse } from './sectorGate.js';
 
 // ── Cache keyed by maxPrice ──
 const cache = new Map();
@@ -173,14 +150,9 @@ function calculatePennyScore(signals, details, hist) {
 
 async function _scan(maxPrice) {
   try {
-    // Build universe: penny-specific + anything from main universe
-    const mainSymbols = [
-      ...STOCK_UNIVERSE.SMALL_MID_CAPS,
-      ...STOCK_UNIVERSE.BIOTECH_PHARMA,
-      ...STOCK_UNIVERSE.MEME_VOLATILE,
-      ...STOCK_UNIVERSE.RECENT_IPOS,
-    ];
-    const allSymbols = [...new Set([...PENNY_UNIVERSE, ...mainSymbols])];
+    // Universe: 100% data-driven (sectorGate.json, daily) — liquid sub-$5
+    // names + the main scan universe (price filter below drops the rest).
+    const allSymbols = [...new Set([...getPennyUniverse(), ...getScanUniverse()])];
 
     console.log(`[PennyScanner] Scanning ${allSymbols.length} symbols for pennies under $${maxPrice}...`);
 

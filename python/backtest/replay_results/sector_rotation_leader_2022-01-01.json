@@ -1,0 +1,127 @@
+{
+  "window": {
+    "start": "2022-01-03",
+    "end": "2026-07-10",
+    "n_days": 1133
+  },
+  "params": {
+    "pick": "leader",
+    "n_sectors": 3,
+    "n_names_per_sector": 4,
+    "rebalance_days": 5,
+    "min_dollar_volume": 20000000,
+    "slippage_pct_per_rebalance": 0.1
+  },
+  "sector_rotation": {
+    "total_return_pct": 244.15,
+    "sharpe": 0.77,
+    "max_drawdown_pct": -64.7,
+    "win_rate_daily": 0.514,
+    "monkey_percentile": 100.0
+  },
+  "spy_benchmark": {
+    "note": "SPY missing"
+  },
+  "equal_weight_universe": {
+    "total_return_pct": 121.47,
+    "sharpe": 0.9,
+    "max_drawdown_pct": -25.5,
+    "win_rate_daily": 0.521
+  },
+  "monkey": {
+    "n": 100,
+    "median_total_return_pct": 19.78,
+    "p25_pct": -6.91,
+    "p75_pct": 39.12
+  },
+  "recent_picks": [
+    {
+      "date": "2026-06-15",
+      "sectors": [
+        "Consumer Discretionary",
+        "Consumer Staples",
+        "Technology"
+      ],
+      "names": [
+        "SDOT",
+        "AMC",
+        "ARM",
+        "RXO",
+        "ALAB",
+        "CBRL",
+        "DELL",
+        "VSH",
+        "SNOW",
+        "WGS",
+        "MRVL",
+        "SWMR"
+      ]
+    },
+    {
+      "date": "2026-06-23",
+      "sectors": [
+        "Health Care",
+        "Miscellaneous",
+        "Industrials"
+      ],
+      "names": [
+        "DD",
+        "REPL",
+        "QURE",
+        "ABSI",
+        "BFLY",
+        "DFTX",
+        "APGE",
+        "CDNL",
+        "COHU",
+        "ORKA",
+        "TWST",
+        "ASPI"
+      ]
+    },
+    {
+      "date": "2026-06-30",
+      "sectors": [
+        "Health Care",
+        "Consumer Discretionary",
+        "Real Estate"
+      ],
+      "names": [
+        "SDOT",
+        "BFLY",
+        "DFTX",
+        "ABSI",
+        "QURE",
+        "SLS",
+        "APGE",
+        "CBRL",
+        "ORKA",
+        "ALHC",
+        "TNGX",
+        "MRNA"
+      ]
+    },
+    {
+      "date": "2026-07-08",
+      "sectors": [
+        "Health Care",
+        "Finance",
+        "Consumer Discretionary"
+      ],
+      "names": [
+        "SDOT",
+        "CRNX",
+        "DFTX",
+        "ODD",
+        "ABSI",
+        "MRNA",
+        "BFLY",
+        "SLS",
+        "RARE",
+        "GRPN",
+        "KYMR",
+        "QURE"
+      ]
+    }
+  ]
+}

@@ -4,6 +4,7 @@ import {
   getMostActive,
   getTrendingStocks,
 } from './yahooFinance.js';
+import { getSectorCandidates } from './sectorGate.js';
 
 const CACHE_TTL_MS = 30 * 60 * 1000;
 const MAX_SYMBOLS = 200;
@@ -62,7 +63,14 @@ export async function getDynamicSymbols({ force = false } = {}) {
         .map((s) => String(s).toUpperCase())
         .filter(isExchangeSupported);
 
+    // Sector-gate candidates FIRST: moderate-momentum names inside the top
+    // sectors (measured edge) get priority over the chase-the-pump sources
+    // (gainers/trending) when the MAX_SYMBOLS cap truncates the list.
+    const sectorCandidates = extract(getSectorCandidates());
+    sources.sector_gate = sectorCandidates.length;
+
     const combined = [
+      ...sectorCandidates,
       ...extract(dayGainers),
       ...extract(smallCapGainers),
       ...extract(mostActive),
@@ -77,7 +85,8 @@ export async function getDynamicSymbols({ force = false } = {}) {
 
     console.log(
       `[DynamicDiscovery] ${unique.length} symbols ` +
-        `(gainers=${sources.day_gainers}, smallCap=${sources.small_cap_gainers}, ` +
+        `(sectorGate=${sources.sector_gate}, gainers=${sources.day_gainers}, ` +
+        `smallCap=${sources.small_cap_gainers}, ` +
         `active=${sources.most_actives}, trending=${sources.trending})`
     );
 

@@ -8,119 +8,12 @@ import { getDynamicSymbols, getCachedDynamicSymbols } from './dynamicDiscovery.j
 const yf = new YahooFinance({ suppressNotices: ['yahooSurvey', 'ripHistorical'], validation: { logErrors: false, logOptionsErrors: false } });
 
 // ────────────────────────────────────────────────────────────────────────────
-// Stock Universe (~200 symbols organized by category)
-// ────────────────────────────────────────────────────────────────────────────
-
-const SMALL_MID_CAPS = [
-  // Fintech / Growth
-  'SOFI', 'HOOD', 'UPST', 'AFRM', 'SQ', 'SHOP', 'NU', 'PAGS', 'STNE', 'FUTU', 'TIGR',
-  // Cloud / Cyber / SaaS
-  'NET', 'CRWD', 'SNOW', 'DDOG', 'ZS', 'BILL', 'MDB', 'S',
-  // Consumer / Social / Streaming
-  'PLTR', 'SNAP', 'PINS', 'ROKU', 'DKNG', 'RBLX', 'HIMS', 'CELH', 'MNST', 'MAX', 'GRAB',
-  // Semis / Hardware
-  'SMCI', 'ARM', 'IONQ', 'RGTI', 'QUBT', 'ON', 'MRVL', 'LSCC', 'SWKS', 'QRVO',
-  'NXPI', 'MTSI', 'ACLS', 'POWI', 'DIOD', 'SLAB',
-  // EV / Clean Energy
-  'RIVN', 'LCID', 'NIO', 'XPEV', 'LI', 'CHPT', 'PLUG', 'FCEL', 'BLDP', 'QS', 'NKLA', 'GOEV', 'WKHS',
-  // Space / Defense
-  'SPCE', 'ASTR', 'RDW', 'LUNR', 'RKLB', 'ASTS', 'JOBY', 'LILM', 'BBAI',
-  // Green / Alt Energy
-  'GEVO', 'BE', 'STEM', 'ENVX', 'WOLF', 'DNA',
-  // Lidar / Sensors
-  'LAZR', 'MVIS',
-  // LatAm / Asia ecommerce
-  'SE', 'MELI', 'BABA', 'PDD', 'JD', 'BIDU', 'TME', 'CPNG',
-  // Misc small caps
-  'CLOV', 'WISH', 'OPEN',
-];
-
-const BIOTECH_PHARMA = [
-  // mRNA / Vaccines
-  'MRNA', 'BNTX', 'NVAX',
-  // Gene Editing / Therapy
-  'CRSP', 'EDIT', 'NTLA', 'BEAM',
-  // Rare Disease / Specialty
-  'SRPT', 'SGEN', 'RARE', 'VRTX', 'BMRN',
-  // Antisense / RNA
-  'IONS', 'ALNY',
-  // Oncology / Immunology
-  'REGN', 'EXEL', 'INCY', 'HALO',
-  // Clinical-stage
-  'PCVX', 'IOVA', 'RCKT', 'FATE', 'KRTX', 'PRAX', 'ARVN', 'GTHX', 'TGTX',
-  // Micro-cap biotech runners (penny stock territory but explosive)
-  'SER', 'BNGO', 'SNDL', 'TLRY', 'OCGN', 'VXRT', 'CLOV', 'WKHS', 'GOEV',
-  'APRE', 'QURE', 'INBS', 'AQST', 'CABA', 'MDXH', 'NKTR', 'MNKD',
-];
-
-const MEME_VOLATILE = [
-  'GME', 'AMC', 'BBBY', 'BB', 'NOK', 'CLOV', 'WISH',
-  'IRNT', 'ATER', 'FAZE', 'MULN', 'FFIE', 'NILE',
-  'PHUN', 'DWAC', 'BENE', 'WISA',
-];
-
-const RECENT_IPOS = [
-  'ARM', 'BIRK', 'CART', 'CAVA', 'KVYO', 'TOST', 'DUOL',
-  'BROS', 'DNUT', 'VRT', 'SMCI', 'ONON', 'CELH',
-];
-
-// ── Popular Revolut stocks that were MISSING from our universe ──
-// These are the tickers that appear on Revolut's "Top Movers" but we never scanned
-const REVOLUT_POPULAR = [
-  // AI / Quantum — the hottest Revolut movers
-  'AI', 'SOUN', 'BBAI', 'QBTS', 'RGTI', 'QUBT', 'IONQ',
-  'GOOG', 'MSFT', 'NVDA', 'AMD', 'INTC', 'TSM', 'AVGO', 'MU', 'LRCX', 'AMAT',
-  // EV / Mobility
-  'TSLA', 'RIVN', 'LCID', 'NIO', 'XPEV', 'LI', 'NKLA', 'GOEV', 'JOBY', 'LILM',
-  // Nuclear / Energy trending
-  'SMR', 'OKLO', 'LEU', 'UEC', 'CCJ', 'DNN', 'NXE', 'UUUU',
-  // Biotech runners — FDA catalyst potential
-  'RXRX', 'REPL', 'IMMP', 'TEM', 'MDGL', 'SAVA', 'BNGO', 'NKTR', 'MNKD',
-  'APLS', 'FOLD', 'VRNA', 'KRYS', 'ARQT', 'GERN',
-  // Retail / Consumer popular on Revolut
-  'BIRD', 'GPRO', 'FIGS', 'DTC', 'PRPL', 'WRBY',
-  // Tech mid-caps popular on Revolut
-  'LUMN', 'PGY', 'IREN', 'BTDR', 'HUT', 'MARA', 'RIOT', 'CLSK',
-  'AFRM', 'UPST', 'SOFI', 'HOOD',
-  // Streaming / Media
-  'NFLX', 'DIS', 'WBD', 'PARA',
-  // Space / Defense popular
-  'RKLB', 'LUNR', 'ASTS', 'BWXT',
-  // Finance / Fintech
-  'SQ', 'PYPL', 'COIN', 'ROBH',
-  // Travel / Leisure (Revolut users love these)
-  'ABNB', 'UBER', 'LYFT', 'DAL', 'UAL', 'AAL',
-  // Meme / Social trending
-  'GME', 'AMC', 'BB', 'NOK', 'CLOV', 'WISH', 'OPEN',
-  // Healthcare popular
-  'HIMS', 'TDOC', 'DOCS', 'OSCR',
-  // AUR, OWL, SNAP (seen in Yahoo trending)
-  'AUR', 'OWL', 'SNAP',
-];
-
-// Micro-cap gems — the kind that go from $1 to $10 overnight
-// These are the stocks the user specifically wants to track
-const MICRO_CAP_GEMS = [
-  // User-requested tickers
-  'JFB', 'BZAI', 'ROMA', 'ANNA', 'MRLN', 'AAOI',
-  // Photonics / Fiber optics / Tech micro-caps
-  'LTRX', 'AUVI', 'CUEN', 'BIMI', 'VNET', 'LIQT', 'SOPA', 'WIMI',
-  // AI / Data micro-caps
-  'GFAI', 'DTSS', 'INOD', 'BTBT', 'SOS', 'EOSE', 'OUST',
-  // Fintech micro-caps
-  'CODA', 'PSFE', 'PAYO', 'NUVB', 'PRCH',
-  // Biotech micro-caps with catalyst potential
-  'MBOT', 'VSTM', 'MVST', 'BIOR', 'SLDB', 'RVPH',
-  // Energy / Mining micro-caps
-  'UROY', 'DNN', 'NXE', 'PTRA', 'WKSP',
-  // Consumer / Retail micro-caps
-  'SFIX', 'REAL', 'CINT', 'PRPL',
-  // Space / Defense micro-caps
-  'MNTS', 'VORB', 'ASTR',
-  // Cannabis micro-caps
-  'MAPS', 'GRWG',
-];
-
+// Stock universe: 100% data-driven. The daily scan list comes from
+// sectorGate.json (sector_gate.py, 08:30 ET) via sectorGate.js; the broad
+// base is the liquidity-filtered archive universe (universe_active.json).
+// The old hand-curated category arrays (SMALL_MID_CAPS, MEME_VOLATILE, ...)
+// were removed 2026-07-14 — they froze the bot's taste to the 2021-era
+// meme/space/quantum complex that caused the June 2026 drawdown.
 // ────────────────────────────────────────────────────────────────────────────
 // Caches
 // ────────────────────────────────────────────────────────────────────────────
@@ -186,12 +79,6 @@ function buildUniverse(earningsCalendar = []) {
     ...earningsSymbols,
     ...getCachedDynamicSymbols(),
     ...getArchiveUniverse(),
-    ...SMALL_MID_CAPS,
-    ...BIOTECH_PHARMA,
-    ...MEME_VOLATILE,
-    ...RECENT_IPOS,
-    ...REVOLUT_POPULAR,
-    ...MICRO_CAP_GEMS,
   ];
 
   // Deduplicate
@@ -769,18 +656,3 @@ export async function getBreakoutSetups(symbols = []) {
   return results;
 }
 
-// ────────────────────────────────────────────────────────────────────────────
-// Exports summary for convenience
-// ────────────────────────────────────────────────────────────────────────────
-
-export const STOCK_UNIVERSE = {
-  SMALL_MID_CAPS,
-  BIOTECH_PHARMA,
-  MEME_VOLATILE,
-  RECENT_IPOS,
-  REVOLUT_POPULAR,
-  MICRO_CAP_GEMS,
-  get ALL() {
-    return buildUniverse();
-  },
-};
